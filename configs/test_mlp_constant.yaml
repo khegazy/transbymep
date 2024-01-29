@@ -1,0 +1,9 @@
+initial_point : [0,0]
+final_point : [2,2]
+path_params : 
+    width : 256
+    depth : 5
+potential : constant
+potential_params :
+    scale : 1
+optimizer : gradient_descent

@@ -1,6 +1,6 @@
 
 class logging():
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
         print("init logging")
     
     def training_logger(self, step, val):

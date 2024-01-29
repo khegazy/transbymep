@@ -1,0 +1,5 @@
+minima_step_factor : 0.0001
+minima_num_steps : 10000
+path_samples : 50
+path_step_factor : 0.00001
+path_num_steps : 60000

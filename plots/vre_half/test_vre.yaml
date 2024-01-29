@@ -1,0 +1,12 @@
+initial_point : [1.0, -1.5]
+#final_point : [-1.5, -0.5]
+#final_point : [-1.2, 1.5]
+final_point : [-1.2, -0.2]
+potential : wolfe_schlegel
+path : mlp
+path_config : test
+loss_functions :
+    vre_residual : [1., {}]
+optimizer : sgd
+optimizer_params :
+    learning_rate : 0.005

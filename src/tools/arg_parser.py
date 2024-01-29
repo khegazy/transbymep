@@ -7,6 +7,9 @@ def build_default_arg_parser() -> argparse.ArgumentParser:
 
     # Name, seed, directory
     parser.add_argument("--name", help="experiment name", required=True)
+    parser.add_argument("--potential_tag", help="potential name", type=str, default=None, required=False)
+    parser.add_argument("--path_tag", help="path tag", type=str, default="", required=False)
+    parser.add_argument("--tag", help="run tag", type=str, default="", required=False)
     parser.add_argument("--seed", help="random seed", type=int, default=123)
     parser.add_argument(
         "--output_dir",
@@ -15,13 +18,22 @@ def build_default_arg_parser() -> argparse.ArgumentParser:
         default="./output"
     )
 
+    # Path description
+    parser.add_argument(
+        "--path",
+        help="name of the path calculation procedure",
+        type=str,
+        default="mlp",
+        required=False
+    )
+
     # Chemical potential
     parser.add_argument(
         "--potential", 
         help="name of chemical potential", 
         type=str,
         default=None,
-        required=True
+        required=False
     )
 
     # Optimizer

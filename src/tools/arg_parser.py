@@ -43,5 +43,8 @@ def build_default_arg_parser() -> argparse.ArgumentParser:
         type=str,
         default="gradient_descent",
     )
+    parser.add_argument(
+        '--minimize_end_points', default=False, action='store_true'
+    )
 
     return parser

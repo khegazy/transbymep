@@ -54,5 +54,14 @@ class BasePath(eqx.Module):
         pes_path, pes_grad = eqx.filter_value_and_grad(self.potential.evaluate)(geo_path)
         return geo_path, geo_grad, pes_path, pes_grad
     
+    def E_vre(self, t, y, *args):
+        return metrics.E_vre(*self.total_grad_path(t, y, *args))
+    
+    def E_pvre(self, t, y, *args):
+        return metrics.E_pvre(*self.total_grad_path(t, y, *args))
+    
+    def E_pvre_mag(self, t, y, *args):
+        return metrics.E_pvre_mag(*self.total_grad_path(t, y, *args))
+    
     def vre_residual(self, t, y, *args):
         return metrics.vre_residual(*self.total_grad_path(t, y, *args))

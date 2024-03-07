@@ -8,11 +8,23 @@ from ..tools import metrics
 def pes_integral(path, integrator):
     return integrator.path_integral(path.pes_path)
 
+def E_vre_integral(path, integrator):
+    return integrator.path_integral(path.E_vre)
+
+def E_pvre_integral(path, integrator):
+    return integrator.path_integral(path.E_pvre)
+
+def E_pvre_mag_integral(path, integrator):
+    return integrator.path_integral(path.E_pvre_mag)
+
 def vre_residual_integral(path, integrator):
     return integrator.path_integral(path.vre_residual)
 
 loss_dict = {
     'pes' : pes_integral,
+    'e_vre' : E_vre_integral,
+    'e_pvre' : E_pvre_integral,
+    'e_pvre_mag' : E_pvre_mag_integral,
     'vre_residual' : vre_residual_integral
 }
 

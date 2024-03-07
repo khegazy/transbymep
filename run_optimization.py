@@ -1,4 +1,5 @@
 import os
+import sys
 import jax.numpy as jnp
 import numpy as np
 from jax import random
@@ -45,6 +46,15 @@ if __name__ == "__main__":
         expect_config=config.potential!="constant"
     )
 
+    if args.minimize_end_points:
+        minima_finder = optimization.MinimaUpdate(potential)
+        minima = minima_finder.find_minima(
+            [config.initial_point, config.final_point]
+        )
+        print(f"Optimized Initial Point: {minima[0]}")
+        print(f"Optimized Final Point: {minima[1]}")
+        sys.exit(0)
+
     # Get path calculation method
     path, filter_spec = paths.get_path(
         config.path,
@@ -88,12 +98,12 @@ if __name__ == "__main__":
     #print("opt_state", opt_state)
     geo_paths = []
     pes_paths = []
-    for i in range(20000):
+    for i in range(10000):
         diff_path, static_path = eqx.partition(path, filter_spec)
         #print("diff_path", diff_path)
         #print("static_path", static_path)
         loss, grads = loss_grad_fxn(diff_path, static_path, integrator)
-        if i%500 == 0:
+        if i%250 == 0:
             print("Step", i)
             print("loss", loss)
             print(path.total_grad_path(0.55, 0.))

@@ -37,7 +37,15 @@ def import_yaml(address, is_expected=False):
         ImportWarning(f"Cannot find file {address}, still running")
         return {}
 
-def import_run_config(name, path_tag="", tag="", potential_tag="", dir="./configs/", is_expected=True):
+def import_run_config(
+        name,
+        path_tag="",
+        tag="",
+        potential_tag="",
+        dir="./configs/",
+        is_expected=True,
+        flags=None
+    ):
     #filename = f"{name}_{path_type}"
     filename = name
     filename += f"_{tag}" if tag != "" else ""
@@ -55,9 +63,19 @@ def import_run_config(name, path_tag="", tag="", potential_tag="", dir="./config
     for fxn in config.loss_functions.keys():
         config.loss_functions[fxn] = tuple(config.loss_functions[fxn])
 
+    if flags is not None:
+        if flags.add_azimuthal_dof is not None:
+            config.initial_point[0] += flags.add_azimuthal_dof 
+            config.final_point[0] += flags.add_azimuthal_dof 
+
     return config
 
-def import_path_config(run_config, path_tag="", dir="./src/paths/configs/", is_expected=True):
+def import_path_config(
+        run_config,
+        path_tag="",
+        dir="./src/paths/configs/",
+        is_expected=True,
+    ):
     filename = f"{run_config.path}_{run_config.path_config}"
     filename += f"_{path_tag}" if path_tag != "" else ""
     filename += ".yaml"
@@ -65,7 +83,7 @@ def import_path_config(run_config, path_tag="", dir="./src/paths/configs/", is_e
     
     print("path yaml inp", yaml_config)
     config = PathConfig(name=run_config.path, **yaml_config, tag=path_tag)
-
+    
     return config
 
 

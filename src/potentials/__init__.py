@@ -1,13 +1,14 @@
 import os
 import yaml
 
-from .wolfe_schlegel import wolfe_schlegel
-from .muller_brown import muller_brown
+from .wolfe_schlegel import WolfeSchlegel, RotatedWolfeSchlegel
+from .muller_brown import MullerBrown
 from .constant import Constant
 
 potential_dict = {
-    "wolfe_schlegel" : wolfe_schlegel,
-    "muller_brown" : muller_brown,
+    "wolfe_schlegel" : WolfeSchlegel,
+    "rotated_wolfe_schlegel" : RotatedWolfeSchlegel,
+    "muller_brown" : MullerBrown,
     "constant" : Constant
 }
 
@@ -35,7 +36,8 @@ def get_potential(
         potential,
         tag="",
         config_dir="./src/potentials/configs/",
-        expect_config=False
+        expect_config=False,
+        **kwargs
     ):
     assert potential.lower() in potential_dict
     config_filename = potential
@@ -44,4 +46,4 @@ def get_potential(
     config = import_potential_config(
         potential, tag, dir=config_dir, is_expected=expect_config
     )
-    return potential_dict[potential](**config)
+    return potential_dict[potential](**config, **kwargs)

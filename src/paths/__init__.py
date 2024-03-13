@@ -12,6 +12,7 @@ path_dict = {
 }
 
 def get_path(name, potential, initial_point, final_point, **config):
+    print(config)
     name = name.lower()
     if name not in path_dict:
         raise ValueError(f"Cannot get path {name}, can only handle paths {path_dict.keys()}")
@@ -20,8 +21,10 @@ def get_path(name, potential, initial_point, final_point, **config):
     
     filter_spec = jtu.tree_map(lambda _: True, path)
     filter_spec = eqx.tree_at(
-        lambda tree: (tree.initial_point, tree.final_point, tree.potential),
+        path.tree_filter_fxn,
+        #lambda tree: (tree.initial_point, tree.final_point, tree.potential),
         filter_spec,
-        replace=(False, False, False),
+        replace=[False,]*path.tree_filter_fxn(None, get_len=True),
+        #replace=(False, False, False),
     )
     return path, filter_spec

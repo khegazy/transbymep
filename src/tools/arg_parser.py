@@ -47,4 +47,14 @@ def build_default_arg_parser() -> argparse.ArgumentParser:
         '--minimize_end_points', default=False, action='store_true'
     )
 
+    # Debuging and testing
+    parser.add_argument(
+        '--debug', default=False, action='store_true'
+    )
+    parser.add_argument(
+        '--add_azimuthal_dof', default=None, type=float
+    )
+    parser.add_argument(
+        '--add_translation_dof', default=None, type=float
+    )
     return parser

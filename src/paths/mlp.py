@@ -16,13 +16,12 @@ class MLPpath(BasePath):
         n_embed=32,
         depth=3,
         seed=123,
-        **kwargs
+        scale_init=1.,
     ):
         super().__init__(
             potential=potential,
             initial_point=initial_point,
             final_point=final_point,
-            **kwargs
         )
         key = jax.random.PRNGKey(seed)
         self.mlp = eqx.nn.MLP(
@@ -33,6 +32,8 @@ class MLPpath(BasePath):
             activation=jax.nn.softplus,
             key=key,
         )
+        #for i in range(len(self.mlp.layers)):
+        #    self.mlp.layers[i].weight = scale_init*self.mlp.layers[i].weight
 
     """
     def pes_path(self, t, y, *args):
@@ -43,9 +44,10 @@ class MLPpath(BasePath):
     
     """
     def geometric_path(self, time, y, *args):
-        return self.mlp(time)\
-            - (1 - time)*(self.mlp(jnp.array([0.])) - self.initial_point)\
-            - time*(self.mlp(jnp.array([1.])) - self.final_point)
+        scale = 1.
+        return self.mlp(time)*scale\
+            - (1 - time)*(self.mlp(jnp.array([0.]))*scale - self.initial_point)\
+            - time*(self.mlp(jnp.array([1.]))*scale - self.final_point)
 
     def get_path(self, times=None):
         if times is None:

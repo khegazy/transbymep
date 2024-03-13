@@ -29,8 +29,12 @@ if __name__ == "__main__":
     arg_parser = tools.build_default_arg_parser()
     args = arg_parser.parse_args()
 
-    config = tools.import_run_config(args.name, args.path_tag, args.tag)
-    path_config = tools.import_path_config(config, args.path_tag)
+    config = tools.import_run_config(
+        args.name, path_tag=args.path_tag, tag=args.tag, flags=args
+    )
+    path_config = tools.import_path_config(
+        config, path_tag=args.path_tag
+    )
     print("fin config", config)
 
     # Create output directories
@@ -43,7 +47,9 @@ if __name__ == "__main__":
     potential = get_potential(
         config.potential,
         tag=config.potential_tag,
-        expect_config=config.potential!="constant"
+        expect_config=config.potential!="constant",
+        add_azimuthal_dof=args.add_azimuthal_dof,
+        add_translation_dof=args.add_translation_dof
     )
 
     if args.minimize_end_points:
@@ -61,6 +67,8 @@ if __name__ == "__main__":
         potential,
         config.initial_point,
         config.final_point,
+        #add_azimuthal_dof=args.add_azimuthal_dof,
+        #add_translation_dof=args.add_translation_dof,
         **path_config.path_params
     )
     """
@@ -117,8 +125,11 @@ if __name__ == "__main__":
             pes_paths.append(pes_path)
             visualize.plot_path(
                 geo_path, f"test_plot_{i:03d}", pes_fxn=potential,
-                x_min=-2, x_max=2, y_min=-2, y_max=2,
-                levels=np.arange(-100,100,5))
+                plot_min_max=(-2, 2, -2, 2),
+                levels=np.arange(-100, 100, 5),
+                add_translation_dof=args.add_translation_dof,
+                add_azimuthal_dof=args.add_azimuthal_dof
+            )
 
         updates, opt_state = optim.update(grads, opt_state)
         #print("grads", grads.initial_point)
@@ -126,13 +137,17 @@ if __name__ == "__main__":
         path = eqx.apply_updates(path, updates)
         #plot_times = jnp.expand_dims(jnp.arange(100, dtype=float), 1)/99
 
+    """
     print("PATH LISTS", len(geo_paths), geo_paths[0].shape, geo_paths[0])
     ani_name = f"{config.potential}_W{path_config.path_params['n_embed']}_D{path_config.path_params['depth']}_LR{config.optimizer_params['learning_rate']}"
     visualize.animate_optimization_2d(
         geo_paths, ani_name, ani_name,
-        potential, x_min=-2, x_max=2, y_min=-2, y_max=2,
-        levels=np.arange(-100,100,5)
+        potential, plot_min_max=(-2, 2, -2, 2),
+        levels=np.arange(-100,100,5),
+        add_translation_dof=args.add_translation_dof,
+        add_azimuthal_dof=args.add_azimuthal_dof
     )
+    """
     """
     learning_rate = 0.1
     def update(params):

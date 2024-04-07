@@ -6,6 +6,7 @@ import equinox as eqx
 from .losses import get_loss
 from .integrator import ODEintegrator
 from .update_minima import MinimaUpdate
+from .initialize_path import randomly_initialize_path
 
 optimizer_dict = {
     "sgd" : optax.sgd,

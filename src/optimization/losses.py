@@ -30,7 +30,6 @@ loss_dict = {
 
 def get_loss(loss_types):
     loss_subfxns = []
-    print("HERE", loss_types)
     for name, (weight, config) in loss_types.items():
         if name.lower() not in loss_dict:
             raise ValueError(f"get_loss does not recognize loss {name.lower()}, either add it to loss_dict or use {list(loss_dict.keys())}.")

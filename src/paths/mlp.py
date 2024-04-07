@@ -43,7 +43,7 @@ class MLPpath(BasePath):
         return self.potential.evaluate(self.geometric_path(jnp.array([t]), y , *args))
     
     """
-    def geometric_path(self, time, y, *args):
+    def geometric_path(self, time, y=None, *args):
         scale = 1.
         return self.mlp(time)*scale\
             - (1 - time)*(self.mlp(jnp.array([0.]))*scale - self.initial_point)\

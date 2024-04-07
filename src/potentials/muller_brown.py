@@ -2,7 +2,7 @@ import jax
 import jax.numpy as jnp
 
 @jax.jit
-def muller_brown(point):
+def MullerBrown(point):
     x, y = point
 
     ai = [-200.0, -100.0, -170.0, 15.0]

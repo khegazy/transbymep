@@ -66,7 +66,11 @@ def import_run_config(
     if flags is not None:
         if flags.add_azimuthal_dof is not None:
             config.initial_point[0] += flags.add_azimuthal_dof 
-            config.final_point[0] += flags.add_azimuthal_dof 
+            # Rotate by pi/2
+            #config.final_point[-1] = config.final_point[0] + flags.add_azimuthal_dof
+            #config.final_point[0] = 0
+            # Rotate by pi
+            config.final_point[0] = -1*(config.final_point[0] + flags.add_azimuthal_dof)
 
     return config
 

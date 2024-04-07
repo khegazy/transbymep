@@ -116,7 +116,23 @@ def _plot_added_rot_dof(
     ax_x[3].set_xlim(0,1)
     ax_x[3].set_ylabel('Azimuthal [rad]', fontsize=plot_params['font_size'])
 
-    return [fig_xz, fig_x], [ax_xz, ax_x], ['', 'x'], contour_vals
+    _gridspec = dict(gridspec)
+    _gridspec['height_ratios'] = _gridspec['height_ratios'][:]
+    _gridspec['height_ratios'][1] = _gridspec['height_ratios'][1]*1.5
+    fig_x_z, ax_x_z = plt.subplots(3, 1, figsize=fig_size, gridspec_kw=_gridspec)
+    ax_x_z[0].plot(path[:,0]-radius, path[:,-1]-radius, '-k')
+    ax_x_z[0].set_xlim(np.amin(path[:,0])-radius, np.amax(path[:,0])-radius)
+    ax_x_z[0].set_xlabel(f"x - {radius}", fontsize=plot_params['font_size'])
+    ax_x_z[0].set_ylim(-1*radius, 0)
+    ax_x_z[0].set_ylabel(f"z - {radius}", fontsize=plot_params['font_size'])
+    ax_x_z[1].set_visible(False)
+    ax_x_z[2].plot(time, path_th)
+    ax_x_z[2].set_xlim(0,1)
+    ax_x_z[2].set_ylabel('Azimuthal [rad]', fontsize=plot_params['font_size'])
+    ax_x_z[2].set_xlabel('Time [arb]', fontsize=plot_params['font_size'])
+
+
+    return [fig_xz, fig_x, fig_x_z], [ax_xz, ax_x, ax_x_z], ['', 'x', 'xz_plane'], [True, True, False], contour_vals
 
  
 def _plot_path(
@@ -165,7 +181,7 @@ def plot_path(
 
    
     if add_azimuthal_dof:
-        figs, axes, suffixes, contour_vals = _plot_added_rot_dof(
+        figs, axes, suffixes, do_edits, contour_vals = _plot_added_rot_dof(
             path, name, add_azimuthal_dof, pes_fxn,
             plot_min_max=plot_min_max, levels=levels, contour_vals=contour_vals
         )
@@ -183,27 +199,32 @@ def plot_path(
         figs = [fig]
         axes = [ax]
         suffixes = ['']
+        do_edits = [True]
 
     
-    for fig, ax, suffix in zip(figs, axes, suffixes):
+    for fig, ax, suffix, edit in zip(figs, axes, suffixes, do_edits):
         plot_name = name
         if suffix != '':
             plot_name += "_" + suffix
         ax[0].set_title(plot_name, fontsize=plot_params['font_size']*1.5)
-        ax[1].set_visible(False)
-        ax[2].set_xlim(0, 1)
-        if len(ax) > 2:
-            for idx in range(1, len(ax)-1):
-                ax[idx].xaxis.set_visible(False)
-        ax[2].set_ylabel(
-            r'$\dot{X}(t)$ [arb]', fontsize=plot_params['font_size']
-        )
-        ax[-1].set_xlabel('Time [arb]', fontsize=plot_params['font_size'])
+        
         for idx in range(len(ax)):
             if idx == 1:
                 continue
             ax[idx].xaxis.set_tick_params(labelsize=plot_params['font_size']*0.8)
             ax[idx].yaxis.set_tick_params(labelsize=plot_params['font_size']*0.8)
+
+        if edit:
+            if len(ax) > 1:
+                ax[1].set_visible(False)
+                ax[-1].set_xlabel('Time [arb]', fontsize=plot_params['font_size'])
+            if len(ax) > 2:
+                ax[2].set_xlim(0, 1)
+                for idx in range(1, len(ax)-1):
+                    ax[idx].xaxis.set_visible(False)
+                ax[2].set_ylabel(
+                    r'$\dot{X}(t)$ [arb]', fontsize=plot_params['font_size']
+                )
         fig.savefig(os.path.join(plot_dir, plot_name+".png"))
         print("Plotted", os.path.join(plot_dir, plot_name+".png"))
     

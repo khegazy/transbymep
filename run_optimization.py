@@ -71,6 +71,7 @@ if __name__ == "__main__":
         #add_translation_dof=args.add_translation_dof,
         **path_config.path_params
     )
+    path = optimization.randomly_initialize_path(path, filter_spec, 1)
     """
     fig, ax = plt.subplots()
     for t in np.arange(0,100):

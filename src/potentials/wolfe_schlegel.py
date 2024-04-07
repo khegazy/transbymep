@@ -4,11 +4,6 @@ from functools import partial
 
 from .base_class import PotentialBase
 
-def ws(point):
-    x, y = point
-    return 10*(x**4 + y**4 - 2*x*x - 4*y*y +
-        x*y + 0.2*x + 0.1*y)
-
 class WolfeSchlegel(PotentialBase):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

@@ -1,6 +1,0 @@
-path_params : 
-    n_embed : 8
-    depth : 2
-optimizer : sgd
-optimizer_params :
-    learning_rate : 0.05

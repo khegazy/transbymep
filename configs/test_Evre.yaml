@@ -4,7 +4,7 @@ potential : wolfe_schlegel
 path : mlp
 path_config : test
 loss_functions :
-    vre_residual : [1., {}]
+    e_vre : [1., {}]
 optimizer : adam
 optimizer_params :
     learning_rate : 0.001

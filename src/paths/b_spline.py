@@ -35,6 +35,8 @@ class BSpline(BasePath):
         self.knots = jnp.array([
             (i + 1)/float(n_anchors + 1) for i in range(n_anchors)
         ])
+        print("This method is not finished")
+        raise NotImplementedError
     
     def geometric_path(self, time, y, *args):
         idx = self.degree + int(time/self.delta_time)

@@ -26,10 +26,7 @@ class PotentialBase:
         return point
 
     def azimuthal_transform(self, point, shift):
-        #return point[:-1]
         return jnp.concatenate([
-            #jnp.array([jnp.sqrt(
-            #    (point[0]+shift/1.414)**2 + (point[-1] + shift/1.414)**2)]) - shift,
             jnp.array([jnp.sqrt(point[0]**2 + point[-1]**2)]) - shift,
             point[1:-1]
         ])

@@ -123,7 +123,7 @@ def _plot_added_rot_dof(
     ax_x_z[0].plot(path[:,0]-radius, path[:,-1]-radius, '-k')
     ax_x_z[0].set_xlim(np.amin(path[:,0])-radius, np.amax(path[:,0])-radius)
     ax_x_z[0].set_xlabel(f"x - {radius}", fontsize=plot_params['font_size'])
-    ax_x_z[0].set_ylim(-1*radius, 0)
+    #ax_x_z[0].set_ylim(-1*radius, 0)
     ax_x_z[0].set_ylabel(f"z - {radius}", fontsize=plot_params['font_size'])
     ax_x_z[1].set_visible(False)
     ax_x_z[2].plot(time, path_th)
@@ -250,18 +250,17 @@ def animate_optimization_2d(
         plot_dir='./plots/'
     ):
 
-
     fig, ax = plt.subplots()
     if pes_fxn is not None:
-        ax = contour_2d(ax, pes_fxn, plot_min_max, levels, add_translation_dof=add_translation_dof)
+        ax = contour_2d(ax, pes_fxn, plot_min_max, levels)
     #ax = contour_2d(function, x_min, x_max, y_min, y_max, levels)
-    ax.set_title(title)
+    ax[0].set_title(title)
     fig.savefig(contour_file + '.png')
-    plot_artist = ax.plot([], [], color='red', linestyle='-')[0]
+    plot_artist = ax[0].plot([], [], color='red', linestyle='-')[0]
 
 
     def animation_function(path):
-        if add_translation_dof:
+        if add_translation_dof and False:
             plot_artist.set_data(path[:,0] - path[:,-1], path[:,1])
         else:
             plot_artist.set_data(path[:,0], path[:,1])

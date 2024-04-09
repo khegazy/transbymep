@@ -16,7 +16,6 @@ class MLPpath(BasePath):
         n_embed=32,
         depth=3,
         seed=123,
-        scale_init=1.,
     ):
         super().__init__(
             potential=potential,
@@ -32,17 +31,7 @@ class MLPpath(BasePath):
             activation=jax.nn.softplus,
             key=key,
         )
-        #for i in range(len(self.mlp.layers)):
-        #    self.mlp.layers[i].weight = scale_init*self.mlp.layers[i].weight
 
-    """
-    def pes_path(self, t, y, *args):
-        return self.potential.evaluate(self.geometric_path(t, y , *args))
-    
-    def pes_ode_term(self, t, y, *args):
-        return self.potential.evaluate(self.geometric_path(jnp.array([t]), y , *args))
-    
-    """
     def geometric_path(self, time, y=None, *args):
         scale = 1.
         return self.mlp(time)*scale\
@@ -60,6 +49,9 @@ class MLPpath(BasePath):
         geo_path = jax.vmap(self.geometric_path, in_axes=(0, None))(times, 0)
         pot_path = jax.vmap(self.potential.evaluate, in_axes=(0))(geo_path)
         return geo_path, pot_path
+
+
+
 
 """
 class MLPpath_orig(eqx.Module):

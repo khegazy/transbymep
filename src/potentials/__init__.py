@@ -1,13 +1,12 @@
 import os
 import yaml
 
-from .wolfe_schlegel import WolfeSchlegel, RotatedWolfeSchlegel
+from .wolfe_schlegel import WolfeSchlegel
 from .muller_brown import MullerBrown
 from .constant import Constant
 
 potential_dict = {
     "wolfe_schlegel" : WolfeSchlegel,
-    "rotated_wolfe_schlegel" : RotatedWolfeSchlegel,
     "muller_brown" : MullerBrown,
     "constant" : Constant
 }

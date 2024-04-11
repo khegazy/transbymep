@@ -14,6 +14,9 @@ class PotentialBase:
     def evaluate(self, *args, **kwargs):
         raise NotImplementedError
     
+    def gradient(self, *args, **kwargs):
+        raise NotImplementedError
+    
     def point_transform(self, point, do_identity=False):
         if self.point_option == 0 or do_identity:
             return self.identity_transform(point)

@@ -1,13 +1,27 @@
+from typing import List, Tuple
+import numpy as np
 from ase import Atoms
 from ase.calculators.lj import LennardJones
 
 
 def lj(
-        atomic_symbols,
-        atomic_coords,
-        epsilon_value=1.0,
-        sigma_value=1.0
-):
+        atomic_symbols: List[str],
+        atomic_coords: np.ndarray,
+        epsilon_value: float = 1.0,
+        sigma_value: float = 1.0,
+) -> Tuple[float, np.ndarray]:
+    """
+    Compute the energy and forces of a system using the Lennard-Jones potential.
+
+    Parameters:
+        atomic_symbols (List[str]): List of atomic symbols.
+        atomic_coords (np.ndarray): Atomic coordinates of shape (n_atoms, 3).
+        epsilon_value (float): Epsilon value for the Lennard-Jones potential.
+        sigma_value (float): Sigma value for the Lennard-Jones potential.
+
+    Returns:
+        Tuple[float, np.ndarray]: Energy and forces. Forces are of shape (n_atoms, 3).
+    """
     atoms = Atoms(
         symbols=atomic_symbols,
         positions=atomic_coords
@@ -17,11 +31,14 @@ def lj(
         sigma=sigma_value
     )
     atoms.set_calculator(lj_calculator)
-    return [atoms.get_potential_energy(), atoms.get_forces()]
+    energy = atoms.get_potential_energy()
+    forces = atoms.get_forces()
+    return energy, forces
+
 
 if __name__ == '__main__':
     symbols = ['O', 'C', 'C', 'C', 'C', 'C', 'H', 'H', 'H', 'H', 'H', 'H', 'H', 'H', 'H', 'H']
-    coordinates = [
+    coordinates = np.array([
         [ 0.47317182,  1.50497424,  0.51737247],
         [-0.73634452,  1.24725771, -0.16507229],
         [-1.25216459, -0.16253110,  0.10778120],
@@ -38,11 +55,8 @@ if __name__ == '__main__':
         [ 1.95157576, -1.49001491,  0.06910250],
         [ 2.39649147,  0.92912583,  0.66491561],
         [ 1.69896569,  0.74626212, -0.96120110],
-    ]
+    ])
 
-    energy, forces = lj(
-        symbols,
-        coordinates
-    )
+    energy, forces = lj(symbols, coordinates)
     print(f'Energy: {energy}')
     print(f'Forces:\n {forces}')

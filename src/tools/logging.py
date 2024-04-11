@@ -1,6 +1,6 @@
 import jax.numpy as jnp
 import numpy as np
-from src.tools import visualize
+from .visualize import plot_path
 class logging():
     def __init__(self, *args, **kwargs):
         return
@@ -38,7 +38,7 @@ class logging():
         if pes_paths is not None:
             pes_paths.append(pes_path)
         if plot:
-            visualize.plot_path(
+            plot_path(
                 geo_path, f"test_plot_{step:03d}", pes_fxn=potential,
                 plot_min_max=(-2, 2, -2, 2),
                 levels=np.arange(-100, 100, 5),

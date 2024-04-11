@@ -86,8 +86,8 @@ if __name__ == "__main__":
         config.optimizer,
         config.optimizer_params,
         path,
-        path_type=config.path,
-        potential_type=config.potential
+        # path_type=config.path,
+        # potential_type=config.potential
     ) 
     
     # Loss

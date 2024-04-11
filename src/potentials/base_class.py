@@ -11,10 +11,13 @@ class PotentialBase:
         elif add_translation_dof:
             self.point_option = 2
 
-    def evaluate(self, *args, **kwargs):
+    def energy(self, *args, **kwargs):
         raise NotImplementedError
     
     def gradient(self, *args, **kwargs):
+        raise NotImplementedError
+    
+    def hessian(self, *args, **kwargs):
         raise NotImplementedError
     
     def point_transform(self, point, do_identity=False):

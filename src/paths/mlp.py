@@ -34,9 +34,9 @@ class MLPpath(BasePath):
 
     def geometric_path(self, time, y=None, *args):
         scale = 1.
-        return self.mlp(time)*scale\
-            - (1 - time)*(self.mlp(jnp.array([0.]))*scale - self.initial_point)\
-            - time*(self.mlp(jnp.array([1.]))*scale - self.final_point)
+        return self.mlp(time) * scale \
+            - (1 - time) * (self.mlp(jnp.array([0.])) * scale - self.initial_point)\
+            - time * (self.mlp(jnp.array([1.])) * scale - self.final_point)
 
     def get_path(self, times=None):
         if times is None:

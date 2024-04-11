@@ -41,36 +41,36 @@ def get_optimizer(
         config,
         path,
         config_path=None,
-        path_type=None,
-        potential_type=None,
+        # path_type=None,
+        # potential_type=None,
         tag="",
-        config_dir="./src/optimizations/configs/",
+        # config_dir="./src/optimizations/configs/",
         expect_config=False):
     
     name = name.lower()
     if name not in optimizer_dict:
         raise ValueError(f"Cannot handle optimizer type {name}, either add it to optimizer_dict or use {list(optimizer_dict.keys())}")
 
-    if config_path is None and (path_type is None and potential_type is None):
-        raise ValueError(f"get_optimizer requires either config_path")
+    # if config_path is None and (path_type is None and potential_type is None):
+    #     raise ValueError(f"get_optimizer requires either config_path")
 
     # Import saved optimizer config and combine with input config
-    config_path_vars = path_type is not None and potential_type is not None 
-    if config_path is None and not config_path_vars and not expect_config:
-        print("Skipping optimizer config import")
-    elif config_path is not None or config_path_vars:
-        config.update(
-            import_optimizer_config(
-                name,
-                path_type,
-                potential_type,
-                tag,
-                config_dir,
-                is_expected=expect_config
-            )
-        )
-    else:
-        raise ValueError("get_optimizer requres either config_path or both path_type and potential_type to be specified to import the config file.")
+    # config_path_vars = path_type is not None and potential_type is not None 
+    # if config_path is None and not config_path_vars and not expect_config:
+        # print("Skipping optimizer config import")
+    # elif config_path is not None or config_path_vars:
+    #     config.update(
+    #         import_optimizer_config(
+    #             name,
+    #             path_type,
+    #             potential_type,
+    #             tag,
+    #             config_dir,
+    #             is_expected=expect_config
+    #         )
+    #     )
+    # else:
+    #     raise ValueError("get_optimizer requres either config_path or both path_type and potential_type to be specified to import the config file.")
     
     optimizer = optimizer_dict[name](**config)
     opt_state = optimizer.init(eqx.filter(path, eqx.is_inexact_array))

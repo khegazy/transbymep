@@ -20,7 +20,7 @@ gridspec = {
     }
 
 
-@partial(jax.jit, static_argnums=[0,1,2,3,4,6])
+# @partial(jax.jit, static_argnums=[0,1,2,3,4,6])
 def eval_contour_vals(
     function,
     x_min,

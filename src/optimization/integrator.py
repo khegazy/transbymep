@@ -17,7 +17,7 @@ class ODEintegrator():
         self.solver = solver_dict[solver]()
     
     def path_integral(self, ode_fxn, t_init=0., t_final=1.):
-       #ode_term = diffrax.ODETerm(path.pes_path)
+        #ode_term = diffrax.ODETerm(path.pes_path)
         solution = diffrax.diffeqsolve(
             diffrax.ODETerm(ode_fxn),
             self.solver,

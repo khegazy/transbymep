@@ -39,16 +39,16 @@ class BasePath(eqx.Module):
     
     def pes_path(self, t, y, *args):
         t = jnp.array([t]).transpose()
-        return self.potential.evaluate(self.geometric_path(t, y , *args))
+        return self.potential.energy(self.geometric_path(t, y , *args))
     
     def pes_ode_term(self, t, y, in_integral=True, *args):
         t = jnp.array([t]).transpose()
-        return self.potential.evaluate(self.geometric_path(jnp.array([t]), y , *args))
+        return self.potential.energy(self.geometric_path(jnp.array([t]), y , *args))
  
     def total_path(self, t, y, *args):
         t = jnp.array([t]).transpose()
         geo_path = self.geometric_path(t, y , *args)
-        return geo_path, self.potential.evaluate(geo_path)
+        return geo_path, self.potential.energy(geo_path)
     
     def total_grad_path(self, t, y, *args):
         t = jnp.array([t]).transpose()

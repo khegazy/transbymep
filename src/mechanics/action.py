@@ -4,7 +4,7 @@ from functools import partial
 
 from .lagrangians import lagrangian
 
-@partial(jax.jit, static_argnums=[0])
+# @partial(jax.jit, static_argnums=[0])
 def action(
         potential,     # function defining graph
         points,        # n points

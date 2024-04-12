@@ -6,7 +6,7 @@ from src.tools.logging import logging
 from . import path_metrics as path_tools
 
 
-@jax.jit
+# @jax.jit
 def update(params, grad_fxn, metrics, learning_rate):
     grads = grad_fxn(params, metrics)
     return jax.tree_map(
@@ -58,7 +58,7 @@ class gradientDescent_(path_tools.ODEintegrator, logging):
             """
 
     
-    @partial(jax.jit, static_argnums=[0])
+    # @partial(jax.jit, static_argnums=[0])
     def update_path(self):
         loss = self.loss_fxn(self.path, self.potential)
         grads = jax.grad(loss)(self.path.weights)

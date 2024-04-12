@@ -2,7 +2,7 @@ import jax
 import jax.numpy as jnp
 from functools import partial
 
-@partial(jax.jit, static_argnums=[0])
+# @partial(jax.jit, static_argnums=[0])
 def lagrangian(potential, left_point, right_point, distance_factor=100):
 
     displacement = right_point - left_point

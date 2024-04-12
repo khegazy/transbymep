@@ -8,7 +8,7 @@ class MinimaUpdate():
         self.step_size = step_size
         self.n_steps = n_steps
     
-    @partial(jax.jit, static_argnums=[0])
+    # @partial(jax.jit, static_argnums=[0])
     def update_minimum(self, point):
         """
         returns the new point, and the val / grad norm at the old point.

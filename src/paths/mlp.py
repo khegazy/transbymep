@@ -47,8 +47,7 @@ class MLPpath(BasePath):
             times = jnp.expand_dims(times, -1)
         
         geo_path = jax.vmap(self.geometric_path, in_axes=(0, None))(times, 0)
-        # pot_path = jax.vmap(self.potential.energy, in_axes=(0))(geo_path)
-        pot_path = self.potential.energy(geo_path)
+        pot_path = jax.vmap(self.potential.evaluate, in_axes=(0))(geo_path)
         return geo_path, pot_path
 
 

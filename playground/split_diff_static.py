@@ -61,7 +61,7 @@ def main(
     print("diff model\n", diff_model)
     print("static model\n", static_model)
     # Step 3
-    # @eqx.filter_jit
+    @eqx.filter_jit
     def make_step(model, x, y, opt_state):
         @eqx.filter_grad
         def loss(diff_model, static_model, x, y):

@@ -44,7 +44,7 @@ class gradientDescent(logging):
             self.path_num_steps = path_num_steps
 
 
-    # @partial(jax.jit, static_argnums=[0])
+    @partial(jax.jit, static_argnums=[0])
     def update_minimum(self, point):
         """
         returns the new point, and the val / grad norm at the old point.
@@ -112,7 +112,7 @@ class gradientDescent(logging):
         print("\n\n\n")
         return result
     
-    # @partial(jax.jit, static_argnums=[0])
+    @partial(jax.jit, static_argnums=[0])
     def update_critical_path(self, points, start, end):
 
         new_points = points -  self.path_step_factor*jax.grad(

@@ -4,11 +4,13 @@ import yaml
 from .wolfe_schlegel import WolfeSchlegel
 from .muller_brown import MullerBrown
 from .constant import Constant
+from .lennard_jones import LennardJones
 
 potential_dict = {
     "wolfe_schlegel" : WolfeSchlegel,
     "muller_brown" : MullerBrown,
-    "constant" : Constant
+    "constant" : Constant,
+    "lennard_jones" : LennardJones
 }
 
 def import_potential_config(

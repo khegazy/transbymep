@@ -59,8 +59,8 @@ class BasePath(eqx.Module):
         jax.debug.print("geo1 at {}: {}",t, geo_path)
         jax.debug.print("geoG at {}: {}",t, geo_grad)
         """
-        # pes_path, pes_grad = eqx.filter_value_and_grad(self.potential.evaluate)(geo_path)
-        pes_path, pes_grad = self.potential.gradient(geo_path)
+        pes_path, pes_grad = eqx.filter_value_and_grad(self.potential.energy)(geo_path)
+        # pes_path, pes_grad = self.potential.gradient(geo_path)
         return geo_path, geo_grad, pes_path, pes_grad
     
     # Loss functions

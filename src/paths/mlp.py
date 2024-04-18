@@ -13,6 +13,7 @@ class MLPpath(BasePath):
         potential,
         initial_point,
         final_point,
+        # scale=0.,
         n_embed=32,
         depth=3,
         seed=123,
@@ -25,18 +26,18 @@ class MLPpath(BasePath):
         key = jax.random.PRNGKey(seed)
         self.mlp = eqx.nn.MLP(
             in_size=1,
-            out_size=self.final_point.shape[-1],
+            out_size=self.final_point.size,
             width_size=n_embed,
             depth=depth,
             activation=jax.nn.softplus,
             key=key,
         )
+        # self.scale = scale
 
     def geometric_path(self, time, y=None, *args):
         scale = 1.
-        return self.mlp(time) * scale \
-            - (1 - time) * (self.mlp(jnp.array([0.])) * scale - self.initial_point)\
-            - time * (self.mlp(jnp.array([1.])) * scale - self.final_point)
+        path = (self.mlp(time) - (1 - time) * self.mlp(jnp.array([0.])) - time * self.mlp(jnp.array([1.]))).reshape(self.final_point.shape)
+        return path * scale + (1 - time) * self.initial_point + time * self.final_point
 
     def get_path(self, times=None):
         if times is None:
@@ -47,7 +48,7 @@ class MLPpath(BasePath):
             times = jnp.expand_dims(times, -1)
         
         geo_path = jax.vmap(self.geometric_path, in_axes=(0, None))(times, 0)
-        pot_path = jax.vmap(self.potential.evaluate, in_axes=(0))(geo_path)
+        pot_path = jax.vmap(self.potential.energy, in_axes=(0))(geo_path)
         return geo_path, pot_path
 
 

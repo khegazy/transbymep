@@ -1,7 +1,7 @@
 import jax
 import jax.numpy as jnp
 
-class PotentialBase:
+class BasePotential:
     def __init__(self, add_azimuthal_dof=False, add_translation_dof=False, **kwargs) -> None:
         self.point_option = 0
         self.point_arg = 0

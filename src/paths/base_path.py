@@ -3,12 +3,12 @@ import jax.numpy as jnp
 import equinox as eqx
 
 from ..tools import metrics
-from ..potentials.base_class import PotentialBase
+from ..potentials.base_potential import BasePotential
 
 class BasePath(eqx.Module):
     initial_point: jnp.array
     final_point: jnp.array
-    potential: PotentialBase
+    potential: BasePotential
 
     def __init__(
         self,

@@ -7,13 +7,16 @@ from .base_path import BasePath
 
 class MLPpath(BasePath):
     mlp: eqx.nn.MLP
+    yscale: float
+    tscale: float
 
     def __init__(
         self,
         potential,
         initial_point,
         final_point,
-        # scale=0.,
+        yscale=1.,
+        tscale=1.,
         n_embed=32,
         depth=3,
         seed=123,
@@ -32,17 +35,19 @@ class MLPpath(BasePath):
             activation=jax.nn.softplus,
             key=key,
         )
-        # self.scale = scale
+        self.yscale = jnp.array([yscale])
+        self.tscale = jnp.array([tscale])
 
     def geometric_path(self, time, y=None, *args):
-        scale = 1.
-        path = (self.mlp(time) - (1 - time) * self.mlp(jnp.array([0.])) - time * self.mlp(jnp.array([1.]))).reshape(self.final_point.shape)
-        return path * scale + (1 - time) * self.initial_point + time * self.final_point
+        time = time * self.tscale
+        path = self.mlp(time) - (self.tscale - time) / (2 * self.tscale) * self.mlp(-self.tscale) - (self.tscale + time) / (2 * self.tscale) * self.mlp(self.tscale)
+        path = path.reshape(self.final_point.shape)
+        return path * self.yscale + (self.tscale - time) / (2 * self.tscale) * self.initial_point + (self.tscale + time) / (2 * self.tscale) * self.final_point
 
     def get_path(self, times=None):
         if times is None:
             times = jnp.expand_dims(
-                jnp.linspace(0, 1., 1000, endpoint=True), -1
+                jnp.linspace(-1, 1, 1000, endpoint=True), -1
             )
         elif len(times.shape) == 1:
             times = jnp.expand_dims(times, -1)

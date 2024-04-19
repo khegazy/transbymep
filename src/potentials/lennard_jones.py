@@ -3,9 +3,9 @@ import jax.numpy as jnp
 import numpy as np
 from functools import partial
 
-from .base_class import PotentialBase
+from .base_potential import BasePotential
 
-class LennardJones(PotentialBase):
+class LennardJones(BasePotential):
     def __init__(self, epsilon=1.0, sigma=1.0, **kwargs):
         super().__init__(**kwargs)
         if "minima" in kwargs:

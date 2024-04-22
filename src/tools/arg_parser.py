@@ -71,6 +71,9 @@ def build_default_arg_parser() -> argparse.ArgumentParser:
         '--make_animation', default=False, action='store_true'
     )
 
+    parser.add_argument('--make_opt_plots', action='store_true',
+                        help="Store plots of various optimization steps.")
+
     # Debuging and testing
     parser.add_argument(
         '--debug', default=False, action='store_true'

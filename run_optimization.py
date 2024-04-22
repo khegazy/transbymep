@@ -104,6 +104,7 @@ if __name__ == "__main__":
         #print("diff_path", diff_path)
         #print("static_path", static_path)
         loss, grads = loss_grad_fxn(diff_path, static_path, integrator)
+
         if optim_idx%250 == 0:
             logger.optimization_step(
                 optim_idx,
@@ -111,7 +112,7 @@ if __name__ == "__main__":
                 potential,
                 loss,
                 grads,
-                plot=True,
+                plot=args.make_opt_plots,
                 geo_paths=geo_paths,
                 pes_paths=pes_paths,
                 add_azimuthal_dof=args.add_azimuthal_dof,

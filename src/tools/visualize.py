@@ -225,6 +225,7 @@ def plot_path(
                 ax[2].set_ylabel(
                     r'$\dot{X}(t)$ [arb]', fontsize=plot_params['font_size']
                 )
+        os.makedirs(plot_dir, exist_ok=True)
         fig.savefig(os.path.join(plot_dir, plot_name+".png"))
         print("Plotted", os.path.join(plot_dir, plot_name+".png"))
     
@@ -269,5 +270,6 @@ def animate_optimization_2d(
 
     print("Plotting animation", len(paths), paths[0].shape)
     ani = animation.FuncAnimation(fig, animation_function, frames=paths)
+    os.makedirs(plot_dir, exist_ok=True)
     ani.save(os.path.join(plot_dir, contour_file + ".gif"))
 

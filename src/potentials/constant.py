@@ -1,11 +1,9 @@
-import jax
-import jax.numpy as jnp
-from functools import partial
+from .base_class import PotentialBase
 
-class Constant():
+class Constant(PotentialBase):
     def __init__(self, scale=1., **kwargs):
+        super().__init__(**kwargs)
         self.scale = scale
 
-    @partial(jax.jit, static_argnums=(0,)) 
-    def eval(self, point):
+    def forward(self, point):
         return self.scale

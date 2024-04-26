@@ -1,22 +1,45 @@
-import jax.numpy as jnp
-import diffrax
+import torch
+from torchdiffeq import odeint
 
-solver_dict = {
-    "Tsit5" : diffrax.Tsit5,
-    "Dopri5" : diffrax.Dopri5
-}
+from .metrics import Metrics
 
-class ODEintegrator():
-    def __init__(self, potential, solver="Tsit5"):
+
+class ODEintegrator(Metrics):
+    def __init__(self, potential, solver='dopri5', rtol=1e-7, atol=1e-9):
         self.potential = potential
-        #self.save_at = diffrax.SaveAt(dense=True)
-        self.stepsize_controller = diffrax.PIDController(rtol=1e-5, atol=1e-5)
         
-        if solver not in solver_dict:
-            raise ValueError("Cannot handle solver {solver}, add it to solver_dict or use {solver_dict.keys}")
-        self.solver = solver_dict[solver]()
+        self.solver = solver
+        self.rtol = rtol
+        self.atol = atol
+
+    def _integrand_wrapper(self, t, y, path, ode_fxn):
+        vals = path(t)
+        return ode_fxn(vals)
     
-    def path_integral(self, ode_fxn, t_init=0., t_final=1.):
+    def path_integral(self, path, fxn_name, t_init=0., t_final=1.):
+        if fxn_name not in dir(self):
+            metric_fxns = [
+                attr for attr in dir(Metrics)\
+                    if attr[0] != '_' and callable(getattr(Metrics, attr))
+            ]
+            raise ValueError(f"Can only integrate metric functions, either add a new function to the Metrics class or use one of the following:\n\t{metric_fxns}")
+        eval_fxn = getattr(self, fxn_name)
+
+        def ode_fxn(t, y, *args):
+            return eval_fxn(path=path, t=torch.tensor([t]))
+
+        integral = odeint(
+            func=ode_fxn,
+            y0=torch.tensor([0], dtype=torch.float),
+            t=torch.tensor([t_init, t_final]),
+            method=self.solver,
+            rtol=self.rtol,
+            atol=self.atol
+        )
+
+        return integral[-1]
+    
+    def _path_integral(self, ode_fxn, t_init=0., t_final=1.):
        #ode_term = diffrax.ODETerm(path.pes_path)
         solution = diffrax.diffeqsolve(
             diffrax.ODETerm(ode_fxn),

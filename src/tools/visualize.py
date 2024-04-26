@@ -1,6 +1,5 @@
 import os
-import jax
-import jax.numpy as jnp
+import torch
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
@@ -19,10 +18,18 @@ gridspec = {
         'bottom' : 0.07,
     }
 
+def from_numpy(np_arrays):
+    for idx in range(len(np_arrays)):
+        np_arrays[idx] = torch.tensor(np_arrays[idx])
+    return np_arrays
 
-@partial(jax.jit, static_argnums=[0,1,2,3,4,6])
+def to_numpy(arrays):
+    for idx in range(len(arrays)):
+        arrays[idx] = arrays[idx].detach().to('cpu').numpy()
+    return arrays
+
 def eval_contour_vals(
-    function,
+    potential,
     x_min,
     x_max,
     y_min,
@@ -30,26 +37,31 @@ def eval_contour_vals(
     step_size=0.01,
     add_dof=False
 ):
-    x_vals = jnp.arange(x_min, x_max, step_size)
-    y_vals = jnp.arange(y_min, y_max, step_size)
-    l,r = jnp.meshgrid(x_vals, y_vals)
+    x_vals = np.arange(x_min, x_max, step_size)
+    y_vals = np.arange(y_min, y_max, step_size)
+    l,r = np.meshgrid(x_vals, y_vals)
     size = len(x_vals)
-    args = jnp.reshape(jnp.stack([l,r],axis=2), (-1, 2))
+    args = np.reshape(np.stack([l,r],axis=2), (-1, 2))
     if add_dof:
-        args = jnp.concatenate([args, jnp.zeros((args.shape[0], 1))], axis=1)
+        args = np.concatenate([args, np.zeros((args.shape[0], 1))], axis=1)
         #    jnp.array([x_vals, y_vals, jnp.zeros(len(x_vals))]).transpose()
         #)
         #trans_xy_vals = np.array(trans_xy_vals)
         #x_vals = jnp.expand_dims(trans_xy_vals[:,0], -1)
         #y_vals = jnp.expand_dims(trans_xy_vals[:,1], -1)
-    z_vals = jax.vmap(function.evaluate, (0))(args)
-    trans_xy_vals = jax.vmap(function.point_transform, (0))(args)
-    return jnp.reshape(trans_xy_vals[:,0], (size, size)), jnp.reshape(trans_xy_vals[:,1], (size, size)), jnp.reshape(z_vals, (size, size))#jnp.apply_along_axis(function, 2, args)
+    args = from_numpy([args])[0]
+    z_vals = potential(args)
+    trans_xy_vals = potential.point_transform(args)
+    z_vals, trans_xy_vals = to_numpy([z_vals, trans_xy_vals])
+    return (np.reshape(trans_xy_vals[:,0], (size, size)),
+        np.reshape(trans_xy_vals[:,1], (size, size)),
+        np.reshape(z_vals, (size, size))
+    )#jnp.apply_along_axis(function, 2, args)
 
 
 def contour_2d(
         ax,
-        function,
+        potential,
         plot_min_max,
         levels,
         contour_vals=None,
@@ -67,7 +79,7 @@ def contour_2d(
     x_min, x_max, y_min, y_max = plot_min_max
  
     x_vals, y_vals, z_vals = eval_contour_vals(
-        function, x_min, x_max, y_min, y_max, add_dof=add_dof
+        potential, x_min, x_max, y_min, y_max, add_dof=add_dof
     )
     ax.contour(x_vals, y_vals, z_vals, levels=levels)
     return ax, (x_vals, y_vals, z_vals, levels) 
@@ -92,7 +104,7 @@ def _plot_added_rot_dof(
     fig_size = (plot_params['fig_size'][0], plot_params['fig_size'][0]*1.2)
     _gridspec = dict(gridspec)
     _gridspec['height_ratios'] = _gridspec['height_ratios'][:] + [1]
-    path_th = np.array(jnp.arctan2(path[:,0], path[:,-1]))
+    path_th = np.array(np.arctan2(path[:,0], path[:,-1]))
     time = np.linspace(0, 1, len(path_th))
 
     fig_xz, ax_xz = plt.subplots(4, 1, figsize=fig_size, gridspec_kw=_gridspec)
@@ -108,7 +120,7 @@ def _plot_added_rot_dof(
     fig_x, ax_x = plt.subplots(4, 1, figsize=fig_size, gridspec_kw=_gridspec)
     _, contour_vals = _plot_path(
         ax_x,
-        jnp.concatenate([path[:,:-1], jnp.zeros((path.shape[0], 1))], axis=-1),
+        np.concatenate([path[:,:-1], np.zeros((path.shape[0], 1))], axis=-1),
         pes_fxn, plot_min_max, levels,
         contour_vals=contour_vals, return_contour_vals=True, add_dof=True
     )
@@ -158,7 +170,9 @@ def _plot_path(
     else:
         contour_vals = None
     
-    path = jax.vmap(pes_fxn.point_transform, (0))(path)
+    path = from_numpy([path])[0]
+    path = pes_fxn.point_transform(path)
+    path = to_numpy([path])[0]
     ax[0].plot(path[:,0], path[:,1], color='r', linestyle='-')
     velocity = np.sqrt(np.sum((path[:-1] - path[1:])**2, axis=-1))
     ax[2].plot(np.linspace(0, 1, len(path)-1), velocity)

@@ -1,10 +1,8 @@
-import jax
-import jax.numpy as jnp
+import torch
+from .base_class import PotentialBase
 
-@jax.jit
-def MullerBrown(point):
-    x, y = point
 
+class MullerBrown(PotentialBase):
     ai = [-200.0, -100.0, -170.0, 15.0]
     bi = [-1.0, -1.0, -6.5, 0.7]
     ci = [0.0, 0.0, 11.0, 0.6]
@@ -13,10 +11,16 @@ def MullerBrown(point):
     xi = [1.0, 0.0, -0.5, -1.0]
     yi = [0.0, 0.5, 1.5, 1.0]
 
-    total = 0.0
-    for i in range(4):
-        total += ai[i] * jnp.exp(bi[i] * (x - xi[i]) * (x - xi[i]) +
-                                 ci[i] * (x - xi[i]) * (y - yi[i]) +
-                                 di[i] * (y - yi[i]) * (y - yi[i]))
+    def __init__(self, **kwargs) -> None:
+        super().__init__(**kwargs)
 
-    return  total
+    def forward(self, points):
+        x, y = points[:,0], points[:,1]
+        total = 0.0
+        for i in range(4):
+            b = self.bi[i]*(x - self.xi[i])*(x - self.xi[i])
+            c = self.ci[i]*(x - self.xi[i])*(y - self.yi[i])
+            d = self.di[i]*(y - self.yi[i])*(y - self.yi[i])
+            total += self.ai[i]*torch.exp(b + c + d)
+
+        return  total

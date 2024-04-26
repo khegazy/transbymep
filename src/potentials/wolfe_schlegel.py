@@ -1,6 +1,4 @@
-import jax
-import jax.numpy as jnp
-from functools import partial
+import torch
 
 from .base_class import PotentialBase
 
@@ -12,8 +10,11 @@ class WolfeSchlegel(PotentialBase):
         else:
             self.minima = None
     
-    #@partial(jax.jit, static_argnums=(0,))
-    def evaluate(self, point):
-        x, y = self.point_transform(point)
+    def forward(self, points):
+        points = self.point_transform(points)
+        points = torch.movedim(points, -1, 0)
+        x = points[0]
+        y = points[1]
+
         return 10*(x**4 + y**4 - 2*x**2 - 4*y**2\
             + x*y + 0.2*x + 0.1*y)

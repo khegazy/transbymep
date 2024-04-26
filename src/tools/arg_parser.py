@@ -38,9 +38,9 @@ def build_default_arg_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         '--randomly_initialize_path',
-        default=False,
-        action='store_true',
-        help="Will randomly initialize path"
+        default=None,
+        type=int,
+        help="Will randomly initialize path with the given number of points"
     )
 
     # Chemical potential

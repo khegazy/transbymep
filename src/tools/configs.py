@@ -12,9 +12,11 @@ class RunConfig:
     potential : str
     potential_params : Dict
     path : str
-    path_config : str
-    loss_functions : Dict
+    path_config_tag : str
+    integral_params : Dict
+    loss_function : str
     optimizer : str
+    optimizer_config_tag : str
     optimizer_params : Dict
     tag : str = ""
     potential_tag : str = ""
@@ -55,13 +57,35 @@ def import_run_config(
     yaml_config = import_yaml(os.path.join(dir, filename), is_expected)
     
     print("run yaml inp", yaml_config)
-    if "potential_params" not in yaml_config:
-        yaml_config["potential_params"] = {}
+    if 'potential_params' not in yaml_config:
+        yaml_config['potential_params'] = {}
+
+    if 'integral_params' not in yaml_config:
+        yaml_config['integral_params'] = {
+            'solver' : 'dopri5',
+            'rtol' : 1e-7,
+            'atol' : 1e-9
+        }
+    else:
+        if 'rtol' in yaml_config['integral_params']:
+            yaml_config['integral_params']['rtol'] =\
+                float(yaml_config['integral_params']['rtol'])
+        else:
+            yaml_config['integral_params']['rtol'] = 1e-7
+        if 'atol' in yaml_config['integral_params']:
+            yaml_config['integral_params']['atol'] =\
+                float(yaml_config['integral_params']['atol'])
+        else:
+            yaml_config['integral_params']['atol'] = 1e-9
+        
+
 
     config = RunConfig(name=name, **yaml_config, tag=tag)
-    print("config", config.loss_functions)
+    print("config", config.loss_function)
+    """
     for fxn in config.loss_functions.keys():
         config.loss_functions[fxn] = tuple(config.loss_functions[fxn])
+    """
 
     if flags is not None:
         if flags.add_azimuthal_dof is not None:
@@ -80,7 +104,7 @@ def import_path_config(
         dir="./src/paths/configs/",
         is_expected=True,
     ):
-    filename = f"{run_config.path}_{run_config.path_config}"
+    filename = f"{run_config.path}_{run_config.path_config_tag}"
     filename += f"_{path_tag}" if path_tag != "" else ""
     filename += ".yaml"
     yaml_config = import_yaml(os.path.join(dir, filename), is_expected)

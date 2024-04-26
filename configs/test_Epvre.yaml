@@ -2,9 +2,13 @@ initial_point : [1.133, -1.486]
 final_point : [-1.166, 1.477]
 potential : wolfe_schlegel
 path : mlp
-path_config : test
-loss_functions :
-    e_pvre : [1., {}]
+path_config_tag : test
+integral_params :
+    solver : dopri5
+    rtol : 1e-5
+    atol : 1e-5
+loss_function : E_pvre
 optimizer : adam
+optimizer_config_tag : test
 optimizer_params :
-    learning_rate : 0.0001
+    lr : 0.001

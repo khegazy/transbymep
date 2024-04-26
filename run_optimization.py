@@ -1,15 +1,10 @@
 import os
 import sys
-import jax
-import jax.numpy as jnp
+import torch
 import numpy as np
-from functools import partial
 from typing import NamedTuple
 from matplotlib import pyplot as plt
-from time import time
-
-import equinox as eqx
-import optax  # https://github.com/deepmind/optax
+import time as timer
 
 from src import mechanics
 from src import tools
@@ -39,7 +34,7 @@ if __name__ == "__main__":
     # Create output directories
     output_dir = os.path.join(args.output_dir, config.potential, config.optimizer)
     log_dir = os.path.join(output_dir, "logs")
-    if not os.path.exists(output_dir):
+    if not os.path.exists(log_dir):
         os.makedirs(log_dir)
     
     #####  Get chemical potential  #####
@@ -62,7 +57,7 @@ if __name__ == "__main__":
         sys.exit(0)
 
     #####  Get path prediction method  #####
-    path, filter_spec = paths.get_path(
+    path = paths.get_path(
         config.path,
         potential,
         config.initial_point,
@@ -73,61 +68,63 @@ if __name__ == "__main__":
     )
 
     # Randomly initialize the path, otherwise a straight line
-    if args.randomly_initialize_path:
-        path = optimization.randomly_initialize_path(path, filter_spec, 1)
+    if args.randomly_initialize_path is not None:
+        path = optimization.randomly_initialize_path(
+            path, args.randomly_initialize_path
+        )
 
     #####  Path optimization tools  #####
     # Path integrating function
-    integrator = optimization.ODEintegrator(potential)
-    print("test integrate", integrator.path_integral(path.vre_residual))
+    integrator = tools.ODEintegrator(
+        potential,
+        solver=config.integral_params['solver'],
+        rtol=config.integral_params['rtol'],
+        atol=config.integral_params['atol']
+    )
+    #print("test integrate", integrator.path_integral(path, 'E_pvre'))
 
     # Gradient descent path optimizer
-    optim, opt_state = optimization.get_optimizer(
+    optimizer = optimization.PathOptimizer(
         config.optimizer,
         config.optimizer_params,
         path,
+        config.loss_function,
         path_type=config.path,
-        potential_type=config.potential
+        potential_type=config.potential,
+        config_tag=config.optimizer_config_tag
     ) 
     
     # Loss
-    print(config.loss_functions)
-    loss_grad_fxn, loss_fxn = optimization.get_loss(config.loss_functions)
+    #print(config.loss_functions)
+    #loss_grad_fxn, loss_fxn = optimization.get_loss(config.loss_functions)
     
     ##########################################
     #####  Optimize minimum energy path  ##### 
     ##########################################
     geo_paths = []
     pes_paths = []
+    t0 = timer.time()
     for optim_idx in range(args.num_optimizer_iterations):
-        diff_path, static_path = eqx.partition(path, filter_spec)
-        #print("diff_path", diff_path)
-        #print("static_path", static_path)
-        loss, grads = loss_grad_fxn(diff_path, static_path, integrator)
-
+        path_integral = optimizer.optimization_step(path, integrator)
         if optim_idx%250 == 0:
-            logger.optimization_step(
+            print("EVAL TIME", (timer.time()-t0)/60)
+            path_output = logger.optimization_step(
                 optim_idx,
                 path,
                 potential,
-                loss,
-                grads,
+                path_integral,
                 plot=args.make_opt_plots,
                 geo_paths=geo_paths,
                 pes_paths=pes_paths,
                 add_azimuthal_dof=args.add_azimuthal_dof,
                 add_translation_dof=args.add_translation_dof
             )
-        updates, opt_state = optim.update(grads, opt_state)
-        #print("grads", grads.initial_point)
-        #print("Updtads", updates.initial_point)
-        path = eqx.apply_updates(path, updates)
-        #plot_times = jnp.expand_dims(jnp.arange(100, dtype=float), 1)/99
 
+    print("EVAL TIME", (timer.time()-t0)/60)
     # Plot gif animation of the MEP optimization (only for 2d potentials)
     if args.make_animation:
-        geo_paths = jax.vmap(potential.point_transform, 0)(jnp.array(geo_paths))
-        ani_name = f"{config.potential}_W{path_config.path_params['n_embed']}_D{path_config.path_params['depth']}_LR{config.optimizer_params['learning_rate']}"
+        geo_paths = potential.point_transform(torch.tensor(geo_paths))
+        ani_name = f"{config.potential}_W{path_config.path_params['n_embed']}_D{path_config.path_params['depth']}_LR{config.optimizer_params['lr']}"
         visualize.animate_optimization_2d(
             geo_paths, ani_name, ani_name,
             potential, plot_min_max=(-2, 2, -2, 2),

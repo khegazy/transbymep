@@ -19,12 +19,4 @@ def get_path(name, potential, initial_point, final_point, **config):
 
     path = path_dict[name](potential, initial_point, final_point, **config)
     
-    filter_spec = jtu.tree_map(lambda _: True, path)
-    filter_spec = eqx.tree_at(
-        path.tree_filter_fxn,
-        #lambda tree: (tree.initial_point, tree.final_point, tree.potential),
-        filter_spec,
-        replace=[False,]*path.tree_filter_fxn(None, get_len=True),
-        #replace=(False, False, False),
-    )
-    return path, filter_spec
+    return path 

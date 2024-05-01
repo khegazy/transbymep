@@ -2,7 +2,7 @@ import torch
 from dataclasses import dataclass
 
 from ..tools import metrics
-from ..potentials.base_class import PotentialBase
+from ..potentials.base_potential import PotentialBase
 
 @dataclass
 class PathOutput():

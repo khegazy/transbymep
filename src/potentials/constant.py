@@ -1,4 +1,4 @@
-from .base_class import PotentialBase
+from .base_potential import PotentialBase
 
 class Constant(PotentialBase):
     def __init__(self, scale=1., **kwargs):

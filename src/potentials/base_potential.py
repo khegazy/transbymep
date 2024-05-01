@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 
-class PotentialBase(nn.Module):
+class BasePotential(nn.Module):
     def __init__(self, add_azimuthal_dof=False, add_translation_dof=False, **kwargs) -> None:
         super().__init__()
         self.point_option = 0

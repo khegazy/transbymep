@@ -2,7 +2,7 @@ import torch
 from dataclasses import dataclass
 
 from ..tools import metrics
-from ..potentials.base_potential import PotentialBase
+from ..potentials.base_potential import BasePotential
 
 @dataclass
 class PathOutput():
@@ -16,7 +16,7 @@ class PathOutput():
 class BasePath(torch.nn.Module):
     initial_point: torch.Tensor
     final_point: torch.Tensor
-    potential: PotentialBase
+    potential: BasePotential
 
     def __init__(
         self,

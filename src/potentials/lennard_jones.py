@@ -15,5 +15,7 @@ class LennardJones(BasePotential):
         """
         pos = points.unflatten(-1, (-1, 3))
         dist = torch.linalg.norm(pos[..., None, :, :] - pos[..., :, None, :], dim=-1)
-        energy = 4 * torch.nansum(1 / dist ** 12 - 1 / dist ** 6, dim=(-1, -2)) / 2
-        return  energy
+        inv_dist = 1 / (dist + 1e-6)
+        inv_dist = torch.where(dist > 0, inv_dist, torch.zeros_like(dist))
+        energy = 4 * torch.sum(inv_dist ** 12 - inv_dist ** 6, dim=(-1, -2)) / 2
+        return energy

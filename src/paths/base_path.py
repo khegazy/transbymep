@@ -29,8 +29,8 @@ class BasePath(torch.nn.Module):
     ):
         super().__init__()
         self.potential = potential
-        self.initial_point = torch.tensor(initial_point)
-        self.final_point = torch.tensor(final_point)
+        self.initial_point = torch.tensor(initial_point, dtype=torch.float)
+        self.final_point = torch.tensor(final_point, dtype=torch.float)
         self.return_velocity = return_velocity
         self.return_force = return_force
 

@@ -28,8 +28,8 @@ class PathOptimizer():
         if name not in optimizer_dict:
             raise ValueError(f"Cannot handle optimizer type {name}, either add it to optimizer_dict or use {list(optimizer_dict.keys())}")
 
-        if config_path is None and (path_type is None and potential_type is None):
-            raise ValueError(f"get_optimizer requires either config_path")
+        # if config_path is None and (path_type is None and potential_type is None):
+        #     raise ValueError(f"get_optimizer requires either config_path")
         
         # Import saved optimizer config and combine with input config
         config_path_vars = path_type is not None and potential_type is not None 

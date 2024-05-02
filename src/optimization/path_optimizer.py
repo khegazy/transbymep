@@ -80,9 +80,10 @@ class PathOptimizer():
         path_integral = integrator.path_integral(
             path, self.loss_name, t_init=t_init, t_final=t_final
         )
-        #for n, prm in path.named_parameters():
-        #    print(n, prm.grad)
+        # print("Path Integral", path_integral)
         path_integral.backward()
+        # for n, prm in path.named_parameters():
+        #    print(n, prm.grad)
         self.optimizer.step()
         return path_integral.item()
 

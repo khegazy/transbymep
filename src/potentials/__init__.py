@@ -4,6 +4,7 @@ import yaml
 from .constant import Constant
 from .wolfe_schlegel import WolfeSchlegel
 from .muller_brown import MullerBrown
+from .harmonic import Harmonic
 from .lennard_jones import LennardJones
 from .newtonnet import NewtonNetPotential
 
@@ -11,6 +12,7 @@ potential_dict = {
     "constant" : Constant,
     "wolfe_schlegel" : WolfeSchlegel,
     "muller_brown" : MullerBrown,
+    "harmonic" : Harmonic,
     "lennard_jones" : LennardJones,
     # "ase": None,
     "newtonnet": NewtonNetPotential,

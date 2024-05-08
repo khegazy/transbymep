@@ -25,7 +25,44 @@ classifiers = [
     "Operating System :: MacOS",
 ]
 requires-python = ">=3.9, <3.13"
-dependencies = ["numpy", "yaml"]
+dependencies = [
+    "numpy",
+    "fsspec==2024.3.1",
+    "gmpy2 @ file:///tmp/build/80754af9/gmpy2_1645455533097/work",
+    "iniconfig @ file:///home/linux1/recipes/ci/iniconfig_1610983019677/work",
+    "jax @ file:///croot/jax_1698071562881/work",
+    "jaxlib @ file:///croot/jaxlib_1697733688272/work/dist/jaxlib-0.4.16.dev20231019-cp310-cp310-manylinux2014_x86_64.whl#sha256=7eb10d4ed48c0dbe541a90aec610f4c2177d85c457df4d3e7b32e993bd6502c9",
+    "jaxtyping @ file:///home/conda/feedstock_root/build_artifacts/jaxtyping_1709843444490/work",
+    "Jinja2 @ file:///croot/jinja2_1706733616596/work",
+    "kiwisolver @ file:///croot/kiwisolver_1672387140495/work",
+    "MarkupSafe @ file:///croot/markupsafe_1704205993651/work",
+    "matplotlib @ file:///croot/matplotlib-suite_1713336378214/work",
+    "ml-dtypes @ file:///croot/ml_dtypes_1702691022032/work",
+    "mpmath @ file:///croot/mpmath_1690848262763/work",
+    "networkx @ file:///croot/networkx_1690561992265/work",
+    "opt-einsum @ file:///tmp/build/80754af9/opt_einsum_1621500238896/work",
+    "packaging @ file:///croot/packaging_1710807400464/work",
+    "pillow @ file:///croot/pillow_1714398848491/work",
+    "pluggy @ file:///home/conda/feedstock_root/build_artifacts/pluggy_1713667077545/work",
+    "ply==3.11",
+    "pyparsing @ file:///opt/conda/conda-bld/pyparsing_1661452539315/work",
+    "PyQt5==5.15.10",
+    "PyQt5-sip @ file:///croot/pyqt-split_1698769088074/work/pyqt_sip",
+    "pytest @ file:///home/conda/feedstock_root/build_artifacts/pytest_1714308352747/work",
+    "python-dateutil @ file:///croot/python-dateutil_1715108784345/work",
+    "PyYAML @ file:///home/conda/feedstock_root/build_artifacts/pyyaml_1695373428874/work",
+    "scipy @ file:///home/conda/feedstock_root/build_artifacts/scipy-split_1714794084074/work/dist/scipy-1.13.0-cp310-cp310-linux_x86_64.whl#sha256=1b23d09acbb18bf2ef511e042f27dfb1ef2ab90dde7fc585f2f7ce45f62bb827",
+    "sip @ file:///croot/sip_1698675935381/work",
+    "six @ file:///tmp/build/80754af9/six_1644875935023/work",
+    "sympy @ file:///croot/sympy_1701397643339/work",
+    "tomli @ file:///opt/conda/conda-bld/tomli_1657175507142/work",
+    "torch==2.3.0",
+    "torchdiffeq==0.2.3",
+    "tornado @ file:///croot/tornado_1696936946304/work",
+    "typeguard @ file:///croot/typeguard_1674631871499/work",
+    "typing_extensions @ file:///croot/typing_extensions_1705599297034/work",
+    "unicodedata2 @ file:///croot/unicodedata2_1713212950228/work"
+]
 
 [project.optional-dependencies]
 dev = ["pytest>=7.4.0", "pytest-cov>=3.0.0", "ruff>=0.0.285"]

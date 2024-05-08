@@ -28,7 +28,6 @@ requires-python = ">=3.9, <3.13"
 dependencies = [
     "numpy",
     "fsspec==2024.3.1",
-    "gmpy2",
     "iniconfig",
     "jax",
     "jaxlib",

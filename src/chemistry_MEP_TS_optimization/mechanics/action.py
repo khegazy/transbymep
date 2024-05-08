@@ -1,8 +1,8 @@
 import jax
 import jax.numpy as jnp
 from functools import partial
+from .lagrangians import lagrangian
 
-from src.mechanics.lagrangians import lagrangian
 
 @partial(jax.jit, static_argnums=[0])
 def action(

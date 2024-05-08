@@ -1,24 +1,28 @@
 import jax
 import jax.numpy as jnp
 import equinox as eqx
-
-from ..tools import metrics
+from chemistry_MEP_TS_optimization.tools import metrics
 
 
 def pes_integral(path, integrator):
     return integrator.path_integral(path.pes_path)
 
+
 def E_vre_integral(path, integrator):
     return integrator.path_integral(path.E_vre)
+
 
 def E_pvre_integral(path, integrator):
     return integrator.path_integral(path.E_pvre)
 
+
 def E_pvre_mag_integral(path, integrator):
     return integrator.path_integral(path.E_pvre_mag)
 
+
 def vre_residual_integral(path, integrator):
     return integrator.path_integral(path.vre_residual)
+
 
 loss_dict = {
     'pes' : pes_integral,
@@ -27,6 +31,7 @@ loss_dict = {
     'e_pvre_mag' : E_pvre_mag_integral,
     'vre_residual' : vre_residual_integral
 }
+
 
 def get_loss(loss_types):
     loss_subfxns = []

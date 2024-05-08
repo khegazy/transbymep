@@ -39,12 +39,16 @@ def import_yaml(address, is_expected=False):
         ImportWarning(f"Cannot find file {address}, still running")
         return {}
 
+
 def import_run_config(
         name,
         path_tag="",
         tag="",
         potential_tag="",
-        dir="./configs/",
+        dir=os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "../../../tests/configs"
+        ),
         is_expected=True,
         flags=None
     ):
@@ -98,10 +102,14 @@ def import_run_config(
 
     return config
 
+
 def import_path_config(
         run_config,
         path_tag="",
-        dir="./src/paths/configs/",
+        dir=os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "../paths/configs"
+        ),
         is_expected=True,
     ):
     filename = f"{run_config.path}_{run_config.path_config_tag}"
@@ -113,7 +121,3 @@ def import_path_config(
     config = PathConfig(name=run_config.path, **yaml_config, tag=path_tag)
     
     return config
-
-
-    
-

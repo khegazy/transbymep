@@ -6,31 +6,14 @@ from typing import NamedTuple
 from matplotlib import pyplot as plt
 import time as timer
 
-from src import mechanics
-from src import tools
-from src import paths
-from src import optimization
-from src.tools import visualize
-from src.potentials import get_potential
+from chemistry_MEP_TS_optimization import tools
+from chemistry_MEP_TS_optimization import paths
+from chemistry_MEP_TS_optimization import optimization
+from chemistry_MEP_TS_optimization.tools import visualize
+from chemistry_MEP_TS_optimization.potentials import get_potential
 
 
-if __name__ == "__main__":
-    ###############################
-    #####  Setup environment  #####
-    ###############################
-    
-    arg_parser = tools.build_default_arg_parser()
-    args = arg_parser.parse_args()
-    logger = tools.logging()
-
-    # Import configuration files
-    config = tools.import_run_config(
-        args.name, path_tag=args.path_tag, tag=args.tag, flags=args
-    )
-    path_config = tools.import_path_config(
-        config, path_tag=args.path_tag
-    )
-
+def run_opt(args, config, path_config, logger):
     # Create output directories
     output_dir = os.path.join(args.output_dir, config.potential, config.optimizer)
     log_dir = os.path.join(output_dir, "logs")
@@ -45,6 +28,8 @@ if __name__ == "__main__":
         add_azimuthal_dof=args.add_azimuthal_dof,
         add_translation_dof=args.add_translation_dof
     )
+
+    print('1')
 
     # Minimize initial points with the given potential
     if args.minimize_end_points:
@@ -67,6 +52,7 @@ if __name__ == "__main__":
         **path_config.path_params
     )
 
+    print('2')
     # Randomly initialize the path, otherwise a straight line
     if args.randomly_initialize_path is not None:
         path = optimization.randomly_initialize_path(
@@ -92,8 +78,9 @@ if __name__ == "__main__":
         path_type=config.path,
         potential_type=config.potential,
         config_tag=config.optimizer_config_tag
-    ) 
-    
+    )
+
+    print('3')
     # Loss
     #print(config.loss_functions)
     #loss_grad_fxn, loss_fxn = optimization.get_loss(config.loss_functions)
@@ -106,6 +93,7 @@ if __name__ == "__main__":
     t0 = timer.time()
     for optim_idx in range(args.num_optimizer_iterations):
         path_integral = optimizer.optimization_step(path, integrator)
+        print(f'optim_idx:, {optim_idx}, {path_integral}')
         if optim_idx%250 == 0:
             print("EVAL TIME", (timer.time()-t0)/60)
             path_output = logger.optimization_step(
@@ -121,6 +109,7 @@ if __name__ == "__main__":
             )
 
     print("EVAL TIME", (timer.time()-t0)/60)
+    print('4', path_integral)
     # Plot gif animation of the MEP optimization (only for 2d potentials)
     if args.make_animation:
         geo_paths = potential.point_transform(torch.tensor(geo_paths))
@@ -132,3 +121,26 @@ if __name__ == "__main__":
             add_translation_dof=args.add_translation_dof,
             add_azimuthal_dof=args.add_azimuthal_dof
         )
+    print('5', path_integral)
+    return path_integral
+
+
+if __name__ == "__main__":
+    ###############################
+    #####  Setup environment  #####
+    ###############################
+
+    arg_parser = tools.build_default_arg_parser()
+    args = arg_parser.parse_args()
+    logger = tools.logging()
+
+    # Import configuration files
+    config = tools.import_run_config(
+        args.name, path_tag=args.path_tag, tag=args.tag, flags=args
+    )
+
+    path_config = tools.import_path_config(
+        config, path_tag=args.path_tag
+    )
+
+    path_integral = run_opt(args, config, path_config, logger)

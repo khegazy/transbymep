@@ -2,11 +2,14 @@ import argparse
 from typing import Optional
 
 
-def build_default_arg_parser() -> argparse.ArgumentParser:
+def build_default_arg_parser(test=False) -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser()
 
     # Name, seed, directory
-    parser.add_argument("--name", help="experiment name", required=True)
+    if test:
+        parser.add_argument("--name", help="experiment name", default='test_Epvre')
+    else:
+        parser.add_argument("--name", help="experiment name", required=True)
     parser.add_argument(
         "--potential_tag",
         help="potential name",

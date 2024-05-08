@@ -5,22 +5,26 @@ from .wolfe_schlegel import WolfeSchlegel
 from .muller_brown import MullerBrown
 from .constant import Constant
 
+
 potential_dict = {
-    "wolfe_schlegel" : WolfeSchlegel,
-    "muller_brown" : MullerBrown,
-    "constant" : Constant
+    "wolfe_schlegel": WolfeSchlegel,
+    "muller_brown": MullerBrown,
+    "constant": Constant
 }
+
 
 def import_potential_config(
         name,
         tag="",
-        dir="./src/potentials/configs/",
+        dir=os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "configs"
+        ),
         is_expected=False
     ):
     filename = name
     filename += f"_{tag}.yaml" if tag != "" else ".yaml"
     address = os.path.join(dir, filename)
-
     if os.path.exists(address):
         with open(address, 'r') as file:
             loaded_yaml = yaml.safe_load(file)
@@ -31,10 +35,14 @@ def import_potential_config(
         ImportWarning(f"Cannot find file {address}, running without it")
         return {}
 
+
 def get_potential(
         potential,
         tag="",
-        config_dir="./src/potentials/configs/",
+        config_dir=os.path.join(
+                os.path.dirname(os.path.abspath(__file__)),
+                "configs"
+            ),
         expect_config=False,
         **kwargs
     ):

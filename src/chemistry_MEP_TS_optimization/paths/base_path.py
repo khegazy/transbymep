@@ -1,8 +1,8 @@
 import torch
 from dataclasses import dataclass
+from chemistry_MEP_TS_optimization.tools import metrics
+from chemistry_MEP_TS_optimization.potentials.base_class import PotentialBase
 
-from ..tools import metrics
-from ..potentials.base_class import PotentialBase
 
 @dataclass
 class PathOutput():

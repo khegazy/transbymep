@@ -1,6 +1,5 @@
 import numpy as np
-
-from src.tools import visualize
+from .visualize import plot_path
 
 
 class logging():
@@ -39,7 +38,7 @@ class logging():
         if pes_paths is not None:
             pes_paths.append(path_output.potential_path)
         if plot:
-            visualize.plot_path(
+            plot_path(
                 path_output.geometric_path.detach().to('cpu').numpy(),
                 f"test_plot_{step:03d}",
                 pes_fxn=potential,

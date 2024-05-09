@@ -83,6 +83,7 @@ def run_opt(args, config, path_config, logger):
     # Loss
     #print(config.loss_functions)
     #loss_grad_fxn, loss_fxn = optimization.get_loss(config.loss_functions)
+
     
     ##########################################
     #####  Optimize minimum energy path  ##### 

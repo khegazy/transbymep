@@ -80,7 +80,6 @@ def run_opt(args, config, path_config, logger):
         config_tag=config.optimizer_config_tag
     )
 
-    print('3')
     # Loss
     #print(config.loss_functions)
     #loss_grad_fxn, loss_fxn = optimization.get_loss(config.loss_functions)

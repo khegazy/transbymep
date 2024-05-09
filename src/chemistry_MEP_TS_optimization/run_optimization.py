@@ -109,7 +109,6 @@ def run_opt(args, config, path_config, logger):
             )
 
     print("EVAL TIME", (timer.time()-t0)/60)
-    print('4', path_integral)
     # Plot gif animation of the MEP optimization (only for 2d potentials)
     if args.make_animation:
         geo_paths = potential.point_transform(torch.tensor(geo_paths))
@@ -121,7 +120,6 @@ def run_opt(args, config, path_config, logger):
             add_translation_dof=args.add_translation_dof,
             add_azimuthal_dof=args.add_azimuthal_dof
         )
-    print('5', path_integral)
     return path_integral
 
 

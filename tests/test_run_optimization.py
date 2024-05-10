@@ -1,7 +1,7 @@
 import pytest
 #import argparse
 #from chemistry_MEP_TS_optimization import tools
-#from chemistry_MEP_TS_optimization import run_optimization
+from chemistry_MEP_TS_optimization.examples.sample import add
 
 def test_sample():
     assert 1 == 1

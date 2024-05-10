@@ -33,7 +33,7 @@ nav:
       - example_docs/about/conduct.md
       - example_docs/about/license.md
 
-repo_url: https://github.com/Quantum-Accelerators/chemistry_MEP_TS_optimization/
+repo_url: https://github.com/khegazy/chemistry_MEP_TS_optimization/
 edit_uri: blob/main/docs/
 
 theme:

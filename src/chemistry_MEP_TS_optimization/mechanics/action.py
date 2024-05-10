@@ -6,12 +6,30 @@ from .lagrangians import lagrangian
 
 @partial(jax.jit, static_argnums=[0])
 def action(
-        potential,     # function defining graph
-        points,        # n points
-        start,         # start point. fixed
-        end,           # end point. fixed
-):
+        potential,     # Function defining the potential energy
+        points,        # Array of n points along the path
+        start,         # Fixed start point
+        end,           # Fixed end point
+) -> float:
+    """
+    Calculate the action for a given path using the specified potential.
 
+    Parameters:
+    -----------
+    potential : function
+        Function defining the potential energy.
+    points : array_like
+        Array of n points along the path.
+    start : array_like
+        Fixed start point.
+    end : array_like
+        Fixed end point.
+
+    Returns:
+    --------
+    float
+        The action for the given path.
+    """
     accumulator = lagrangian(potential, start, points[0])
 
     accumulator += sum(jnp.array(

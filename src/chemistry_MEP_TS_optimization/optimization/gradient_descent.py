@@ -2,8 +2,7 @@ import jax
 import jax.numpy as jnp
 from functools import partial
 
-from src.tools.logging import logging
-from . import path_metrics as path_tools
+from chemistry_MEP_TS_optimization.tools.logging import logging
 
 
 @jax.jit

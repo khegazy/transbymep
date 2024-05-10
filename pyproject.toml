@@ -50,9 +50,9 @@ docs = [
 ]
 
 [project.urls]
-repository = "https://github.com/Quantum-Accelerators/chemistry_MEP_TS_optimization"
-documentation = "https://quantum-accelerators.github.io/chemistry_MEP_TS_optimization/"
-changelog = "https://github.com/Quantum-Accelerators/chemistry_MEP_TS_optimization/blob/main/CHANGELOG.md"
+repository = "https://github.com/khegazy/chemistry_MEP_TS_optimization"
+documentation = "https://khegazy.github.io/chemistry_MEP_TS_optimization/"
+changelog = "https://github.com/khegazy/chemistry_MEP_TS_optimization/blob/main/CHANGELOG.md"
 
 [tool.setuptools.package-data]
 chemistry_MEP_TS_optimization = ["py.typed"]

@@ -1,5 +1,5 @@
 numpy==1.26.4
-torch==2.0.0
+torch>=2.0.0
 matplotlib==3.8.2
 pytest==7.4.4
 pytest-cov==4.1.0

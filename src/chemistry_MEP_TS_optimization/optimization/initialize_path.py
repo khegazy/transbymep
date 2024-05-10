@@ -2,8 +2,34 @@ import torch
 import numpy as np
 import numpy.random as rnd
 import matplotlib.pyplot as plt
+from typing import Union
 
-def randomly_initialize_path(path, n_points, order_points=False, seed=1910):
+
+def randomly_initialize_path(
+        path: torch.tensor,
+        n_points: int,
+        order_points: bool = False,
+        seed: int = 1910
+) -> Union[torch.Tensor, np.ndarray]:
+    """
+    Randomly initialize the path.
+
+    Parameters:
+    -----------
+    path : torch.Tensor
+        The path object.
+    n_points : int
+        Number of points.
+    order_points : bool, optional
+        Whether to order points (default is False).
+    seed : int, optional
+        Random seed (default is 1910).
+
+    Returns:
+    --------
+    Union[torch.Tensor, np.ndarray]
+        Initialized path.
+    """
     #times = rnd.uniform(shape=(n_points, 1), minval=0.1, maxval=0.9)
     times = torch.unsqueeze(torch.linspace(0, 1, n_points+2)[1:-1], -1)
     times.requires_grad = False
@@ -30,17 +56,64 @@ def randomly_initialize_path(path, n_points, order_points=False, seed=1910):
     rnd_dims = torch.tensor(
         np.concatenate(rnd_dims, axis=-1), requires_grad=False
     )
-    
+
     return initialize_path(path, times, rnd_dims)
 
 
-def loss_init(path, times, points):
+def loss_init(
+        path: torch.tensor,
+        times: torch.tensor,
+        points: torch.tensor
+) -> torch.Tensor:
+    """
+    Initialize the loss.
+
+    Parameters:
+    -----------
+    path : torch.Tensor
+        The path object.
+    times : torch.Tensor
+        Times.
+    points : torch.Tensor
+        Points.
+
+    Returns:
+    --------
+    torch.Tensor
+        Loss value.
+    """
     preds = path.geometric_path(times)
     return torch.mean((points - preds)**2)
 
 
-def initialize_path(path, times, init_points, lr=0.001, max_steps=5000):
+def initialize_path(
+        path: torch.tensor,
+        times: torch.tensor,
+        init_points: torch.tensor,
+        lr: float = 0.001,
+        max_steps: int = 5000
+) -> torch.tensor:
+    """
+    Initialize the path.
 
+    Parameters:
+    -----------
+    path : torch.Tensor
+        The path object.
+    times : torch.Tensor
+        Times.
+    init_points : torch.Tensor
+        Initial points.
+    lr : float, optional
+        Learning rate (default is 0.001).
+    max_steps : int, optional
+        Maximum number of steps (default is 5000).
+
+    Returns:
+    --------
+    torch.Tensor
+        Initialized path.
+    """
     print("INFO: Beginning path initialization")
     loss, prev_loss = torch.tensor([2e-10]), torch.tensor([1e-10])
     print(path.named_parameters())
@@ -66,7 +139,7 @@ def initialize_path(path, times, init_points, lr=0.001, max_steps=5000):
             fig.savefig(f"./plots/initialization/init_path_{idx}.png")
 
         #print(prev_loss, loss, jnp.abs(prev_loss - loss)/prev_loss)
-    
+
     print(f"INFO: Finished path initialization after {idx} iterations")
     fig, ax = plt.subplots()
     path_output = path.get_path()
@@ -76,12 +149,3 @@ def initialize_path(path, times, init_points, lr=0.001, max_steps=5000):
     fig.savefig("./plots/init_path.png")
 
     return path
-
-
-
-
-
-
-
-
-

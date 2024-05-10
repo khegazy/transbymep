@@ -25,7 +25,18 @@ classifiers = [
     "Operating System :: MacOS",
 ]
 requires-python = ">=3.9, <3.13"
-dependencies = ["numpy", "torch"]
+dependencies = [
+    "numpy",
+    "torch",
+    "matplotlib",
+    "pytest",
+    "pytest-cov",
+    "PyYAML",
+    "torchdiffeq",
+    "jax",
+    "jaxlib",
+    "equinox",
+]
 
 [project.optional-dependencies]
 dev = ["pytest>=7.4.0", "pytest-cov>=3.0.0", "ruff>=0.0.285"]

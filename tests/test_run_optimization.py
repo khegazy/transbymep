@@ -12,7 +12,7 @@ def test_sample():
 @pytest.mark.parametrize(
     "name, path_tag, tag, seed, output_dir, path, optimizer, num_optimizer_iterations, expected_path_integral",
     [
-        ('test_Epvre', "", "", 123, "./output", "mlp", "gradient_descent", 5, 131.2415),
+        ('config_Epvre', "", "", 123, "./output", "mlp", "gradient_descent", 5, 131.2415),
         # Add more test cases with different input parameters as needed
     ]
 )
@@ -47,5 +47,5 @@ def test_run_opt(tmp_path, monkeypatch, name, path_tag, tag, seed, output_dir, p
     path_config = tools.import_path_config(
         config, path_tag=args.path_tag
     )
-    path_integral = run_optimization.run_opt(args, config, path_config, logger)
+    path_integral = run_opt(args, config, path_config, logger)
     assert path_integral == pytest.approx(expected_path_integral, abs=1, rel=1)

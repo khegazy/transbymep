@@ -7,22 +7,65 @@ from . import path_metrics as path_tools
 
 
 @jax.jit
-def update(params, grad_fxn, metrics, learning_rate):
+def update(
+        params: dict,
+        grad_fxn: callable,
+        metrics: dict,
+        learning_rate: float
+) -> dict:
+    """
+    Update parameters using gradient descent.
+
+    Parameters:
+    -----------
+    params : dict
+        Model parameters.
+    grad_fxn : callable
+        Gradient function.
+    metrics : dict
+        Metrics.
+    learning_rate : float
+        Learning rate.
+
+    Returns:
+    --------
+    dict
+        Updated parameters.
+    """
     grads = grad_fxn(params, metrics)
     return jax.tree_map(
         lambda param, g: param - g*learning_rate, params, grads
     )
 
+
 class gradientDescent_(path_tools.ODEintegrator, logging):
     def __init__(
             self,
-            potential,
-            path,
-            loss_fxn,
-            metric_fxn,
-            config,
-            max_n_steps=1e9,
+            potential: callable,
+            path: object,
+            loss_fxn: callable,
+            metric_fxn: callable,
+            config: dict,
+            max_n_steps: int = 1e9,
     ):
+        """
+        Initialize the gradient descent optimizer.
+
+        Parameters:
+        -----------
+        potential : callable
+            The potential function.
+        path : object
+            The path object.
+        loss_fxn : callable
+            The loss function.
+        metric_fxn : callable
+            The metric function.
+        config : dict
+            Configuration dictionary.
+        max_n_steps : int, optional
+            Maximum number of steps (default is 1e9).
+        """
         super().__init__(potential, path)
         self.potential = potential
         self.path
@@ -32,12 +75,22 @@ class gradientDescent_(path_tools.ODEintegrator, logging):
         self.max_n_steps = max_n_steps
         self.grad_fxn = jax.grad(self.loss_fxn)
 
+
     def find_critical_path(
             self,
-            n_steps=10,
-            log_frequency=1000
-    ):
+            n_steps: int = 10,
+            log_frequency: int = 1000
+    ) ->  None:
+        """
+        Find the critical path.
 
+        Parameters:
+        -----------
+        n_steps : int, optional
+            Number of steps (default is 10).
+        log_frequency : int, optional
+            Logging frequency (default is 1000).
+        """
         print("computing critical_path...")
         n_steps = n_steps if n_steps is not None else self.max_n_steps
 
@@ -59,7 +112,15 @@ class gradientDescent_(path_tools.ODEintegrator, logging):
 
     
     @partial(jax.jit, static_argnums=[0])
-    def update_path(self):
+    def update_path(self) -> float:
+        """
+        Update the path.
+
+        Returns:
+        --------
+        float
+            Loss value.
+        """
         loss = self.loss_fxn(self.path, self.potential)
         grads = jax.grad(loss)(self.path.weights)
         self.path.weights = [(w - self.step_size*dw, b - self.step_size*db)\

@@ -2,6 +2,7 @@ import torch
 from dataclasses import dataclass
 from chemistry_MEP_TS_optimization.tools import metrics
 from chemistry_MEP_TS_optimization.potentials.base_class import PotentialBase
+from typing import Callable, Any
 
 
 @dataclass
@@ -59,7 +60,7 @@ class BasePath(torch.nn.Module):
 
     def __init__(
         self,
-        potential: callable,
+        potential: Callable,
         initial_point: torch.Tensor,
         final_point: torch.Tensor,
         return_velocity: bool = False,

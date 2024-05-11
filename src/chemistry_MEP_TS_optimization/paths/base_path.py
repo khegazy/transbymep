@@ -140,7 +140,7 @@ class BasePath(torch.nn.Module):
             times: torch.Tensor = None,
             return_velocity: bool = False,
             return_force: bool = False
-    ) -> BasePath:
+    ) -> PathOutput:
         """
         Get the path for the given times.
 
@@ -155,8 +155,8 @@ class BasePath(torch.nn.Module):
 
         Returns:
         --------
-        BasePath
-            An instance of the BasePath class representing the computed path.
+        PathOutput
+            An instance of the PathOutput class representing the computed path.
         """
         if times is None:
             times = torch.unsqueeze(torch.linspace(0, 1., 1000), -1)

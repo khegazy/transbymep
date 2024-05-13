@@ -10,6 +10,7 @@ from src import mechanics
 from src import tools
 from src import paths
 from src import optimization
+from src import ddp
 from src.tools import visualize
 from src.potentials import get_potential
 
@@ -22,6 +23,10 @@ if __name__ == "__main__":
     arg_parser = tools.build_default_arg_parser()
     args = arg_parser.parse_args()
     logger = tools.logging()
+    process = ddp.DistributedEnvironment(
+        device_type=args.device, is_slurm=args.is_slurm
+    )
+    print(process)
 
     # Import configuration files
     config = tools.import_run_config(
@@ -62,6 +67,7 @@ if __name__ == "__main__":
         potential,
         config.initial_point,
         config.final_point,
+        process=process,
         #add_azimuthal_dof=args.add_azimuthal_dof,
         #add_translation_dof=args.add_translation_dof,
         **path_config.path_params
@@ -132,3 +138,5 @@ if __name__ == "__main__":
             add_translation_dof=args.add_translation_dof,
             add_azimuthal_dof=args.add_azimuthal_dof
         )
+    
+    process.end_process()

@@ -27,6 +27,18 @@ def build_default_arg_parser() -> argparse.ArgumentParser:
         type=str,
         default="./output"
     )
+    parser.add_argument(
+        '--is_multiprocess', default=False, action='store_true'
+    )
+    parser.add_argument(
+        '--is_slurm', default=False, action='store_true'
+    )
+    parser.add_argument(
+        "--device",
+        help="Name of device type: cpu or cuda",
+        type=str,
+        default="cpu"
+    )
 
     # Path description
     parser.add_argument(

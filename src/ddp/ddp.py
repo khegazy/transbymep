@@ -53,7 +53,6 @@ class DistributedEnvironment():
         # Set device
         self.set_device()
 
-
     def check_distributed(self):
         if self.is_slurm:
             self.is_distributed = int(os.environ['SLURM_NTASKS']) > 1
@@ -136,7 +135,6 @@ class DistributedEnvironment():
         # If node has multiple GPUs visible by process then select GPU by local
         # rank. Otherwise, process will only see a single GPU so use 'cuda:0'
         is_cuda_with_GPUs = self.device_type.lower() == "cuda"
-        print(is_cuda_with_GPUs, torch.cuda.device_count())
         is_cuda_with_GPUs = is_cuda_with_GPUs and torch.cuda.device_count() > 1
         is_cpu_with_CPUs = self.device_type.lower() == "cpu"
         is_cpu_with_CPUs = is_cpu_with_CPUs and os.cpu_count() > 1

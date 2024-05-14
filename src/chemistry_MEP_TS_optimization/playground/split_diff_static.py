@@ -5,15 +5,46 @@ import jax.random as jrandom
 import jax.tree_util as jtu
 import optax  # https://github.com/deepmind/optax
 
+
 # Toy data
-def get_data(dataset_size, *, key):
+def get_data(
+        dataset_size: int,
+        *,
+        key: jnp.ndarray
+) -> tuple:
+    """
+    Generate toy dataset.
+
+    Args:
+        dataset_size (int): Size of the dataset.
+        key (jnp.ndarray): Random key for data generation.
+
+    Returns:
+        tuple: Tuple of input and output data arrays.
+    """
     x = jrandom.normal(key, (dataset_size, 1))
     y = 5 * x - 2
     return x, y
 
 
 # Toy dataloader
-def dataloader(arrays, batch_size, *, key):
+def dataloader(
+        arrays: tuple,
+        batch_size: int,
+        *,
+        key: jnp.ndarray
+) -> tuple:
+    """
+    Generate batches of data.
+
+    Args:
+        arrays (tuple): Tuple of input and output data arrays.
+        batch_size (int): Size of each batch.
+        key (jnp.ndarray): Random key for shuffling.
+
+    Yields:
+        tuple: Batch of input and output data arrays.
+    """
     dataset_size = arrays[0].shape[0]
     assert all(array.shape[0] == dataset_size for array in arrays)
     indices = jnp.arange(dataset_size)
@@ -30,14 +61,26 @@ def dataloader(arrays, batch_size, *, key):
 
 
 def main(
-    dataset_size=10000,
-    batch_size=256,
-    learning_rate=3e-3,
-    steps=1000,
-    width_size=8,
-    depth=1,
-    seed=5678,
-):
+    dataset_size: int = 10000,
+    batch_size: int = 256,
+    learning_rate: float = 3e-3,
+    steps: int = 1000,
+    width_size: int = 8,
+    depth: int = 1,
+    seed: int = 5678,
+) -> None:
+    """
+    Main function for training a neural network model.
+
+    Args:
+        dataset_size (int, optional): Size of the dataset. Defaults to 10000.
+        batch_size (int, optional): Size of each batch. Defaults to 256.
+        learning_rate (float, optional): Learning rate. Defaults to 3e-3.
+        steps (int, optional): Number of training steps. Defaults to 1000.
+        width_size (int, optional): Width of the MLP layers. Defaults to 8.
+        depth (int, optional): Depth of the MLP. Defaults to 1.
+        seed (int, optional): Random seed. Defaults to 5678.
+    """
     data_key, loader_key, model_key = jrandom.split(jrandom.PRNGKey(seed), 3)
     data = get_data(dataset_size, key=data_key)
     data_iter = dataloader(data, batch_size, key=loader_key)
@@ -60,6 +103,7 @@ def main(
     diff_model, static_model = eqx.partition(model, filter_spec)
     print("diff model\n", diff_model)
     print("static model\n", static_model)
+
     # Step 3
     @eqx.filter_jit
     def make_step(model, x, y, opt_state):
@@ -99,4 +143,6 @@ def main(
         f"{jtu.tree_leaves(model.layers[-1])}\n"
     )
 
-main()
+
+if __name__ == '__main__':
+    main()

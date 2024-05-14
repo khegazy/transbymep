@@ -31,6 +31,9 @@ def build_default_arg_parser() -> argparse.ArgumentParser:
         '--is_multiprocess', default=False, action='store_true'
     )
     parser.add_argument(
+        '--is_load_balance', default=False, action='store_true'
+    )
+    parser.add_argument(
         '--is_slurm', default=False, action='store_true'
     )
     parser.add_argument(

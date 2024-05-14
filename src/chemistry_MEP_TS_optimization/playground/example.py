@@ -6,19 +6,83 @@ import equinox as eqx
 import jax.nn as jnn
 
 
-def vector_field2(t, y, interp):
+def vector_field2(
+        t: jnp.array,
+        y: jnp.array,
+        interp: CubicInterpolation
+) -> jnp.array:
+    """
+    Defines the vector field for the ordinary differential equation.
+
+    Args:
+        t (jnp.array): Time.
+        y (jnp.array): Input vector.
+        interp (CubicInterpolation): Interpolation object.
+
+    Returns:
+        jnp.array: Result of the vector field computation.
+    """
     return -y + interp.evaluate(t)
 
-def predict_float(param, time):
+
+def predict_float(
+        param: jnp.array,
+        time: jnp.array
+) -> jnp.array:
+    """
+    Predicts floating point values.
+
+    Args:
+        param (jnp.array): Model parameters.
+        time (jnp.array): Time.
+
+    Returns:
+        jnp.array: Predicted values.
+    """
     return jnp.linalg.norm(jnp.matmul(jnp.array([time]), param))
 
-def int_fxn(t, y, args):
+
+def int_fxn(
+        t: jnp.array,
+        y: jnp.array,
+        args
+) -> jnp.array:
+    """
+    Integrates a function.
+
+    Args:
+        t (jnp.array): Time.
+        y (jnp.array): Input vector.
+        args (float): Additional argument.
+
+    Returns:
+        jnp.array: Result of the integration.
+    """
     return jnp.linalg.norm(args*t)
 
+
 class Func(eqx.Module):
+    """
+    Function class using an MLP neural network.
+
+    Args:
+        data_size (int): Input size.
+        width_size (int): Width of the MLP.
+        depth (int): Depth of the MLP.
+        key (jax.random.PRNGKey): Random key for initialization.
+    """
+
     mlp: eqx.nn.MLP
 
-    def __init__(self, data_size, width_size, depth, *, key, **kwargs):
+    def __init__(
+            self,
+            data_size: int,
+            width_size: int,
+            depth: int,
+            *,
+            key: jax.random.PRNGKey,
+            **kwargs
+    ):
         super().__init__(**kwargs)
         self.mlp = eqx.nn.MLP(
             in_size=data_size,
@@ -29,8 +93,25 @@ class Func(eqx.Module):
             key=key,
         )
 
-    def __call__(self, t, y, args):
+    def __call__(
+            self,
+            t: jnp.array,
+            y: jnp.array,
+            args
+    ) -> jnp.array:
+        """
+        Compute the function output.
+
+        Args:
+            t (jnp.array): Time.
+            y (jnp.array): Input data.
+            args (float): Additional argument.
+
+        Returns:
+            jnp.array: Output of the function.
+        """
         return jnp.linalg.norm(self.mlp(t))
+
 
 path = Func(1, 2, 4, 2)
 """
@@ -42,8 +123,19 @@ class path(eqx.nn.Module):
     def __call__():
         calculate spline/mlp
 """
+
+
 #@jax.jit
-def solve(path_):
+def solve(path_: Func) -> jnp.array:
+    """
+    Solves the ordinary differential equation.
+
+    Args:
+        path_ (Func): Function representing the vector field.
+
+    Returns:
+        jnp.array: Solution of the differential equation.
+    """
     t0 = 0
     t1 = 1.
     #ts = jnp.linspace(t0, t1, len(points))

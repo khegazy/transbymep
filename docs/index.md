@@ -1,5 +1,6 @@
-# template
+# chemistry_MEP_TS_Optimization
 
-Welcome to the documentation for the `template` code! Here you will find everything you need to get started with your own Python package.
-
-**Check out the corresponding ⭐[YouTube tutorial](https://www.youtube.com/watch?v=th2CqJ6oBuM)⭐ for a video overview!**
+Welcome to the documentation for the `chemistry_MEP_TS_optimization` code!
+This python package provides functionality to obtain minimum energy path (MEP)
+connecting two minima (namely, reactant and product for a chemical system)
+which passes through a saddle point (called, the transition state for a chemical system).

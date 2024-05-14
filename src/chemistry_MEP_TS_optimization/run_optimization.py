@@ -13,7 +13,21 @@ from chemistry_MEP_TS_optimization.tools import visualize
 from chemistry_MEP_TS_optimization.potentials import get_potential
 
 
-def run_opt(args, config, path_config, logger):
+def run_opt(
+        args: NamedTuple,
+        config: NamedTuple,
+        path_config: NamedTuple,
+        logger: NamedTuple
+):
+    """
+    Run optimization process.
+
+    Args:
+        args (NamedTuple): Command line arguments.
+        config (NamedTuple): Configuration settings.
+        path_config (NamedTuple): Path configuration.
+        logger (NamedTuple): Logger settings.
+    """
     # Create output directories
     output_dir = os.path.join(args.output_dir, config.potential, config.optimizer)
     log_dir = os.path.join(output_dir, "logs")
@@ -28,8 +42,6 @@ def run_opt(args, config, path_config, logger):
         add_azimuthal_dof=args.add_azimuthal_dof,
         add_translation_dof=args.add_translation_dof
     )
-
-    print('1')
 
     # Minimize initial points with the given potential
     if args.minimize_end_points:
@@ -52,7 +64,6 @@ def run_opt(args, config, path_config, logger):
         **path_config.path_params
     )
 
-    print('2')
     # Randomly initialize the path, otherwise a straight line
     if args.randomly_initialize_path is not None:
         path = optimization.randomly_initialize_path(
@@ -83,7 +94,6 @@ def run_opt(args, config, path_config, logger):
     # Loss
     #print(config.loss_functions)
     #loss_grad_fxn, loss_fxn = optimization.get_loss(config.loss_functions)
-
 
     ##########################################
     #####  Optimize minimum energy path  ##### 

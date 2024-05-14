@@ -21,6 +21,7 @@ class RunConfig:
     tag : str = ""
     potential_tag : str = ""
     is_multiprocess : bool = False
+    is_load_balance : bool = False
 
 @dataclass
 class PathConfig:
@@ -96,8 +97,8 @@ def import_run_config(
             #config.final_point[0] = 0
             # Rotate by pi
             config.final_point[0] = -1*(config.final_point[0] + flags.add_azimuthal_dof)
-        if flags.is_multiprocess:
-            config.is_multiprocess = True
+        config.is_multiprocess = flags.is_multiprocess or config.is_multiprocess
+        config.is_load_balance = flags.is_load_balance or config.is_load_balance
 
     return config
 

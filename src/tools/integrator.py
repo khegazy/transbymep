@@ -1,5 +1,6 @@
 import time
 import torch
+import torch.distributed as dist
 import numpy as np
 from torchdiffeq import odeint
 
@@ -15,13 +16,13 @@ class ODEintegrator(Metrics):
             rtol=1e-7,
             atol=1e-9,
             dx=0.01,
+            process=None,
             is_multiprocess=False,
-            do_load_balance=False,
-            process=None
+            is_load_balance=False,
         ):
         self.potential = potential
         self.is_multiprocess = is_multiprocess
-        self.do_load_balance = do_load_balance
+        self.is_load_balance = is_load_balance
         self.process = process
         
         self.solver = solver
@@ -41,9 +42,11 @@ class ODEintegrator(Metrics):
                 raise ValueError("Must run program in distributed mode with multiprocess integrator.")
             self.inner_path_integral = self.path_integral
             self.path_integral = self.multiprocess_path_integral
-            self.run_times = np.ones(self.process.world_size)
-            if self.do_load_balance:
-                self.mp_times = np.linspace(0, 1, self.process.world_size+1)
+            self.run_time = torch.tensor([1], requires_grad=False)# = np.ones(self.process.world_size)
+            if self.is_load_balance:
+                self.mp_times = torch.linspace(
+                    0, 1, self.process.world_size+1, requires_grad=False
+                )
 
     def _integrand_wrapper(self, t, y, path, ode_fxn):
         vals = path(t)
@@ -73,36 +76,61 @@ class ODEintegrator(Metrics):
 
     def multiprocess_path_integral(self, path, fxn_name, t_init=0., t_final=1., mp_times=None):
         
-        if self.do_load_balance:
-            frac_run_time = np.sum(self.run_times)/self.process.world_size
-            for idx in range(len(self.mp_times)):
-                n_shifts = len(self.mp_times) - idx
+        #print(self.process.rank, self.run_times)
+        torch.distributed.barrier()
+        if self.is_load_balance:
+            if self.process.is_master:
+                run_times = [
+                    torch.zeros(1, dtype=torch.float)\
+                    for _ in range(self.process.world_size)
+                ]
+                dist.gather(
+                    torch.tensor([self.run_time], dtype=torch.float32),
+                    gather_list=run_times,
+                    dst=0
+                )
+                run_times = torch.tensor(run_times).detach().numpy()
+                #print("ALL RUN TIMES", run_times, self.mp_times)
+                frac_run_time = np.sum(run_times)/self.process.world_size
+                #print("INIT MP TIMES", self.mp_times)
+                for idx in range(len(self.mp_times)-2):
+                    n_shifts = len(self.mp_times) - idx - 2
 
-                rt_delta = self.run_times[idx] - frac_run_time
-                pt_delta = self.mp_times[idx]*(rt_delta/self.run_times[idx])
-                print("DELTAS", rt_delta, pt_delta)
+                    rt_delta = run_times[idx] - frac_run_time
+                    pt_delta = (self.mp_times[idx+1] - self.mp_times[idx])
+                    pt_delta *= rt_delta/run_times[idx]
+                    #print("DELTAS", rt_delta, pt_delta)
 
-                pt_shifts = -1*pt_delta*(1. - np.arange(n_shifts)/n_shifts)
-                print(pt_shifts, np.arange(n_shifts)/n_shifts)
-                self.mp_times[idx:-1] = self.mp_times[idx:-1] + pt_shifts
-                print("NEW PATH TIMES", self.mp_times)
-                
-                rt_shifts = [-1] + [1./n_shifts,]*n_shifts
-                rt_shifts = rt_delta*np.array(rt_shifts)
-                self.run_times[idx:] += rt_shifts
-                print("NEW RUN TIMES", self.run_times)
-            print("MP TIMES", self.mp_times)
+                    pt_shifts = -1*pt_delta*(1. - torch.arange(n_shifts)/n_shifts)
+                    #print(self.mp_times[idx+1:-1], pt_shifts)
+                    self.mp_times[idx+1:-1] = self.mp_times[idx+1:-1] + pt_shifts
+                    #print("NEW PATH TIMES", self.mp_times)
+                    
+                    rt_shifts = [-1]
+                    if n_shifts > 0:
+                        rt_shifts = rt_shifts + [1./n_shifts,]*n_shifts
+                    rt_shifts = rt_delta*np.array(rt_shifts)
+                    run_times[idx:] += rt_shifts
+                    #print("NEW RUN TIMES", self.run_times)
+                #print("MP TIMES", self.mp_times)
+            else:
+                dist.gather(
+                    torch.tensor([self.run_time], dtype=torch.float32), dst=0
+                )
+            dist.broadcast(self.mp_times, src=0)
+            mp_times = self.mp_times.detach().numpy()
         if mp_times is None:
-            mp_times = torch.linspace(t_init, t_final, self.process.world_size+1)
+            mp_times = np.linspace(t_init, t_final, self.process.world_size+1)
         
         start_time = time.time()
-        integral = self.path_integral(
+        integral = self.inner_path_integral(
             path=path,
             fxn_name=fxn_name,
             t_init=mp_times[self.process.rank],
             t_final=mp_times[self.process.rank+1]
         )
-        self.run_time[self.process.rank] = time.time() - start_time
+        #self.run_times[self.process.rank] = time.time() - start_time
+        self.run_time = time.time() - start_time
 
         return integral
 

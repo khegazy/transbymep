@@ -27,6 +27,7 @@ if __name__ == "__main__":
         device_type=args.device, is_slurm=args.is_slurm
     )
     print(process)
+    print("process is distributed", process.is_distributed)
 
     # Import configuration files
     config = tools.import_run_config(
@@ -85,7 +86,10 @@ if __name__ == "__main__":
         potential,
         solver=config.integral_params['solver'],
         rtol=config.integral_params['rtol'],
-        atol=config.integral_params['atol']
+        atol=config.integral_params['atol'],
+        process=process,
+        is_multiprocess=config.is_multiprocess,
+        is_load_balance=config.is_load_balance
     )
     #print("test integrate", integrator.path_integral(path, 'E_pvre'))
 
@@ -95,6 +99,7 @@ if __name__ == "__main__":
         config.optimizer_params,
         path,
         config.loss_function,
+        process,
         path_type=config.path,
         potential_type=config.potential,
         config_tag=config.optimizer_config_tag

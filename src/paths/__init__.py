@@ -18,10 +18,13 @@ def get_path(name, potential, initial_point, final_point, process, **config):
 
     path = path_dict[name](potential, initial_point, final_point, **config)
     if process.is_distributed:
-         print("DEVICE ID", process.rank, process.device_ids)
-         #torch.cpu.set_device(process.local_rank)
-         path = DDP(path, device_ids=process.device_ids, output_device=process.local_rank)
-         path.get_path = path.module.get_path
-         print("DEVICE", path.module.layers[0].weight.get_device())
+        print("DEVICE ID", process.rank, process.device_ids)
+        #torch.cpu.set_device(process.local_rank)
+        if process.device_type == 'cpu':
+            path = DDP(path)
+        else:
+            path = DDP(path, device_ids=process.device_ids, output_device=process.local_rank)
+        path.get_path = path.module.get_path
+        print("DEVICE", path.module.layers[0].weight.get_device())
     
     return path 

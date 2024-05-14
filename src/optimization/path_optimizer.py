@@ -2,6 +2,7 @@ import os
 import yaml
 import torch
 from torch import optim
+from torch import distributed as dist
 
 optimizer_dict = {
     "sgd" : optim.SGD,
@@ -16,6 +17,7 @@ class PathOptimizer():
             config,
             path,
             loss_name,
+            process,
             config_path=None,
             path_type=None,
             potential_type=None,
@@ -23,6 +25,7 @@ class PathOptimizer():
             config_dir="./src/optimizations/configs/",
             expect_config=False
         ):
+        self.process = process
         self.loss_name = loss_name
         name = name.lower()
         if name not in optimizer_dict:
@@ -80,10 +83,15 @@ class PathOptimizer():
         path_integral = integrator.path_integral(
             path, self.loss_name, t_init=t_init, t_final=t_final
         )
+        #print("path integral 0", integrator.process.rank, path_integral)
         #for n, prm in path.named_parameters():
         #    print(n, prm.grad)
         path_integral.backward()
+        #print("GRADS", integrator.process.rank, path.module.layers[0].weight)
         self.optimizer.step()
+        if self.process.is_distributed:
+            dist.all_reduce(path_integral)
+        #print("path integral 1", integrator.process.rank, path_integral)
         return path_integral.item()
 
     

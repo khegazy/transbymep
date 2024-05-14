@@ -14,25 +14,49 @@ def f(t):
 vector_field = lambda t, y, args: jnp.linalg.norm(jax.jacfwd(f)(t))
 """
 
-def f(t):
+
+def f(t: float) -> float:
+    """
+    A function that returns square of a number.
+
+    Args:
+        t (float): Input value.
+
+    Returns:
+        float: Output value.
+    """
     return t**2
 
+
 jac = jax.jacfwd(f)
-def vector_field(t, x, y):
+
+
+def vector_field(t: float, x: float, y: float) -> float:
+    """
+    Defines the vector field for the ordinary differential equation.
+
+    Args:
+        t (float): Time.
+        x (float): First coordinate.
+        y (float): Second coordinate.
+
+    Returns:
+        float: Result of the vector field computation.
+    """
     print(t,x,y)
     return jnp.linalg.norm(jac(t))
 
 term = ODETerm(vector_field)
 solver = Dopri5()
-#saveat = SaveAt(dense=True)
+# saveat = SaveAt(dense=True)
 saveat = SaveAt(ts=[0.1*i for i in range(11)])
 stepsize_controller = PIDController(rtol=1e-5, atol=1e-5)
 
 sol = diffeqsolve(term, solver, t0=0, t1=1, dt0=None, y0=0, saveat=saveat,
                   stepsize_controller=stepsize_controller)
 
-#length = sol.evaluate(1.)
-#print("Curve length: ", length)
+# length = sol.evaluate(1.)
+# print("Curve length: ", length)
 print(sol.ts)
 print(sol.ys)
 

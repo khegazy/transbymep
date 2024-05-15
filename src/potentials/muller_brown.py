@@ -15,7 +15,7 @@ class MullerBrown(BasePotential):
         super().__init__(**kwargs)
 
     def forward(self, points):
-        x, y = points[:,0], points[:,1]
+        x, y = points[...,0], points[...,1]
         total = 0.0
         for i in range(4):
             b = self.bi[i]*(x - self.xi[i])*(x - self.xi[i])

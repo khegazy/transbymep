@@ -5,12 +5,13 @@ from .metrics import Metrics
 
 
 class ODEintegrator(Metrics):
-    def __init__(self, potential, solver='dopri5', rtol=1e-7, atol=1e-9):
+    def __init__(self, potential, solver='dopri5', rtol=1e-7, atol=1e-9, **solver_kwargs):
         self.potential = potential
-        
+
         self.solver = solver
         self.rtol = rtol
         self.atol = atol
+        self.solver_kwargs = solver_kwargs
 
     # def _integrand_wrapper(self, t, y, path, ode_fxn):
     #     vals = path(t)
@@ -35,7 +36,8 @@ class ODEintegrator(Metrics):
             t=torch.tensor([t_init, t_final]),
             method=self.solver,
             rtol=self.rtol,
-            atol=self.atol
+            atol=self.atol,
+            options=self.solver_kwargs
         )
 
         return integral[-1]

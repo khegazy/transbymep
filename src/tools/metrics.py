@@ -58,7 +58,7 @@ class Metrics():
         kwargs['fxn_name'] = self.E_vre.__name__
         geo_val, velocity, pes_val, force = self._parse_input(**kwargs)
         
-        return torch.linalg.norm(force)*torch.linalg.norm(velocity),\
+        return torch.linalg.norm(force)*torch.linalg.norm(velocity)
 
     def E_pvre(self, **kwargs):
         kwargs['requires_force'] = True

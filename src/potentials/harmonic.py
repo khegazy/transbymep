@@ -12,10 +12,7 @@ class Harmonic(BasePotential):
             points (torch.Tensor): shape (n_points, n_atoms * 3)
         """
         pos = points.unflatten(-1, (2, 3))
-        # dist = torch.linalg.norm(pos[..., None, :, :] - pos[..., :, None, :], dim=-1)
-        # inv_dist = 1 / (dist + 1e-6)
-        # inv_dist = torch.where(dist > 0, inv_dist, torch.zeros_like(dist))
-        # energy = torch.sum(dist ** 2, dim=(-1, -2)) / 2
-        # energy = torch.sum(pos ** 2, dim=(-1, -2))
-        energy = ((pos[..., 0, :] - pos[..., 1, :]) ** 2).sum(dim=-1)
+        dist = pos[..., None, :, :] - pos[..., :, None, :]
+        ind = torch.triu_indices(dist.shape[-3], dist.shape[-2], offset=1)
+        energy = torch.sum(torch.norm(dist[ind[0], ind[1]], dim=-1) ** 2) / 2
         return energy

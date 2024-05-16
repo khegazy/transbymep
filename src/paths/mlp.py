@@ -29,8 +29,10 @@ class MLPpath(BasePath):
             for i in range(depth*2 - 1)
         ]
         self.mlp = nn.Sequential(*self.layers)
+        self.Nevals = 0
 
     def geometric_path(self, time, *args):
+        self.Nevals = self.Nevals + 1
         return self.mlp(time)\
             - (1 - time)*(self.mlp(torch.tensor([0.])) - self.initial_point)\
             - time*(self.mlp(torch.tensor([1.])) - self.final_point)

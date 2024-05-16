@@ -33,6 +33,7 @@ class BasePath(torch.nn.Module):
         self.final_point = torch.tensor(final_point)
         self.return_velocity = return_velocity
         self.return_force = return_force
+        self.Nevals = 0
 
     def geometric_path(self, time, y, *args):
         raise NotImplementedError()
@@ -66,6 +67,7 @@ class BasePath(torch.nn.Module):
         )
     
     def forward(self, t, return_velocity=False, return_force=False):
+        self.Nevals = self.Nevals + 1
         geo_path = self.geometric_path(t)
         pes_path = self.potential(geo_path)
 

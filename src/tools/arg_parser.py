@@ -37,6 +37,9 @@ def build_default_arg_parser() -> argparse.ArgumentParser:
         '--is_slurm', default=False, action='store_true'
     )
     parser.add_argument(
+        '--is_local', default=False, action='store_true'
+    )
+    parser.add_argument(
         "--device",
         help="Name of device type: cpu or cuda",
         type=str,

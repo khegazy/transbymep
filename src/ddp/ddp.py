@@ -27,7 +27,8 @@ class DistributedEnvironment():
         device_type : str = 'cuda',
         master_addr : str = None,
         master_port : str = None,
-        is_slurm : bool = False
+        is_slurm : bool = False,
+        is_local : bool = False
     ): 
         self.is_slurm = is_slurm
         self.device_type = device_type
@@ -40,6 +41,11 @@ class DistributedEnvironment():
             else:
                 raise ValueError("Can't assign a default backend to device_type {device_type}, use 'cpu' or 'cuda'.")
         self.backend = self.backend.lower()
+
+        # Set master IP to local IP if running locally on this machine
+        if is_local:
+            master_addr = "127.0.0.1"
+            master_port = "3333" if master_port is None else master_port
 
         # Determing if process is distributed
         self.check_distributed()
@@ -124,7 +130,7 @@ class DistributedEnvironment():
         dist.init_process_group(
             backend=self.backend,
             world_size=self.world_size,
-            init_method='env://',
+            #init_method='env://',
         )
 
 

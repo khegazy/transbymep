@@ -24,10 +24,9 @@ if __name__ == "__main__":
     args = arg_parser.parse_args()
     logger = tools.logging()
     process = ddp.DistributedEnvironment(
-        device_type=args.device, is_slurm=args.is_slurm
+        device_type=args.device, is_local=args.is_local, is_slurm=args.is_slurm
     )
     print(process)
-    print("process is distributed", process.is_distributed)
 
     # Import configuration files
     config = tools.import_run_config(
@@ -115,10 +114,12 @@ if __name__ == "__main__":
     geo_paths = []
     pes_paths = []
     t0 = timer.time()
+    prev_t = t0
     for optim_idx in range(args.num_optimizer_iterations):
         path_integral = optimizer.optimization_step(path, integrator)
-        if optim_idx%250 == 0:
-            print("EVAL TIME", (timer.time()-t0)/60)
+        if optim_idx%250 == 0 and process.is_master:
+            print(f"EVAL TIME: {(timer.time()-prev_t)/60:0.3f} / {(timer.time()-t0)/60:0.3f} min ")
+            prev_t = timer.time()
             path_output = logger.optimization_step(
                 optim_idx,
                 path,

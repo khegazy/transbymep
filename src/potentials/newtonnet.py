@@ -36,11 +36,13 @@ class NewtonNetPotential(BasePotential):
         self.model = self.load_model(model_path, settings_path)
         self.numbers = torch.tensor(numbers, dtype=torch.long, device=self.device)
         self.n_atoms = len(numbers)
+        self.n_eval = 0
 
     
     def forward(self, points):
         data = self.data_formatter(points)
         pred = self.model(data)
+        self.n_eval += 1
         return pred['E'].squeeze() * (units.kcal/units.mol)
         
 

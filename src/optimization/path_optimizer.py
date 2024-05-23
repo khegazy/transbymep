@@ -6,7 +6,8 @@ from torch import optim
 optimizer_dict = {
     "sgd" : optim.SGD,
     "adagrad" : optim.Adagrad,
-    "adam" : optim.Adam
+    "adam" : optim.Adam,
+    "lbfgs" : optim.LBFGS,
 }
 
 class PathOptimizer():

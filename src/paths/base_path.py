@@ -2,7 +2,7 @@ import torch
 from dataclasses import dataclass
 
 from ..tools import metrics
-from ..potentials.base_class import PotentialBase
+from ..potentials.base_potential import BasePotential
 
 @dataclass
 class PathOutput():
@@ -16,7 +16,7 @@ class PathOutput():
 class BasePath(torch.nn.Module):
     initial_point: torch.Tensor
     final_point: torch.Tensor
-    potential: PotentialBase
+    potential: BasePotential
 
     def __init__(
         self,
@@ -29,8 +29,8 @@ class BasePath(torch.nn.Module):
     ):
         super().__init__()
         self.potential = potential
-        self.initial_point = torch.tensor(initial_point)
-        self.final_point = torch.tensor(final_point)
+        self.initial_point = torch.tensor(initial_point, dtype=torch.float)
+        self.final_point = torch.tensor(final_point, dtype=torch.float)
         self.return_velocity = return_velocity
         self.return_force = return_force
 

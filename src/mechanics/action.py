@@ -2,7 +2,7 @@ import jax
 import jax.numpy as jnp
 from functools import partial
 
-from src.mechanics.lagrangians import lagrangian
+from .lagrangians import lagrangian
 
 @partial(jax.jit, static_argnums=[0])
 def action(

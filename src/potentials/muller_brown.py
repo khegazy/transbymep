@@ -1,8 +1,8 @@
 import torch
-from .base_class import PotentialBase
+from .base_potential import BasePotential
 
 
-class MullerBrown(PotentialBase):
+class MullerBrown(BasePotential):
     ai = [-200.0, -100.0, -170.0, 15.0]
     bi = [-1.0, -1.0, -6.5, 0.7]
     ci = [0.0, 0.0, 11.0, 0.6]
@@ -15,7 +15,7 @@ class MullerBrown(PotentialBase):
         super().__init__(**kwargs)
 
     def forward(self, points):
-        x, y = points[:,0], points[:,1]
+        x, y = points[...,0], points[...,1]
         total = 0.0
         for i in range(4):
             b = self.bi[i]*(x - self.xi[i])*(x - self.xi[i])

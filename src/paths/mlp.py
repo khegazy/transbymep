@@ -31,9 +31,9 @@ class MLPpath(BasePath):
         self.mlp = nn.Sequential(*self.layers)
 
     def geometric_path(self, time, *args):
-        return self.mlp(time)\
-            - (1 - time)*(self.mlp(torch.tensor([0.])) - self.initial_point)\
-            - time*(self.mlp(torch.tensor([1.])) - self.final_point)
+        scale = 1
+        return scale * (self.mlp(time) - (1 - time) * self.mlp(torch.tensor([0.])) - time * self.mlp(torch.tensor([1.]))) \
+            + ((1 - time) * self.initial_point + time * self.final_point)
 
     """
     def get_path(self, times=None):

@@ -6,7 +6,8 @@ from torch import optim
 optimizer_dict = {
     "sgd" : optim.SGD,
     "adagrad" : optim.Adagrad,
-    "adam" : optim.Adam
+    "adam" : optim.Adam,
+    "lbfgs" : optim.LBFGS,
 }
 
 class PathOptimizer():
@@ -28,8 +29,8 @@ class PathOptimizer():
         if name not in optimizer_dict:
             raise ValueError(f"Cannot handle optimizer type {name}, either add it to optimizer_dict or use {list(optimizer_dict.keys())}")
 
-        if config_path is None and (path_type is None and potential_type is None):
-            raise ValueError(f"get_optimizer requires either config_path")
+        # if config_path is None and (path_type is None and potential_type is None):
+        #     raise ValueError(f"get_optimizer requires either config_path")
         
         # Import saved optimizer config and combine with input config
         config_path_vars = path_type is not None and potential_type is not None 
@@ -80,9 +81,10 @@ class PathOptimizer():
         path_integral = integrator.path_integral(
             path, self.loss_name, t_init=t_init, t_final=t_final
         )
-        #for n, prm in path.named_parameters():
-        #    print(n, prm.grad)
+        # print("Path Integral", path_integral)
         path_integral.backward()
+        # for n, prm in path.named_parameters():
+        #    print(n, prm.grad)
         self.optimizer.step()
         return path_integral.item()
 

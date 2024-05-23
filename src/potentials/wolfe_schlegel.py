@@ -1,8 +1,8 @@
 import torch
 
-from .base_class import PotentialBase
+from .base_potential import BasePotential
 
-class WolfeSchlegel(PotentialBase):
+class WolfeSchlegel(BasePotential):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         if "minima" in kwargs:

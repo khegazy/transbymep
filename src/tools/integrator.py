@@ -5,16 +5,17 @@ from .metrics import Metrics
 
 
 class ODEintegrator(Metrics):
-    def __init__(self, potential, solver='dopri5', rtol=1e-7, atol=1e-9):
+    def __init__(self, potential, solver='dopri5', rtol=1e-7, atol=1e-9, **solver_kwargs):
         self.potential = potential
-        
+
         self.solver = solver
         self.rtol = rtol
         self.atol = atol
+        self.solver_kwargs = solver_kwargs
 
-    def _integrand_wrapper(self, t, y, path, ode_fxn):
-        vals = path(t)
-        return ode_fxn(vals)
+    # def _integrand_wrapper(self, t, y, path, ode_fxn):
+    #     vals = path(t)
+    #     return ode_fxn(vals)
     
     def path_integral(self, path, fxn_name, t_init=0., t_final=1.):
         if fxn_name not in dir(self):
@@ -26,7 +27,8 @@ class ODEintegrator(Metrics):
         eval_fxn = getattr(self, fxn_name)
 
         def ode_fxn(t, y, *args):
-            return eval_fxn(path=path, t=torch.tensor([t]))
+            integrand = eval_fxn(path=path, t=torch.tensor([t]))
+            return integrand
 
         integral = odeint(
             func=ode_fxn,
@@ -34,25 +36,26 @@ class ODEintegrator(Metrics):
             t=torch.tensor([t_init, t_final]),
             method=self.solver,
             rtol=self.rtol,
-            atol=self.atol
+            atol=self.atol,
+            options=self.solver_kwargs
         )
 
         return integral[-1]
     
-    def _path_integral(self, ode_fxn, t_init=0., t_final=1.):
-       #ode_term = diffrax.ODETerm(path.pes_path)
-        solution = diffrax.diffeqsolve(
-            diffrax.ODETerm(ode_fxn),
-            self.solver,
-            t0=t_init,
-            t1=t_final,
-            dt0=None,
-            y0=0,
-            saveat=diffrax.SaveAt(ts=jnp.array([t_init, t_final])),
-            stepsize_controller=self.stepsize_controller,
-            max_steps=int(1e6)
-        )
-        return solution.ys[-1]
+    # def _path_integral(self, ode_fxn, t_init=0., t_final=1.):
+    #     # ode_term = diffrax.ODETerm(path.pes_path)
+    #     solution = diffrax.diffeqsolve(
+    #         diffrax.ODETerm(ode_fxn),
+    #         self.solver,
+    #         t0=t_init,
+    #         t1=t_final,
+    #         dt0=None,
+    #         y0=0,
+    #         saveat=diffrax.SaveAt(ts=jnp.array([t_init, t_final])),
+    #         stepsize_controller=self.stepsize_controller,
+    #         max_steps=int(1e6)
+    #     )
+    #     return solution.ys[-1]
 
 """
 from jaxopt import Bisection

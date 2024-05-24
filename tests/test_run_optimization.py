@@ -5,10 +5,6 @@ from chemistry_MEP_TS_optimization.examples.sample import add
 from chemistry_MEP_TS_optimization.run_optimization import run_opt
 
 
-def test_sample():
-    assert 1 == 1
-
-
 @pytest.mark.parametrize(
     "name, path_tag, tag, seed, output_dir, path, optimizer, num_optimizer_iterations, expected_path_integral",
     [

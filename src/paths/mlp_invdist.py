@@ -42,19 +42,22 @@ class MLPinvdistpath(BasePath):
         return self.invdist_to_geo(invdist)
         
     def geo_to_invdist(self, geo):
-        dist = torch.linalg.norm(geo[..., :, None, :] - geo[..., None, :, :] + 1e-6, dim=-1)
-        invdist = 1. / dist
-        invdist[..., torch.eye(self.n_atoms, dtype=bool)] = 0
-        return invdist.flatten()
+        row, col = torch.triu_indices(self.n_atoms, self.n_atoms, offset=1)
+        dist = geo[..., :, None, :] - geo[..., None, :, :]
+        dist = dist[..., row, col, :].norm(dim=-1)
+        return 1. / dist
 
     def invdist_to_geo(self, invdist):
-        invdist = invdist.reshape(*invdist.shape[:-1], self.n_atoms, self.n_atoms)
-        invdist = invdist + 1e-6
         dist = 1. / invdist
+        row, col = torch.triu_indices(self.n_atoms, self.n_atoms, offset=1)
+        temp = torch.zeros(*dist.shape[:-1], self.n_atoms, self.n_atoms, device=dist.device)
+        temp[..., row, col] = dist
+        temp[..., col, row] = dist
+        dist = temp
         dist[..., torch.eye(self.n_atoms, dtype=bool)] = 0
         center = torch.eye(self.n_atoms, device=dist.device) - 1. / self.n_atoms
         eigvals, eigvecs = torch.linalg.eigh(- 0.5 * center @ (dist ** 2) @ center)
-        assert torch.all(eigvals[..., None, -3:] >= 0)
+        assert torch.all(eigvals[..., None, -3:] >= 0), eigvals[..., None, -3:]
         geo = torch.sqrt(eigvals[..., None, -3:]) * eigvecs[..., :, -3:]
         return geo.flatten()
 

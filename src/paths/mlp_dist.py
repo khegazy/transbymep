@@ -42,17 +42,21 @@ class MLPdistpath(BasePath):
         return self.dist_to_geo(dist)
         
     def geo_to_dist(self, geo):
-        dist = torch.linalg.norm(geo[..., :, None, :] - geo[..., None, :, :], dim=-1)
-        return dist.flatten()
+        row, col = torch.triu_indices(self.n_atoms, self.n_atoms, offset=1)
+        dist = geo[..., :, None, :] - geo[..., None, :, :]
+        dist = dist[..., row, col, :].norm(dim=-1)
+        return dist
 
     def dist_to_geo(self, dist):
-        dist = dist.reshape(*dist.shape[:-1], self.n_atoms, self.n_atoms)
-        dist = 0.5 * (dist + dist.transpose(-1, -2))
-        dist[..., torch.eye(self.n_atoms, dtype=bool)] = 0
+        row, col = torch.triu_indices(self.n_atoms, self.n_atoms, offset=1)
+        temp = torch.zeros(*dist.shape[:-1], self.n_atoms, self.n_atoms, device=dist.device)
+        temp[..., row, col] = dist
+        temp[..., col, row] = dist
+        dist = temp
         center = torch.eye(self.n_atoms, device=dist.device) - 1. / self.n_atoms
         eigvals, eigvecs = torch.linalg.eigh(- 0.5 * center @ (dist ** 2) @ center)
-        assert torch.all(eigvals[..., None, -3:] >= 0)
-        geo = torch.sqrt(eigvals[..., None, -3:]) * eigvecs[..., :, -3:]
+        assert torch.all(eigvals[..., None, -3:] >= -1e-6), eigvals[..., None, -3:]
+        geo = torch.sqrt(eigvals[..., None, -3:].abs()) * eigvecs[..., :, -3:]
         return geo.flatten()
 
     """

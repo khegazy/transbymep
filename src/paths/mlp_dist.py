@@ -57,7 +57,7 @@ class MLPdistpath(BasePath):
         eigvals, eigvecs = torch.linalg.eigh(- 0.5 * center @ (dist ** 2) @ center)
         assert torch.all(eigvals[..., None, -3:] >= -1e-6), eigvals[..., None, -3:]
         geo = torch.sqrt(eigvals[..., None, -3:].abs()) * eigvecs[..., :, -3:]
-        return geo.flatten()
+        return geo.reshape(*geo.shape[:-2], -1)
 
     """
     def get_path(self, times=None):

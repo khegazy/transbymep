@@ -4,6 +4,7 @@ import equinox as eqx
 from .mlp import MLPpath
 from .mlp_dist import MLPdistpath
 from .mlp_invdist import MLPinvdistpath
+from .mlp_expdist import MLPexpdistpath
 from .b_spline import BSpline
 from .elastic_band import ElasticBand
 
@@ -13,6 +14,7 @@ path_dict = {
     "bspline" : BSpline,
     "mlpdist" : MLPdistpath,
     "mlpinvdist" : MLPinvdistpath,
+    "mlpexpdist" : MLPexpdistpath,
 }
 
 def get_path(name, potential, initial_point, final_point, **config):

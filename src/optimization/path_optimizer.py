@@ -78,20 +78,26 @@ class PathOptimizer():
             ImportWarning(f"Cannot find file {address}, still running")
             return {}
     
-    def optimization_step(self, path, integrator, t_init=0., t_final=1.):
+    def optimization_step(
+            self, path, integrator, t_init=0., t_final=1., record_times=False
+        ):
         self.optimizer.zero_grad()
         path_integral = integrator.path_integral(
-            path, self.loss_name, t_init=t_init, t_final=t_final
+            path=path,
+            fxn_name=self.loss_name,
+            t_init=t_init,
+            t_final=t_final,
+            record_times=record_times,
         )
         #print("path integral 0", integrator.process.rank, path_integral)
         #for n, prm in path.named_parameters():
-        #    print(n, prm.grad)
-        path_integral.backward()
+        #    print(n, prm.grad, prm.requires_grad)
+        path_integral.integral.backward()
         #print("GRADS", integrator.process.rank, path.module.layers[0].weight)
         self.optimizer.step()
         if self.process.is_distributed:
-            dist.all_reduce(path_integral)
+            dist.all_reduce(path_integral.integral)
         #print("path integral 1", integrator.process.rank, path_integral)
-        return path_integral.item()
+        return path_integral
 
     

@@ -34,7 +34,22 @@ class BasePath(torch.nn.Module):
         self.return_velocity = return_velocity
         self.return_force = return_force
         self.Nevals = 0
+        self.record_eval_times = False
 
+        self.relu = torch.nn.ReLU()
+
+    def begin_eval_recording(self):
+        self.record_evals = True
+        self.time_record = []
+        self.geo_record = []
+    
+    def get_eval_record(self):
+        return self.time_record, self.geo_record
+    
+    def end_time_recording(self):
+        self.record_evals = False
+        return self.get_eval_record()
+    
     def geometric_path(self, time, y, *args):
         raise NotImplementedError()
     
@@ -62,6 +77,10 @@ class BasePath(torch.nn.Module):
         elif len(times.shape) == 1:
             times = torch.unsqueeze(times, -1)
         
+        ## Set all times < 0 to 0 and > 1 to 1
+        #times = self.relu(times)
+        #times = -1*(times - 1.0)
+        #times = 1 - self.relu(times)
         return self.forward(
             times, return_velocity=return_velocity, return_force=return_force
         )
@@ -79,7 +98,8 @@ class BasePath(torch.nn.Module):
             force = torch.autograd.grad(
                 torch.sum(pes_path),
                 geo_path,
-                create_graph=(not is_batched),
+                create_graph=True,
+                #create_graph=(not is_batched),
             )[0]
             #print("LEN F", len(force), force[0].shape)
             if not is_batched:
@@ -92,7 +112,7 @@ class BasePath(torch.nn.Module):
             else:
                 fxn = lambda t: self.geometric_path(t)
             velocity = torch.autograd.functional.jacobian(
-                fxn, t, create_graph=(not is_batched), vectorize=is_batched
+                fxn, t, create_graph=True, vectorize=is_batched
             )
             #print("VEL INIT SHAPE", velocity.shape)
             #print("VEL TEST", velocity[:5])
@@ -100,7 +120,11 @@ class BasePath(torch.nn.Module):
             if is_batched:
                 velocity = velocity[:,:,0]
             #print("VEL F OUTPUT", velocity.shape, force.shape)
-        
+
+        #print("MLP FORWARD", geo_path.requires_grad, pes_path.requires_grad, velocity.requires_grad, force.requires_grad, t.requires_grad) 
+        if self.record_evals:
+            self.time_record.append(t)
+            self.geo_record.append(geo_path)
         return PathOutput(
             geometric_path=geo_path,
             potential_path=pes_path,

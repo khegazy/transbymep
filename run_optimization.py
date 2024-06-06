@@ -26,6 +26,7 @@ if __name__ == "__main__":
     process = ddp.DistributedEnvironment(
         device_type=args.device, is_local=args.is_local, is_slurm=args.is_slurm
     )
+    torch.manual_seed(121)
     print(process)
 
     # Import configuration files
@@ -83,6 +84,7 @@ if __name__ == "__main__":
     # Path integrating function
     integrator = tools.ODEintegrator(
         potential,
+        integrator=config.integrator,
         solver=config.integral_params['solver'],
         rtol=config.integral_params['rtol'],
         atol=config.integral_params['atol'],
@@ -116,9 +118,11 @@ if __name__ == "__main__":
     t0 = timer.time()
     prev_t = t0
     for optim_idx in range(args.num_optimizer_iterations):
-        path_integral = optimizer.optimization_step(path, integrator)
+        path_integral = optimizer.optimization_step(
+            path, integrator, record_times=(optim_idx%250 == 0)
+        )
         if optim_idx%250 == 0 and process.is_master:
-            print(f"EVAL TIME: {(timer.time()-prev_t)/60:0.3f} / {(timer.time()-t0)/60:0.3f} min ")
+            print(f"EVAL TIME: {(timer.time()-prev_t)/60:0.3f} / {(timer.time()-t0)/60:0.3f} min ", path_integral)
             prev_t = timer.time()
             path_output = logger.optimization_step(
                 optim_idx,
@@ -131,8 +135,9 @@ if __name__ == "__main__":
                 add_azimuthal_dof=args.add_azimuthal_dof,
                 add_translation_dof=args.add_translation_dof
             )
+            print("INTEGRAL VAL", path_integral)
 
-    print("EVAL TIME", (timer.time()-t0)/60)
+    print("FINAL EVAL TIME", (timer.time()-t0)/60, path_integral)
     # Plot gif animation of the MEP optimization (only for 2d potentials)
     if args.make_animation:
         geo_paths = potential.point_transform(torch.tensor(geo_paths))

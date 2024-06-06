@@ -17,14 +17,14 @@ class logging():
             step,
             path,
             potential,
-            loss,
+            path_integral,
             plot=True,
             geo_paths=None,
             pes_paths=None,
             add_azimuthal_dof=False,
             add_translation_dof=False
         ):
-        print(f"Step {step} | Loss: {loss:.7}")
+        print(f"Step {step} | Loss: {path_integral.integral.item():.7}")
         """
         for ii in range(len(path.mlp.layers)):
             print(f"W{ii} sum: {jnp.sum(path.mlp.layers[ii].weight)}")
@@ -45,6 +45,8 @@ class logging():
                 pes_fxn=potential,
                 plot_min_max=(-2, 2, -2, 2),
                 levels=np.arange(-100, 100, 5),
+                time_history=path_integral.times,
+                geometry_history=path_integral.geometry,
                 add_translation_dof=add_translation_dof,
                 add_azimuthal_dof=add_azimuthal_dof
             )

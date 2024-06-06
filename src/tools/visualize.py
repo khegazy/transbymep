@@ -188,6 +188,8 @@ def plot_path(
         levels=None,
         contour_vals=None,
         return_contour_vals=False,
+        time_history=None,
+        geometry_history=None,
         add_translation_dof=False,
         add_azimuthal_dof=False,
         plot_dir="./plots/",

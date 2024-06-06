@@ -28,6 +28,12 @@ def build_default_arg_parser() -> argparse.ArgumentParser:
         default="./output"
     )
     parser.add_argument(
+        "--integrator",
+        help="Adaptive or parallel implemention",
+        type=str,
+        default=None,
+    )
+    parser.add_argument(
         '--is_multiprocess', default=False, action='store_true'
     )
     parser.add_argument(

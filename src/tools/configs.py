@@ -20,6 +20,7 @@ class RunConfig:
     optimizer_params : Dict
     tag : str = ""
     potential_tag : str = ""
+    integrator : str = ""
     is_multiprocess : bool = False
     is_load_balance : bool = False
 
@@ -99,6 +100,10 @@ def import_run_config(
             config.final_point[0] = -1*(config.final_point[0] + flags.add_azimuthal_dof)
         config.is_multiprocess = flags.is_multiprocess or config.is_multiprocess
         config.is_load_balance = flags.is_load_balance or config.is_load_balance
+        if flags.integrator is not None:
+            config.integrator = flags.integrator
+        elif config.integrator == "":
+            config.integrator = "adaptive"
 
     return config
 

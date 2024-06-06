@@ -43,6 +43,7 @@ class Metrics():
             if t is None:
                 raise ValueError("Must specify evaluation times for path when using path argument")
             path_output = path(t, return_velocity=requires_velocity, return_force=requires_force)
+            print("INPUT T", t.shape, t.requires_grad)
             return path_output.geometric_path, path_output.velocity,\
                 path_output.potential_path, path_output.force
         
@@ -66,6 +67,7 @@ class Metrics():
         kwargs['fxn_name'] = self.E_pvre.__name__
         geo_val, velocity, pes_val, force = self._parse_input(**kwargs)
         
+        print("IN EPVRE", velocity.shape, velocity.requires_grad, force.shape, force.requires_grad)
         return torch.abs(torch.sum(velocity*force, dim=-1))
 
     def E_pvre_mag(self, **kwargs):

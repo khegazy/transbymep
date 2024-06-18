@@ -11,6 +11,7 @@ from .metrics import Metrics
 class IntegralOutput():
     integral: torch.Tensor
     times: torch.Tensor
+    geometries: torch.Tensor
 
 class ODEintegrator(Metrics):
     def __init__(
@@ -81,10 +82,11 @@ class ODEintegrator(Metrics):
             path.end_eval_recording()
         else:
             time_record = None
+            geo_record = None
         
         return IntegralOutput(
             integral=integral,
-            times=time_record
+            times=time_record,
             geometries=geo_record
         )
 
@@ -182,10 +184,15 @@ class ODEintegrator(Metrics):
         )
         eval_geos = geos[mask]
         eval_times = self.integral_times[mask]
+        print("eval times shape", eval_times.shape)
+        print(eval_times[:,0])
+        delta_times = eval_times[1:] - eval_times[:-1]
+        print("means", torch.mean(delta_times))
 
         _, eval_fxn = self._get_ode_eval_fxn(fxn_name=fxn_name, path=path)
         loss_evals = eval_fxn(path=path, t=eval_times)
-        integral = torch.mean(loss_evals)
+        print("EVALS", loss_evals)
+        integral = torch.sum(loss_evals[:-1]*delta_times)
 
         return integral
 

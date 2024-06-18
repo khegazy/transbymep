@@ -85,14 +85,9 @@ if __name__ == "__main__":
     integrator = tools.ODEintegrator(
         potential,
         integrator=config.integrator,
-        solver=config.integral_params['solver'],
-        rtol=config.integral_params['rtol'],
-        atol=config.integral_params['atol'],
-        process=process,
-        is_multiprocess=config.is_multiprocess,
-        is_load_balance=config.is_load_balance
+        **config.integral_params
     )
-    #print("test integrate", integrator.path_integral(path, 'E_pvre'))
+    print("test integrate", integrator.path_integral(path, 'E_pvre'))
 
     # Gradient descent path optimizer
     optimizer = optimization.PathOptimizer(

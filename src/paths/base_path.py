@@ -39,7 +39,7 @@ class BasePath(torch.nn.Module):
         self.relu = torch.nn.ReLU()
 
     def begin_eval_recording(self):
-        self.record_evals = True
+        self.record_eval_times = True
         self.time_record = []
         self.geo_record = []
     
@@ -47,7 +47,7 @@ class BasePath(torch.nn.Module):
         return self.time_record, self.geo_record
     
     def end_time_recording(self):
-        self.record_evals = False
+        self.record_eval_times = False
         return self.get_eval_record()
     
     def geometric_path(self, time, y, *args):
@@ -122,7 +122,7 @@ class BasePath(torch.nn.Module):
             #print("VEL F OUTPUT", velocity.shape, force.shape)
 
         #print("MLP FORWARD", geo_path.requires_grad, pes_path.requires_grad, velocity.requires_grad, force.requires_grad, t.requires_grad) 
-        if self.record_evals:
+        if self.record_eval_times:
             self.time_record.append(t)
             self.geo_record.append(geo_path)
         return PathOutput(

@@ -42,11 +42,13 @@ class MLPnonreddistpath(BasePath):
         self.max_iter = max_iter
 
     def geometric_path(self, time, *args):
+        time = torch.clamp(time, 0, 1)
         scale = 1
         dist = scale * (self.mlp(time) - (1 - time) * self.mlp(torch.tensor([0.])) - time * self.mlp(torch.tensor([1.]))) \
             + ((1 - time) * self.initial_point + time * self.final_point)
         pos_trial = (1 - time) * self.initial_point_raw + time * self.final_point_raw
-        return self.dist_to_geo(dist, pos_trial)
+        pos = self.dist_to_geo(dist, pos_trial)
+        return pos
         
     def geo_to_dist(self, points):
         points = points.reshape(*points.shape[:-1], -1, 3)
@@ -95,7 +97,6 @@ class MLPnonreddistpath(BasePath):
                 )
         pos -= torch.mean(pos, dim=-2, keepdim=True)
         return pos.reshape(*pos.shape[:-2], -1)
-        # raise NotImplementedError
         
     def calc_nred(self, points, mode='min'):
         points = points.reshape(*points.shape[:-1], -1, 3)
@@ -149,15 +150,15 @@ class MLPnonreddistpath(BasePath):
             xn = point2 - point1
             zn = torch.cross(xn, point3 - point1, dim=-1)
             yn = torch.cross(zn, xn, dim=-1)
-            xn /= torch.norm(xn, dim=-1, keepdim=True)
-            yn /= torch.norm(yn, dim=-1, keepdim=True)
-            zn /= torch.norm(zn, dim=-1, keepdim=True)
+            xn = xn / torch.norm(xn, dim=-1, keepdim=True)
+            yn = yn / torch.norm(yn, dim=-1, keepdim=True)
+            zn = zn / torch.norm(zn, dim=-1, keepdim=True)
             u = torch.sum((point2 - point1) * xn, dim=-1)
             vx = torch.sum((point3 - point1) * xn, dim=-1)
             vy = torch.sum((point3 - point1) * yn, dim=-1)
             x = (dist1 ** 2 - dist2 ** 2 + u ** 2) / (2 * u)
             y = (dist1 ** 2 - dist3 ** 2 + vx ** 2 + vy ** 2 - 2 * x * vx) / (2 * vy)
-            z = torch.sqrt(torch.nn.functional.relu(dist1 ** 2 - x ** 2 - y ** 2, 0)) * sign
+            z = torch.sqrt(torch.clamp(dist1 ** 2 - x ** 2 - y ** 2, 1e-6)) * sign
             point += x[..., None] * xn + y[..., None] * yn + z[..., None] * zn
             return point
 

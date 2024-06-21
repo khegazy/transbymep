@@ -22,6 +22,7 @@ class RKParallelAdaptiveStepsizeSolver(ParallelAdaptiveStepsizeSolver):
         
         _t_p = t[0::self.p]
         h = _t_p[1:] - _t_p[:-1]
+        print("H", h.shape, h)
         
         # The first last point in the h-1 RK step is the first point in the h RK step
         """
@@ -49,7 +50,8 @@ class RKParallelAdaptiveStepsizeSolver(ParallelAdaptiveStepsizeSolver):
         # h: [dt/p x 1]
         # tableau_c: [dt/p x p]
         # y_steps: [dt/p x p]
-        RK_steps = h*torch.sum(tableau_c*y_steps, dim=-1)   # Sum over k evaluations weighted by c
+        RK_steps = h*torch.sum(tableau_c*y_steps, dim=-1).unsqueeze(1)   # Sum over k evaluations weighted by c
+        print("RK STEPS", RK_steps.shape, RK_steps)
         integral = y0 + torch.sum(RK_steps)                    # Sum over all steps with step size h
         return integral, RK_steps
 

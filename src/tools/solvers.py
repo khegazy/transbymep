@@ -61,7 +61,7 @@ class ParallelAdaptiveStepsizeSolver(SolverBase):
         if t_add is None:
             if self.previous_t is None: #TODO check name of last function too, don't want to use times from other function
                 t_add = torch.unsqueeze(
-                    torch.linspace(t_init, t_final, 1000), 1
+                    torch.linspace(t_init, t_final, 101), 1
                 )
             else:
                 mask = (self.previous_t[:,0] <= t_final)\
@@ -75,9 +75,12 @@ class ParallelAdaptiveStepsizeSolver(SolverBase):
         while len(t_add) > 0:
         
             # Evaluate new points and add new evals and points to arrays
+            print("TADD", t_add.shape, t_add)
             y, t = self._add_evals(
                 ode_fxn, y_previous, t, t_add, idxs_previous, idxs_add
             )
+            print("NEW T", t.shape, t)
+            print("NEW Y", y.shape, y)
 
             # Evaluate integral
             integral_p, y_p = self._calculate_integral(t, y, y0=y0, degr=degree.P)

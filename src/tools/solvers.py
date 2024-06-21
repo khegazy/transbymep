@@ -6,6 +6,8 @@ from torchdiffeq import odeint
 from dataclasses import dataclass
 from enum import Enum
 
+from . import tableau
+
 class degree(Enum):
     P = 0
     P1 = 1
@@ -20,10 +22,13 @@ class IntegralOutput():
 
 class ODEPathIntegrator():
     def __init__(self, p, ode_fxn=None, t_init=0, t_final=1):
+          assert(p > 0)
           self.p = p
           self.ode_fxn = ode_fxn
           self.t_init = t_init
           self.t_final = t_final
+
+          self.previous_t = None
 
     def _parallel_integral(self, ode_fxn, t_init=0., t_final=1., t=None, ode_args=None):
         t_add = t
@@ -62,8 +67,8 @@ class ODEPathIntegrator():
 
 
     def _calculate_error(self, t, y, y0=0):
-        integral_p, y_p = self._RK_steps(t, y, y0=y0, degr=degree.P)
-        integral_p1, y_p1 = self._RK_steps(t, y, y0=y0, degr=degree.P1)
+        integral_p, y_p = self._RK_integral(t, y, y0=y0, degr=degree.P)
+        integral_p1, y_p1 = self._RK_integral(t, y, y0=y0, degr=degree.P1)
         error = y_p1 - y_p
         print(integral_p, integral_p1, error.shape, torch.mean(error), torch.amax(error))
         adsf
@@ -103,32 +108,7 @@ class ODEPathIntegrator():
         return tableau_c_fxn(dt)
 
 
-    def _tableau_c_p(self, dt):
-        """
-        a | c
-        -----
-        0 | 1
-        1 | 0
-        """
 
-        n_steps = len(dt)/2
-        return torch.concatenate(
-            [torch.ones((n_steps, 1)), torch.zeros((n_steps, 1))],
-            dim=-1
-        )
-
-    def _tableau_c_p1(self, dt):
-        """
-        Heun's Method, aka Trapazoidal Rule
-
-        a | c
-        -----
-        0 | 0.5
-        1 | 0.5
-        """
-        
-        n_steps = len(dt)/2
-        return torch.ones((n_steps, 2))*0.5
 
 
     def _geo_deltas(self, geos):

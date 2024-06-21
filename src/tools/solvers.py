@@ -6,7 +6,12 @@ from torchdiffeq import odeint
 from dataclasses import dataclass
 from enum import Enum
 
-from . import tableau
+from .adaptivity import _compute_error_ratios
+
+
+class steps(Enum):
+    FIXED = 0
+    ADAPTIVE = 1
 
 class degree(Enum):
     P = 0
@@ -19,18 +24,39 @@ class IntegralOutput():
     geometries: torch.Tensor
 
 
+class SolverBase():
+    def __init__(self, p, ode_fxn=None, t_init=0., t_final=1.) -> None:
+        assert p > 0, 'The order of the method must be positive and > 0'
 
-class ODEPathIntegrator():
-    def __init__(self, p, ode_fxn=None, t_init=0, t_final=1):
-          assert(p > 0)
-          self.p = p
-          self.ode_fxn = ode_fxn
-          self.t_init = t_init
-          self.t_final = t_final
+        self.p = p
+        self.ode_fxn = ode_fxn
+        self.t_init = t_init
+        self.t_final = t_final
 
-          self.previous_t = None
+    def _calculate_integral(self, t, y, y0=0, degr=degree.P1):
+        raise NotImplementedError
+    
+    def integrate(self, ode_fxn, y0=0., t_init=0., t_final=1., t=None, ode_args=None):
+        raise NotImplementedError
 
-    def _parallel_integral(self, ode_fxn, t_init=0., t_final=1., t=None, ode_args=None):
+    def _error_norm(self, error):
+        return torch.sqrt(torch.mean(error**2, -1))
+
+
+class SerialAdaptiveStepsizeSolver(SolverBase):
+    def __init__(self, p, ode_fxn=None, t_init=0, t_final=1.) -> None:
+        super().__init__(p=p, ode_fxn=ode_fxn, t_init=t_init, t_final=t_final)
+        pass
+
+class ParallelAdaptiveStepsizeSolver(SolverBase):
+    def __init__(self, p, atol, rtol, ode_fxn=None, t_init=0, t_final=1.):
+        super().__init__(p=p, ode_fxn=ode_fxn, t_init=t_init, t_final=t_final)
+
+        self.atol = atol
+        self.rtol = rtol
+        self.previous_t = None
+
+    def integrate(self, ode_fxn, y0=0., t_init=0., t_final=1., t=None, ode_args=None):
         t_add = t
         if t_add is None:
             if self.previous_t is None: #TODO check name of last function too, don't want to use times from other function
@@ -53,8 +79,18 @@ class ODEPathIntegrator():
                 ode_fxn, y_previous, t, t_add, idxs_previous, idxs_add
             )
 
+            # Evaluate integral
+            integral_p, y_p = self._calculate_integral(t, y, y0=y0, degr=degree.P)
+            integral_p1, y_p1 = self._calculate_integral(t, y, y0=y0, degr=degree.P1)
+            
             # Calculate error
-            self._calculate_error(t, y)
+            error_ratios = _compute_error_ratios(
+                y_p, y_p1, self.rtol, self.atol, self._error_norm
+            )
+            print(error_ratios)
+            print(integral_p, integral_p1)
+            adsfdsf
+
             
             # Remove points that are too close
             geos, times = self._remove_evals(evals, points)
@@ -67,46 +103,14 @@ class ODEPathIntegrator():
 
 
     def _calculate_error(self, t, y, y0=0):
-        integral_p, y_p = self._RK_integral(t, y, y0=y0, degr=degree.P)
-        integral_p1, y_p1 = self._RK_integral(t, y, y0=y0, degr=degree.P1)
+        integral_p, y_p = self._calculate_integral(t, y, y0=y0, degr=degree.P)
+        integral_p1, y_p1 = self._calculate_integral(t, y, y0=y0, degr=degree.P1)
         error = y_p1 - y_p
         print(integral_p, integral_p1, error.shape, torch.mean(error), torch.amax(error))
         adsf
         return error, y_p, y_p1
 
-    def _RK_integral(self, t, y, y0=0, degr=degree.P1):
-        dt = t[1:] - t[:-1]
-        tableau_c = self.calculate_tableau_c(dt, degr=degr)
-        assert(tableau_c.shape[-1] == max(2, self.p))
-        assert(torch.all(torch.sum(tableau_c, dim=-1) == 1))
-        
-        _t_p = h[0::self.p]
-        h = _t_p[1:] - _t_p[:-1]
-        
-        y_steps = torch.reshape(y[1:], max(self.p, 2))
-        y_steps = torch.concatenate(
-            [
-                torch.concatenate(
-                    [torch.tensor([y[0]]), y_steps[:-1,-1]]
-                ).unsqueeze(0),
-                y_steps
-            ],
-            dim=0
-        )
-
-        RK_steps = h*torch.sum(tableau_c*y_steps, dim=-1)      # Sum over k evaluations weighted by c
-        integral = y0 + torch.sum(RK_steps)                    # Sum over all steps with step size h
-        return integral, RK_steps
-
-
-    def _calculate_tableau_c(self, dt, degr):
-        if degr == degree.P:
-            tableau_c_fxn = self._tableau_c_p
-        elif degr == degree.P1:
-            tableau_c_fxn = self._tableau_c_p1
-        
-        return tableau_c_fxn(dt)
-
+    
 
 
 

@@ -1,28 +1,26 @@
 import torch
 
-def _tableau_c_p(self, dt):
+def euler_tableau_b(dt):
     """
-    a | c
+    c | b
     -----
     0 | 1
     1 | 0
     """
 
-    n_steps = len(dt)/2
     return torch.concatenate(
-        [torch.ones((n_steps, 1)), torch.zeros((n_steps, 1))],
+        [torch.ones((1, 1)), torch.zeros((1, 1))],
         dim=-1
     )
 
-def _tableau_c_p1(self, dt):
+def trapezoid_tableau_b(dt):
     """
     Heun's Method, aka Trapazoidal Rule
 
-    a | c
+    c | b
     -----
     0 | 0.5
     1 | 0.5
     """
     
-    n_steps = len(dt)/2
-    return torch.ones((n_steps, 2))*0.5
+    return torch.ones((1, 2))*0.5

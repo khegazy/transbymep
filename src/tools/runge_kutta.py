@@ -7,9 +7,9 @@ TABLEAU_CALCULATORS = {
 }
 
 class RKParallelAdaptiveStepsizeSolver(ParallelAdaptiveStepsizeSolver):
-    def __init__(self, p, atol, rtol, ode_fxn=None, t_init=0., t_final=1.):
+    def __init__(self, p, atol, rtol, remove_cut=0.1, ode_fxn=None, t_init=0., t_final=1.):
         super().__init__(
-            p=p, atol=atol, rtol=rtol, ode_fxn=ode_fxn, t_init=t_init, t_final=t_final
+            p=p, atol=atol, rtol=rtol, remove_cut=remove_cut, ode_fxn=ode_fxn, t_init=t_init, t_final=t_final
         )
         self.tableau_b_p, self.tableau_b_p1 = TABLEAU_CALCULATORS[(steps.ADAPTIVE, self.p)]
     
@@ -53,7 +53,7 @@ class RKParallelAdaptiveStepsizeSolver(ParallelAdaptiveStepsizeSolver):
         RK_steps = h*torch.sum(tableau_c*y_steps, dim=-1).unsqueeze(1)   # Sum over k evaluations weighted by c
         print("RK STEPS", RK_steps.shape, RK_steps)
         integral = y0 + torch.sum(RK_steps)                    # Sum over all steps with step size h
-        return integral, RK_steps
+        return integral, RK_steps, h
 
 
     def _calculate_tableau_b(self, dt, degr):

@@ -2,7 +2,7 @@ import jax
 import jax.numpy as jnp
 from functools import partial
 
-from src.tools.logging import logging
+from transbymep.tools.logging import logging
 
 
 class gradientDescent(logging):

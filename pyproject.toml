@@ -3,7 +3,7 @@ requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "chemistry_MEP_TS_optimization"
+name = "transbymep"
 description="A Python package description goes here."
 version = "0.0.1"
 readme = "README.md"
@@ -50,15 +50,15 @@ docs = [
 ]
 
 [project.urls]
-repository = "https://github.com/khegazy/chemistry_MEP_TS_optimization"
-documentation = "https://khegazy.github.io/chemistry_MEP_TS_optimization/"
-changelog = "https://github.com/khegazy/chemistry_MEP_TS_optimization/blob/main/CHANGELOG.md"
+repository = "https://github.com/khegazy/transbymep"
+documentation = "https://khegazy.github.io/transbymep/"
+changelog = "https://github.com/khegazy/transbymep/blob/main/CHANGELOG.md"
 
 [tool.setuptools.package-data]
-chemistry_MEP_TS_optimization = ["py.typed"]
+transbymep = ["py.typed"]
 
 [tool.pyright]
-include = ["chemistry_MEP_TS_optimization"]
+include = ["transbymep"]
 exclude = ["**/__pycache__"]
 
 [tool.pytest.ini_options]
@@ -66,7 +66,7 @@ minversion = "6.0"
 addopts = ["-p no:warnings", "--import-mode=importlib"]
 xfail_strict = true
 log_cli_level = "warn"
-pythonpath = "src"
+pythonpath = "transbymep"
 testpaths = ["tests"]
 
 [tool.black]
@@ -83,7 +83,7 @@ profile = 'black'
 skip_gitignore = true
 
 [tool.coverage.run]
-source = ["src"]
+source = ["transbymep"]
 
 [tool.coverage.report]
 exclude_also = [
@@ -142,13 +142,13 @@ lint.ignore = [
   "PT012",  # pytest.raises
   "RET505", # Unnecessary `elif` after `return`
 ]
-src = ["src"]
+src = ["transbymep"]
 lint.unfixable = [
   "T20",  # Removes print statements
   "F841", # Removes unused variables
 ]
 lint.pydocstyle.convention = "numpy"
-lint.isort.known-first-party = ["chemistry_MEP_TS_optimization"]
+lint.isort.known-first-party = ["transbymep"]
 lint.isort.required-imports = ["from __future__ import annotations"]
 extend-include = ["*.ipynb"]
 

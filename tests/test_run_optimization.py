@@ -1,8 +1,8 @@
 import pytest
 import argparse
-from chemistry_MEP_TS_optimization import tools
-from chemistry_MEP_TS_optimization.examples.sample import add
-from chemistry_MEP_TS_optimization.run_optimization import run_opt
+from transbymep import tools
+from transbymep.examples.sample import add
+from transbymep.run_optimization import run_opt
 
 
 @pytest.mark.parametrize(

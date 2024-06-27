@@ -2,7 +2,7 @@ import jax
 import jax.numpy as jnp
 from functools import partial
 
-from chemistry_MEP_TS_optimization.tools.logging import logging
+from transbymep.tools.logging import logging
 
 
 @jax.jit

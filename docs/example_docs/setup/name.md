@@ -4,7 +4,7 @@ Now for your first major task: **replace all instances of the word "template" wi
 
 !!! Note
 
-    Don't forget to update the name of the `/src/template` folder, e.g. so that it is of the form `src/<MyPackageName>`.
+    Don't forget to update the name of the `template` folder, e.g. so that it is of the form `<MyPackageName>`.
 
 !!! Tip
 

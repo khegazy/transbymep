@@ -11,16 +11,16 @@ from matplotlib import pyplot as plt
 from diffrax import diffeqsolve, Dopri5, ODETerm, SaveAt, PIDController, Tsit5, DirectAdjoint
 #from jaxopt import Bisection
 
-from src import mechanics
-from src import tools
-from src import paths
-from src.optimization import path_metrics as metrics
-from src.tools import visualize
-from src.potentials import get_potential
-from src.optimization import get_optimizer
-from src.paths import initialize as init
+from transbymep import mechanics
+from transbymep import tools
+from transbymep import paths
+from transbymep.optimization import path_metrics as metrics
+from transbymep.tools import visualize
+from transbymep.potentials import get_potential
+from transbymep.optimization import get_optimizer
+from transbymep.paths import initialize as init
 
-from src.potentials.wolfe_schlegel import ws 
+from transbymep.potentials.wolfe_schlegel import ws 
 
 
 class Points(NamedTuple):

@@ -1,7 +1,7 @@
 import jax
 import jax.numpy as jnp
 import equinox as eqx
-from chemistry_MEP_TS_optimization.tools import metrics
+from transbymep.tools import metrics
 
 
 def pes_integral(path, integrator):

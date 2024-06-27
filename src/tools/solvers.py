@@ -30,10 +30,10 @@ class IntegralOutput():
 
 
 class SolverBase():
-    def __init__(self, p, ode_fxn=None, t_init=0., t_final=1.) -> None:
-        assert p > 0, 'The order of the method must be positive and > 0'
+    def __init__(self, p, atol, rtol, ode_fxn=None, t_init=0., t_final=1.) -> None:
 
-        self.p = p
+        self.atol = atol
+        self.rtol = rtol
         self.ode_fxn = ode_fxn
         self.t_init = t_init
         self.t_final = t_final
@@ -50,22 +50,59 @@ class SolverBase():
 
 
 class SerialAdaptiveStepsizeSolver(SolverBase):
-    def __init__(self, p, ode_fxn=None, t_init=0, t_final=1.) -> None:
-        super().__init__(p=p, ode_fxn=ode_fxn, t_init=t_init, t_final=t_final)
-        pass
+    def __init__(self, solver, atol, rtol, ode_fxn=None, t_init=0, t_final=1.) -> None:
+        super().__init__(
+            atol=atol,
+            rtol=rtol,
+            ode_fxn=ode_fxn,
+            t_init=t_init,
+            t_final=t_final
+        )
+
+        self.solver = solver
+
+    
+    def integrate(self, ode_fxn, y0=0., t_init=0., t_final=1., t=None, ode_args=None):
+        if t is None:
+            t=torch.tensor([t_init, t_final])
+        
+        integral = odeint(
+            func=ode_fxn,
+            y0=y0.float(),
+            t=t,
+            method=self.solver,
+            rtol=self.rtol,
+            atol=self.atol
+        )
+
+        return IntegralOutput(
+            integral=integral[-1],
+            t=t,
+            h=None,
+            y=None,
+            errors=None,
+            error_ratios=None,
+            remove_mask=None
+        )
 
 
 
 class ParallelAdaptiveStepsizeSolver(SolverBase):
     def __init__(self, p, atol, rtol, remove_cut=0.1, ode_fxn=None, t_init=0, t_final=1.):
-        super().__init__(p=p, ode_fxn=ode_fxn, t_init=t_init, t_final=t_final)
+        super().__init__(ode_fxn=ode_fxn, t_init=t_init, t_final=t_final)
 
+        assert p > 0, 'The order of the method must be positive and > 0'
+        self.p = p
         self.atol = atol
         self.rtol = rtol
         self.remove_cut = remove_cut
         self.previous_t = None
 
-    def integrate(self, ode_fxn, state=None, y0=0., t_init=0., t_final=1., t=None, ode_args=None, remove_mask=None):
+    def integrate(self, ode_fxn=None, state=None, y0=0., t_init=0., t_final=1., t=None, ode_args=None, remove_mask=None):
+        
+        ode_fxn = self.ode_fxn if ode_fxn is None else ode_fxn
+        assert ode_fxn is not None, "Must specify ode_fxn or pass it during class initialization."
+            
         if state is not None:
             t = state.times
             remove_mask = state.remove_mask

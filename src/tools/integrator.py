@@ -4,14 +4,20 @@ import torch.distributed as dist
 import numpy as np
 from torchdiffeq import odeint
 from dataclasses import dataclass
+from enum import Enum
 
 from .metrics import Metrics
+
+class degree(Enum):
+    P = 0
+    P1 = 1
 
 @dataclass
 class IntegralOutput():
     integral: torch.Tensor
     times: torch.Tensor
     geometries: torch.Tensor
+
 
 class ODEintegrator(Metrics):
     def __init__(
@@ -158,18 +164,16 @@ class ODEintegrator(Metrics):
  
  
     def parallel_path_integral(self, path, fxn_name, t_init=0., t_final=1., eval_times=None):
-        if eval_times is None:
-            if self.integral_times is None:
-                eval_times = torch.unsqueeze(
-                    torch.linspace(t_init, t_final, 1000), 1
-                )
-            else:
-                mask = (self.integral_times[:,0] <= t_final)\
-                    + (self.integral_times[:,0] >= t_init)
-                eval_times = self.integral_times[mask]
-        
+       
         print("INPUT EVAL TIMES", eval_times.shape)
-        geos, times = self._parallel_integral_geometries(path, eval_times)
+        self._parallel_integral(
+            ode_fxn=lambda x: torch.abs(path.geometric_path(x)),
+            t_init=t_init,
+            t_final=t_final,
+            eval_times=self.geo_integral_times
+        )
+        #geos, times = self._parallel_integral_geometries(path, eval_times)
+        geos, times = self._parallel_integral(path, eval_times)
         self.integral_times = times
         
         delta_cum = torch.cumsum(self._geo_deltas(geos), dim=0)
@@ -195,64 +199,6 @@ class ODEintegrator(Metrics):
         integral = torch.sum(loss_evals[:-1]*delta_times)
 
         return integral
-
-
-    def _geo_deltas(self, geos):
-        return torch.sqrt(torch.sum((geos[1:] - geos[:-1])**2, dim=-1))
-  
-    def _remove_parallel_geometries(self, geos, eval_times):
-        deltas = self._geo_deltas(geos)
-        remove_mask = deltas < self.dxdx_remove
-        #print("REMOVE DELTAS", deltas[:10])
-        while torch.any(remove_mask):
-            # Remove largest time point when geo_delta < dxdx_remove
-            remove_mask = torch.concatenate(
-                [
-                    torch.tensor([False]), # Always keep t_init
-                    remove_mask[:-2],
-                    torch.tensor([remove_mask[-1] or remove_mask[-2]]),
-                    torch.tensor([False]), # Always keep t_final
-                ]
-            )
-            #print("N REMoVES", torch.sum(remove_mask), remove_mask[:10])
-
-            #print("test not", remove_mask, ~remove_mask)
-            eval_times = eval_times[~remove_mask]
-            geos = geos[~remove_mask]
-            deltas = self._geo_deltas(geos)
-            remove_mask = deltas < self.dxdx_remove
-        
-        if len(eval_times) == 2:
-            print("WARNING: dxdx is too large, all integration points have been removed")
-        
-        return geos, eval_times
- 
-    def _add_parallel_geometries(self, path, old_geos, old_times, eval_times, idxs_old, idxs_new):
-        # Calculate new geometries
-        #print("ADD PARALLEL EVAL TIMES", eval_times)
-        new_geos = path.geometric_path(eval_times)
-        
-        # Place new geomtries between existing 
-        geos = torch.zeros(
-            (len(old_geos)+len(new_geos), new_geos.shape[-1]),
-            requires_grad=False
-        )
-        #print("GEO SHAPES", geos.shape, old_geos.shape, idxs_old.shape)
-        if len(idxs_old):
-            geos[idxs_old] = old_geos
-        geos[idxs_new] = new_geos
-
-        # Place new times between existing 
-        times = torch.zeros(
-            (len(old_times)+len(eval_times), 1), requires_grad=False
-        )
-        #print("OLD IDXS", idxs_old[77:85])
-        #print("NEW IDXS", idxs_new)
-        if len(idxs_old):
-            times[idxs_old] = old_times
-        times[idxs_new] = eval_times
-
-        return geos, times
 
    
     def _parallel_integral_geometries(self, path, eval_times):

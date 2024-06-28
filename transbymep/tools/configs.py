@@ -65,7 +65,8 @@ def import_run_config(
         yaml_config['integral_params'] = {
             'solver' : 'dopri5',
             'rtol' : 1e-7,
-            'atol' : 1e-9
+            'atol' : 1e-9,
+            'computation' : 'parallel'
         }
     else:
         if 'rtol' in yaml_config['integral_params']:
@@ -78,6 +79,8 @@ def import_run_config(
                 float(yaml_config['integral_params']['atol'])
         else:
             yaml_config['integral_params']['atol'] = 1e-9
+        if 'computation' not in yaml_config['integral_params']:
+            yaml_config['integral_params']['computation'] = 'parallel'
         
 
 

@@ -72,12 +72,8 @@ def run_opt(
 
     #####  Path optimization tools  #####
     # Path integrating function
-    integrator = tools.ODEintegrator(
-        potential,
-        solver=config.integral_params['solver'],
-        rtol=config.integral_params['rtol'],
-        atol=config.integral_params['atol']
-    )
+    print("int params", config.integral_params)
+    integrator = tools.ODEintegrator(**config.integral_params)
     #print("test integrate", integrator.path_integral(path, 'E_pvre'))
 
     # Gradient descent path optimizer
@@ -103,14 +99,14 @@ def run_opt(
     t0 = timer.time()
     for optim_idx in range(args.num_optimizer_iterations):
         path_integral = optimizer.optimization_step(path, integrator)
-        print(f'optim_idx:, {optim_idx}, {path_integral}')
+        print(f'optim_idx:, {optim_idx}, {path_integral.integral}')
         if optim_idx%250 == 0:
             print("EVAL TIME", (timer.time()-t0)/60)
             path_output = logger.optimization_step(
                 optim_idx,
                 path,
                 potential,
-                path_integral,
+                path_integral.integral,
                 plot=args.make_opt_plots,
                 geo_paths=geo_paths,
                 pes_paths=pes_paths,

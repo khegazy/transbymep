@@ -23,7 +23,7 @@ class logging():
             add_azimuthal_dof=False,
             add_translation_dof=False
         ):
-        print(f"Step {step} | Loss: {loss:.7}")
+        print(f"Step {step} | Loss: {loss.item():.7}")
         """
         for ii in range(len(path.mlp.layers)):
             print(f"W{ii} sum: {jnp.sum(path.mlp.layers[ii].weight)}")

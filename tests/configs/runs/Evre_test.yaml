@@ -7,6 +7,7 @@ integral_params :
     solver : dopri5
     rtol : 1e-5
     atol : 1e-5
+    computation : serial
 loss_function : E_vre
 optimizer : adam
 optimizer_config_tag : test

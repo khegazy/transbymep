@@ -8,7 +8,6 @@ All the code in the `transbymep` directory can be imported now that you have ins
 
 !!! Tip
 
-    As an example, you can import and use the demonstration [template.examples.sample][] functions as follows:
 
     ```python
     from MyPackageName.examples.sample import add, make_array

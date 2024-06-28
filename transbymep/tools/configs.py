@@ -45,10 +45,7 @@ def import_run_config(
         path_tag="",
         tag="",
         potential_tag="",
-        dir=os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
-            "../../../tests/configs"
-        ),
+        dir="./configs/runs",
         is_expected=True,
         flags=None
     ):
@@ -106,10 +103,7 @@ def import_run_config(
 def import_path_config(
         run_config,
         path_tag="",
-        dir=os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
-            "../paths/configs"
-        ),
+        dir="./configs/paths",
         is_expected=True,
     ):
     filename = f"{run_config.path}_{run_config.path_config_tag}"

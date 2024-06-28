@@ -20,7 +20,7 @@ class PathOptimizer():
             path_type=None,
             potential_type=None,
             config_tag="",
-            config_dir="./src/optimizations/configs/",
+            config_dir="./optimizations/configs/",
             expect_config=False
         ):
         self.loss_name = loss_name
@@ -58,7 +58,7 @@ class PathOptimizer():
             path_type,
             potential_type,
             tag="",
-            dir="./src/optimizations/configs/",
+            dir="./optimizations/configs/",
             is_expected=True
         ):
         filename = f"{name}_{potential_type}_{path_type}"

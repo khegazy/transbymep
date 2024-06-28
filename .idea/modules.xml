@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/chemistry_MEP_TS_optimization.iml" filepath="$PROJECT_DIR$/.idea/chemistry_MEP_TS_optimization.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/transbymep.iml" filepath="$PROJECT_DIR$/.idea/transbymep.iml" />
     </modules>
   </component>
 </project>

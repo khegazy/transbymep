@@ -1,7 +1,7 @@
 import pytest
 import argparse
-from chemistry_MEP_TS_optimization import tools
-from chemistry_MEP_TS_optimization.optimization.gradient_descent import gradientDescent
+from transbymep import tools
+from transbymep.optimization.gradient_descent import gradientDescent
 
 '''
 @pytest.fixture
@@ -40,7 +40,7 @@ def config(tmp_path, monkeypatch, args):
 import jax
 import jax.numpy as jnp
 import equinox as eqx
-from chemistry_MEP_TS_optimization.tools import metrics
+from transbymep.tools import metrics
 
 def E_pvre_integral(path, integrator):
     return integrator.path_integral(path.E_pvre)

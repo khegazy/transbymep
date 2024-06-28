@@ -30,6 +30,20 @@ def build_default_arg_parser(test=False) -> argparse.ArgumentParser:
         type=str,
         default="./output"
     )
+    parser.add_argument(
+        "--run_config_dir",
+        help="top level run config directory",
+        type=str,
+        default="./configs/runs"
+    )
+    parser.add_argument(
+        "--path_config_dir",
+        help="top level path config directory",
+        type=str,
+        default="./configs/paths"
+    )
+
+
 
     # Path description
     parser.add_argument(

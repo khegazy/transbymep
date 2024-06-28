@@ -2,7 +2,7 @@ initial_point : [1.133, -1.486]
 final_point : [-1.166, 1.477]
 potential : wolfe_schlegel
 path : mlp
-path_config_tag : test
+path_config_tag : small
 integral_params :
     solver : dopri5
     rtol : 1e-5

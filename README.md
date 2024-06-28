@@ -1,4 +1,4 @@
-# chemistry_MEP_TS_optimization
+# transbymep
 
 To run one must select the name of a config file
 ```

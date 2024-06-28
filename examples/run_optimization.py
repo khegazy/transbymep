@@ -6,11 +6,11 @@ from typing import NamedTuple
 from matplotlib import pyplot as plt
 import time as timer
 
-from chemistry_MEP_TS_optimization import tools
-from chemistry_MEP_TS_optimization import paths
-from chemistry_MEP_TS_optimization import optimization
-from chemistry_MEP_TS_optimization.tools import visualize
-from chemistry_MEP_TS_optimization.potentials import get_potential
+from transbymep import tools
+from transbymep import paths
+from transbymep import optimization
+from transbymep.tools import visualize
+from transbymep.potentials import get_potential
 
 
 def run_opt(
@@ -143,6 +143,7 @@ if __name__ == "__main__":
     logger = tools.logging()
 
     # Import configuration files
+    print(args.name, args.path_tag, args.tag)
     config = tools.import_run_config(
         args.name, path_tag=args.path_tag, tag=args.tag, flags=args
     )

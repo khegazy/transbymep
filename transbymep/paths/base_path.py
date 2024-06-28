@@ -1,7 +1,7 @@
 import torch
 from dataclasses import dataclass
-from chemistry_MEP_TS_optimization.tools import metrics
-from chemistry_MEP_TS_optimization.potentials.base_class import PotentialBase
+from transbymep.tools import metrics
+from transbymep.potentials.base_class import PotentialBase
 from typing import Callable, Any
 
 

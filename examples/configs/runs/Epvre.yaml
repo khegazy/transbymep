@@ -4,9 +4,11 @@ potential : wolfe_schlegel
 path : mlp
 path_config_tag : small
 integral_params :
-    solver : dopri5
+    solver : euler
+    #solver : adaptive_heun
     rtol : 1e-5
     atol : 1e-5
+    computation : parallel
 loss_function : E_pvre
 optimizer : adam
 optimizer_config_tag : test

@@ -74,12 +74,8 @@ def run_opt(
 
     #####  Path optimization tools  #####
     # Path integrating function
-    integrator = tools.ODEintegrator(
-        potential,
-        solver=config.integral_params['solver'],
-        rtol=config.integral_params['rtol'],
-        atol=config.integral_params['atol']
-    )
+    print("int params", config.integral_params)
+    integrator = tools.ODEintegrator(**config.integral_params)
     #print("test integrate", integrator.path_integral(path, 'E_pvre'))
 
     # Gradient descent path optimizer
@@ -105,14 +101,14 @@ def run_opt(
     t0 = timer.time()
     for optim_idx in range(args.num_optimizer_iterations):
         path_integral = optimizer.optimization_step(path, integrator)
-        print(f'optim_idx:, {optim_idx}, {path_integral}')
+        print(f'optim_idx:, {optim_idx}, {path_integral.integral}')
         if optim_idx%250 == 0:
             print("EVAL TIME", (timer.time()-t0)/60)
             path_output = logger.optimization_step(
                 optim_idx,
                 path,
                 potential,
-                path_integral,
+                path_integral.integral,
                 plot=args.make_opt_plots,
                 geo_paths=geo_paths,
                 pes_paths=pes_paths,
@@ -133,30 +129,6 @@ def run_opt(
             add_azimuthal_dof=args.add_azimuthal_dof
         )
     return path_integral
-
-
-if __name__ == "__main__":
-    ###############################
-    #####  Setup environment  #####
-    ###############################
-
-    arg_parser = tools.build_default_arg_parser()
-    args = arg_parser.parse_args()
-    logger = tools.logging()
-
-    # Import configuration files
-    print(args.name, args.path_tag, args.tag)
-    config = tools.import_run_config(
-        args.name, path_tag=args.path_tag, tag=args.tag, flags=args
-    )
-
-    path_config = tools.import_path_config(
-        config, path_tag=args.path_tag
-    )
-
-    path_integral = run_opt(args, config, path_config, logger)
-
-
 
 
 @pytest.mark.parametrize(
@@ -207,4 +179,4 @@ def test_run_opt(tmp_path, monkeypatch, name, run_config_dir, path_config_dir, p
         dir=os.path.join(file_dir, args.path_config_dir)
     )
     path_integral = run_opt(args, config, path_config, logger)
-    assert path_integral == pytest.approx(expected_path_integral, abs=1, rel=1)
+    assert path_integral.integral.item() == pytest.approx(expected_path_integral, abs=1, rel=1)

@@ -72,12 +72,8 @@ def run_opt(
 
     #####  Path optimization tools  #####
     # Path integrating function
-    integrator = tools.ODEintegrator(
-        potential,
-        solver=config.integral_params['solver'],
-        rtol=config.integral_params['rtol'],
-        atol=config.integral_params['atol']
-    )
+    print("int params", config.integral_params)
+    integrator = tools.ODEintegrator(**config.integral_params)
     #print("test integrate", integrator.path_integral(path, 'E_pvre'))
 
     # Gradient descent path optimizer
@@ -101,22 +97,27 @@ def run_opt(
     geo_paths = []
     pes_paths = []
     t0 = timer.time()
+    loss_curve = []
     for optim_idx in range(args.num_optimizer_iterations):
         path_integral = optimizer.optimization_step(path, integrator)
-        print(f'optim_idx:, {optim_idx}, {path_integral}')
-        if optim_idx%250 == 0:
+        print(f'optim_idx:, {optim_idx}, {path_integral.integral}')
+        loss_curve.append(path_integral.integral.item())
+        if optim_idx%50 == 0:
             print("EVAL TIME", (timer.time()-t0)/60)
             path_output = logger.optimization_step(
                 optim_idx,
                 path,
                 potential,
-                path_integral,
+                path_integral.integral,
                 plot=args.make_opt_plots,
                 geo_paths=geo_paths,
                 pes_paths=pes_paths,
                 add_azimuthal_dof=args.add_azimuthal_dof,
                 add_translation_dof=args.add_translation_dof
             )
+            fig, ax = plt.subplots()
+            ax.plot(loss_curve)
+            fig.savefig("./plots/loss_curve.png")
 
     print("EVAL TIME", (timer.time()-t0)/60)
     # Plot gif animation of the MEP optimization (only for 2d potentials)

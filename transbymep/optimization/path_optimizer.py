@@ -82,8 +82,9 @@ class PathOptimizer():
         )
         #for n, prm in path.named_parameters():
         #    print(n, prm.grad)
-        path_integral.backward()
+        #print("path integral", path_integral)
+        path_integral.integral.backward()
         self.optimizer.step()
-        return path_integral.item()
+        return path_integral
 
     

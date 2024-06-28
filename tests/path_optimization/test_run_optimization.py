@@ -1,8 +1,10 @@
 import os
+import sys
 import pytest
 import argparse
 from transbymep import tools
-from transbymep.examples.sample import add
+
+sys.path.append('.')
 from run_optimization import run_opt
 
 

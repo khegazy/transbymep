@@ -97,9 +97,11 @@ def run_opt(
     geo_paths = []
     pes_paths = []
     t0 = timer.time()
+    loss_curve = []
     for optim_idx in range(args.num_optimizer_iterations):
         path_integral = optimizer.optimization_step(path, integrator)
         print(f'optim_idx:, {optim_idx}, {path_integral.integral}')
+        loss_curve.append(path_integral.integral.item())
         if optim_idx%50 == 0:
             print("EVAL TIME", (timer.time()-t0)/60)
             path_output = logger.optimization_step(
@@ -113,6 +115,9 @@ def run_opt(
                 add_azimuthal_dof=args.add_azimuthal_dof,
                 add_translation_dof=args.add_translation_dof
             )
+            fig, ax = plt.subplots()
+            ax.plot(loss_curve)
+            fig.savefig("./plots/loss_curve.png")
 
     print("EVAL TIME", (timer.time()-t0)/60)
     # Plot gif animation of the MEP optimization (only for 2d potentials)

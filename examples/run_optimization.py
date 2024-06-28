@@ -143,6 +143,7 @@ if __name__ == "__main__":
     logger = tools.logging()
 
     # Import configuration files
+    print(args.name, args.path_tag, args.tag)
     config = tools.import_run_config(
         args.name, path_tag=args.path_tag, tag=args.tag, flags=args
     )

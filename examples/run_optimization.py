@@ -100,7 +100,7 @@ def run_opt(
     for optim_idx in range(args.num_optimizer_iterations):
         path_integral = optimizer.optimization_step(path, integrator)
         print(f'optim_idx:, {optim_idx}, {path_integral.integral}')
-        if optim_idx%250 == 0:
+        if optim_idx%50 == 0:
             print("EVAL TIME", (timer.time()-t0)/60)
             path_output = logger.optimization_step(
                 optim_idx,

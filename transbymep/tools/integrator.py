@@ -47,8 +47,8 @@ class ODEintegrator(Metrics):
                 atol=atol,
                 rtol=rtol,
                 y0=torch.tensor([0], dtype=torch.float),
-                t_init=torch.tensor([0]),
-                t_final=torch.tensor([1])
+                t_init=0.,
+                t_final=1.
             )
             if self.is_load_balance:
                 self.balance_load = self._serial_load_balance
@@ -61,8 +61,8 @@ class ODEintegrator(Metrics):
                 rtol=self.rtol,
                 remove_cut=self.remove_cut,
                 y0=torch.tensor([0], dtype=torch.float),
-                t_init=torch.tensor([0]),
-                t_final=torch.tensor([1])
+                t_init=0.,
+                t_final=1.
             )
         else:
             raise ValueError(f"integrator argument must be either 'parallel' or 'serial', not {computation}.")
@@ -81,13 +81,15 @@ class ODEintegrator(Metrics):
     def integrator(self, path, fxn_name, t_init=0., t_final=1., times=None):
         ode_fxn, _ = self._get_ode_eval_fxn(fxn_name=fxn_name, path=path)
 
-        return self._integrator.integrate(
+        integral_output = self._integrator.integrate(
             ode_fxn=ode_fxn,
             state=self.previous_integral_state,
             t=times,
-            t_init=torch.tensor([t_init]),
-            t_final=torch.tensor([t_final])
+            t_init=t_init,
+            t_final=t_final
         )
+        self.previous_integral_state = integral_output
+        return integral_output
 
 
     def path_integral(

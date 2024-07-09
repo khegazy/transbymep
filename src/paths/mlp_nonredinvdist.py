@@ -4,7 +4,7 @@ from torch import nn
 from .base_path import BasePath
 
 
-class MLPnonreddistpath(BasePath):
+class MLPnonredinvdistpath(BasePath):
 
     def __init__(
         self,
@@ -25,9 +25,9 @@ class MLPnonreddistpath(BasePath):
         )
         self.ind = self.calc_nred(torch.stack([self.initial_point, self.final_point]), mode='min')
         self.initial_point_raw = self.initial_point
-        self.initial_point = self.geo_to_dist(self.initial_point)
+        self.initial_point = self.geo_to_invdist(self.initial_point)
         self.final_point_raw = self.final_point
-        self.final_point = self.geo_to_dist(self.final_point)
+        self.final_point = self.geo_to_invdist(self.final_point)
         self.activation = nn.SELU()
         input_sizes = [1] + [n_embed]*(depth - 1)
         output_sizes = input_sizes[1:] + [self.final_point.shape[-1]]
@@ -44,16 +44,16 @@ class MLPnonreddistpath(BasePath):
     def geometric_path(self, time, *args):
         time = torch.clamp(time, 0, 1)
         scale = 1
-        dist = scale * (self.mlp(time) - (1 - time) * self.mlp(torch.tensor([0.])) - time * self.mlp(torch.tensor([1.]))) \
+        invdist = scale * (self.mlp(time) - (1 - time) * self.mlp(torch.tensor([0.])) - time * self.mlp(torch.tensor([1.]))) \
             + ((1 - time) * self.initial_point + time * self.final_point)
         pos_trial = (1 - time) * self.initial_point_raw + time * self.final_point_raw
-        pos = self.dist_to_geo(dist, pos_trial)
+        pos = self.invdist_to_geo(invdist, pos_trial)
         return pos
         
-    def geo_to_dist(self, points):
+    def geo_to_invdist(self, points):
         points = points.reshape(*points.shape[:-1], -1, 3)
         dist = torch.norm(points[..., self.ind[0], :] - points[..., self.ind[1], :], dim=-1)
-        return dist
+        return 1. / dist
     
     # def dist_to_geo(self, dist_nred, pos_trial=None):
     #     if pos_trial is None:
@@ -75,7 +75,9 @@ class MLPnonreddistpath(BasePath):
     #         print("Optimization did not converge")
     #     return pos_trial.reshape(*pos_trial.shape[:-2], -1)
 
-    def dist_to_geo(self, dist_nred, pos_ref=None):
+    def invdist_to_geo(self, invdist_nred, pos_ref=None):
+        dist_nred = 1. / invdist_nred
+        print(dist_nred)
         if pos_ref is None:
             pos_ref = (self.initial_point_raw + self.final_point_raw) / 2
         pos_ref = pos_ref.reshape(*pos_ref.shape[:-1], -1, 3)
@@ -137,6 +139,8 @@ class MLPnonreddistpath(BasePath):
         elif point2 is None:
             point = point1.clone()
             point[..., 0] += dist1
+            print(dist1)
+            print(torch.norm(point - point1, dim=-1))
             return point
         elif point3 is None:
             point = point1.clone()
@@ -145,6 +149,10 @@ class MLPnonreddistpath(BasePath):
             y = torch.sqrt(dist1 ** 2 - x ** 2)
             point[..., 0] += x
             point[..., 1] += y
+            print(dist1)
+            print(torch.norm(point - point1, dim=-1))
+            print(dist2)
+            print(torch.norm(point - point2, dim=-1))
             return point
         else:
             point = point1.clone()
@@ -159,11 +167,15 @@ class MLPnonreddistpath(BasePath):
             vy = torch.sum((point3 - point1) * yn, dim=-1)
             x = (dist1 ** 2 - dist2 ** 2 + u ** 2) / (2 * u)
             y = (dist1 ** 2 - dist3 ** 2 + vx ** 2 + vy ** 2 - 2 * x * vx) / (2 * vy)
-            z = torch.sqrt(torch.clamp(dist1 ** 2 - x ** 2 - y ** 2, 1e-6)) * sign
-            point += x[..., None] * xn + y[..., None] * yn + z[..., None] * zn
+            z = torch.sqrt(torch.clamp(dist1 ** 2 - x ** 2 - y ** 2, 0)) * sign
+            print('xyz')
+            print(x)
+            print(y)
+            print(z)
+            print(dist1 ** 2 - x ** 2 - y ** 2)
+            point = point + x[..., None] * xn + y[..., None] * yn + z[..., None] * zn
             print(dist1)
             print(torch.norm(point - point1, dim=-1))
-            # print(x ** 2 + y ** 2 + z ** 2)
             print(dist2)
             print(torch.norm(point - point2, dim=-1))
             print(dist3)

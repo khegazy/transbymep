@@ -6,6 +6,7 @@ from .mlp_dist import MLPdistpath
 from .mlp_invdist import MLPinvdistpath
 from .mlp_expdist import MLPexpdistpath
 from .mlp_nonreddist import MLPnonreddistpath
+from .mlp_nonredinvdist import MLPnonredinvdistpath
 from .b_spline import BSpline
 from .elastic_band import ElasticBand
 
@@ -17,6 +18,7 @@ path_dict = {
     "mlpinvdist" : MLPinvdistpath,
     "mlpexpdist" : MLPexpdistpath,
     "mlpnonreddist" : MLPnonreddistpath,
+    "mlpnonredinvdist" : MLPnonredinvdistpath,
 }
 
 def get_path(name, potential, initial_point, final_point, **config):

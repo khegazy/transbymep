@@ -1,7 +1,0 @@
-initial_point : [-1.5, 1.5]
-final_point : [1.0, -1.5]
-path_params : 
-    n_images : 50
-    special_point : [0.1, 0.1]
-potential : wolfe_schlegel
-optimizer : gradient_descent

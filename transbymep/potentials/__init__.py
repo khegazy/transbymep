@@ -4,12 +4,14 @@ import yaml
 from .wolfe_schlegel import WolfeSchlegel
 from .muller_brown import MullerBrown
 from .constant import Constant
+from .newtonnet import NewtonNetPotential
 
 
 potential_dict = {
     "wolfe_schlegel": WolfeSchlegel,
     "muller_brown": MullerBrown,
-    "constant": Constant
+    "constant": Constant,
+    "newtonnet": NewtonNetPotential
 }
 
 
@@ -46,7 +48,7 @@ def get_potential(
         expect_config=False,
         **kwargs
     ):
-    assert potential.lower() in potential_dict
+    assert potential.lower() in potential_dict, f"Potential {potential} not found"
     config_filename = potential
     config_filename += f"_{tag}.yaml" if tag != "" else ".yaml"
     print(potential)

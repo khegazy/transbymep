@@ -1,7 +1,5 @@
-import jax
-import jax.numpy as jnp
-import equinox as eqx
 from typing import Any
+import numpy as np
 
 from .base_path import BasePath
 
@@ -20,14 +18,14 @@ class BSpline(BasePath):
         The knot vector of the B-Spline.
     """
     degree: int
-    points: jnp.array
-    knots: jnp.array
+    points: np.array
+    knots: np.array
 
     def __init__(
         self,
         potential: callable,
-        initial_point: jnp.array,
-        final_point: jnp.array,
+        initial_point: np.array,
+        final_point: np.array,
         degree: int = 2,
         n_anchors: int = 4,
         **kwargs: Any
@@ -59,11 +57,11 @@ class BSpline(BasePath):
 
         self.degree = degree
         delta_geo = (self.final_point - self.initial_point)/float(n_anchors + 2) 
-        self.points = jnp.array([
+        self.points = np.array([
             self.initial_point + delta_geo*(i + 1) for i in range(n_anchors)
         ])
         delta_time = 1./(n_anchors + 1)
-        self.knots = jnp.array([
+        self.knots = np.array([
             (i + 1)/float(n_anchors + 1) for i in range(n_anchors)
         ])
         print("This method is not finished")

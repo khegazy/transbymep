@@ -5,11 +5,12 @@ from newtonnet.data import ExtensiveEnvironment
 from newtonnet.data import batch_dataset_converter
 import yaml
 from ase import units
+import os
 
 from .base_class import PotentialBase
 
 class NewtonNetPotential(PotentialBase):
-    def __init__(self, model_path, settings_path, numbers, device=None, **kwargs):
+    def __init__(self, config_dir, model_path, numbers, device=None, **kwargs):
         """
         Constructor for NewtonNetPotential
 
@@ -33,7 +34,8 @@ class NewtonNetPotential(PotentialBase):
             self.device = torch.device(device)
         else:
             self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-        self.model = self.load_model(model_path, settings_path)
+        print(os.listdir())
+        self.model = self.load_model(os.path.join(config_dir, model_path))
         self.numbers = torch.tensor(numbers, dtype=torch.long, device=self.device)
         self.n_atoms = len(numbers)
         self.n_eval = 0
@@ -46,35 +48,11 @@ class NewtonNetPotential(PotentialBase):
         return pred['E'].squeeze(dim=-1) * (units.kcal/units.mol)
         
 
-    def load_model(self, model_path, settings_path):
-        settings = yaml.safe_load(open(settings_path, 'r'))
-        activation = get_activation_by_string(settings['model']['activation'])
-        model = NewtonNet(
-            resolution=settings['model']['resolution'],
-            n_features=settings['model']['n_features'],
-            activation=activation,
-            n_interactions=settings['model']['n_interactions'],
-            dropout=settings['training']['dropout'],
-            max_z=10,
-            cutoff=settings['data']['cutoff'],
-            cutoff_network=settings['model']['cutoff_network'],
-            normalize_atomic=settings['model']['normalize_atomic'],
-            requires_dr=settings['model']['requires_dr'],
-            device=self.device,
-            create_graph=False,
-            shared_interactions=settings['model']['shared_interactions'],
-            # return_hessian=self.return_hessian,
-            double_update_latent=settings['model']['double_update_latent'],
-            layer_norm=settings['model']['layer_norm'],
-            )
-
-        model.load_state_dict(torch.load(model_path, map_location='cpu')['model_state_dict'])
-        model = model
+    def load_model(self, model_path):
+        model = torch.load(model_path, map_location=self.device)
         model.eval()
-        model.to(self.device)
         model.to(torch.float)
-        for p in model.parameters():
-            p.requires_grad = False
+        model.requires_grad_(False)
         return model
     
     def data_formatter(self, pos):

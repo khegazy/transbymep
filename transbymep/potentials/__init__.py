@@ -55,4 +55,4 @@ def get_potential(
     config = import_potential_config(
         potential, tag, dir=config_dir, is_expected=expect_config
     )
-    return potential_dict[potential](**config, **kwargs)
+    return potential_dict[potential](**config, **kwargs, config_dir=config_dir)

@@ -3,6 +3,7 @@ final_point : [0.5275460481643677, -1.0480250120162964, -0.8651441335678101, 0.2
 potential : newtonnet
 potential_params :
     numbers : [8, 6, 6, 1, 1, 1, 1]
+    device : cpu
 path : mlp
 path_config_tag : small
 integral_params :

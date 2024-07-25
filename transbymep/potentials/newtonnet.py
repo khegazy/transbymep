@@ -6,6 +6,7 @@ from newtonnet.data import batch_dataset_converter
 import yaml
 from ase import units
 import os
+import numpy as np
 
 from .base_class import PotentialBase
 
@@ -36,7 +37,7 @@ class NewtonNetPotential(PotentialBase):
             self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
         print(os.listdir())
         self.model = self.load_model(os.path.join(config_dir, model_path))
-        self.numbers = torch.tensor(numbers, dtype=torch.long, device=self.device)
+        self.numbers = np.array(numbers)
         self.n_atoms = len(numbers)
         self.n_eval = 0
 
@@ -59,11 +60,14 @@ class NewtonNetPotential(PotentialBase):
         n_data = pos.numel() // (self.n_atoms * 3)
         data  = {
             'R': pos.view(n_data, self.n_atoms, 3),
-            'Z': self.numbers.repeat(n_data, 1),
+            'Z': np.stack([self.numbers for _ in range(n_data)]),
             # 'E': torch.zeros((1, 1)),
             # 'F': torch.zeros((1, len(self.numbers), 3)),
         }
         N, NM, AM, _, _ = ExtensiveEnvironment().get_environment(data['R'], data['Z'])
-        data.update({'N': torch.tensor(N), 'NM': torch.tensor(NM), 'AM': torch.tensor(AM)})
+        data['Z'] = torch.tensor(data['Z'], device=self.device)
+        data['N'] = torch.tensor(N, device=self.device)
+        data['NM'] = torch.tensor(NM, device=self.device)
+        data['AM'] = torch.tensor(AM, device=self.device)
         # data = batch_dataset_converter(data, device=self.device)
         return data

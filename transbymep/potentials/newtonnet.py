@@ -31,10 +31,7 @@ class NewtonNetPotential(PotentialBase):
         #     self.models = [self.load_model(model_path_, settings_path_) for model_path_, settings_path_ in zip(model_path, settings_path)]
         # else:
         #     self.models = [self.load_model(model_path, settings_path)]
-        if device is not None:
-            self.device = torch.device(device)
-        else:
-            self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+        self.device = device
         print(os.listdir())
         self.model = self.load_model(os.path.join(config_dir, model_path))
         self.numbers = np.array(numbers)
@@ -53,6 +50,7 @@ class NewtonNetPotential(PotentialBase):
         model = torch.load(model_path, map_location=self.device)
         model.eval()
         model.to(torch.float)
+        model.to(self.device)
         model.requires_grad_(False)
         return model
     

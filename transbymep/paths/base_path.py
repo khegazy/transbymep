@@ -65,6 +65,7 @@ class BasePath(torch.nn.Module):
         final_point: torch.Tensor,
         return_velocity: bool = False,
         return_force: bool = False,
+        device: torch.device = None,
         **kwargs: Any
     ) -> None:
         """
@@ -87,10 +88,11 @@ class BasePath(torch.nn.Module):
         """
         super().__init__()
         self.potential = potential
-        self.initial_point = torch.tensor(initial_point)
-        self.final_point = torch.tensor(final_point)
+        self.initial_point = torch.tensor(initial_point, device=device)
+        self.final_point = torch.tensor(final_point, device=device)
         self.return_velocity = return_velocity
         self.return_force = return_force
+        self.device = device
 
     def geometric_path(
             self,
@@ -159,7 +161,7 @@ class BasePath(torch.nn.Module):
             An instance of the PathOutput class representing the computed path.
         """
         if times is None:
-            times = torch.unsqueeze(torch.linspace(0, 1., 1000), -1)
+            times = torch.unsqueeze(torch.linspace(0, 1., 1000, device=self.device), -1)
         elif len(times.shape) == 1:
             times = torch.unsqueeze(times, -1)
         

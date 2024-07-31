@@ -28,7 +28,8 @@ class ODEintegrator(Metrics):
             process=None,
             is_multiprocess=False,
             is_load_balance=False,
-            n_added_evals=3
+            n_added_evals=3,
+            device=None,
         ):
         self.is_multiprocess = is_multiprocess
         self.is_load_balance = is_load_balance
@@ -46,9 +47,10 @@ class ODEintegrator(Metrics):
                 solver=self.solver,
                 atol=atol,
                 rtol=rtol,
-                y0=torch.tensor([0], dtype=torch.float),
+                y0=torch.tensor([0], dtype=torch.float, device=device),
                 t_init=0.,
-                t_final=1.
+                t_final=1.,
+                device=device,
             )
             if self.is_load_balance:
                 self.balance_load = self._serial_load_balance
@@ -60,9 +62,10 @@ class ODEintegrator(Metrics):
                 atol=self.atol,
                 rtol=self.rtol,
                 remove_cut=self.remove_cut,
-                y0=torch.tensor([0], dtype=torch.float),
+                y0=torch.tensor([0], dtype=torch.float, device=device),
                 t_init=0.,
-                t_final=1.
+                t_final=1.,
+                device=device,
             )
         else:
             raise ValueError(f"integrator argument must be either 'parallel' or 'serial', not {computation}.")
@@ -77,6 +80,11 @@ class ODEintegrator(Metrics):
                 self.mp_times = torch.linspace(
                     0, 1, self.process.world_size+1, requires_grad=False
                 )
+
+        # if device is not None:
+        #     self.device = torch.device(device)
+        # else:
+        #     self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
     def integrator(self, path, fxn_name, t_init=0., t_final=1., times=None):
         ode_fxn, _ = self._get_ode_eval_fxn(fxn_name=fxn_name, path=path)

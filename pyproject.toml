@@ -26,16 +26,14 @@ classifiers = [
 ]
 requires-python = ">=3.9, <3.13"
 dependencies = [
-    "numpy",
+    "numpy<2.0",
     "torch",
     "matplotlib",
     "pytest",
     "pytest-cov",
     "PyYAML",
     "torchdiffeq",
-    "jax",
-    "jaxlib",
-    "equinox",
+    "newtonnet",
 ]
 
 [project.optional-dependencies]

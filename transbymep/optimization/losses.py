@@ -1,6 +1,3 @@
-import jax
-import jax.numpy as jnp
-import equinox as eqx
 from transbymep.tools import metrics
 
 

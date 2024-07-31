@@ -40,7 +40,8 @@ def run_opt(
         tag=config.potential_tag,
         expect_config=config.potential!="constant",
         add_azimuthal_dof=args.add_azimuthal_dof,
-        add_translation_dof=args.add_translation_dof
+        add_translation_dof=args.add_translation_dof,
+        **config.potential_params,
     )
 
     # Minimize initial points with the given potential
@@ -117,6 +118,8 @@ def run_opt(
             )
             fig, ax = plt.subplots()
             ax.plot(loss_curve)
+            if not os.path.exists("./plots"):
+                os.makedirs("./plots")
             fig.savefig("./plots/loss_curve.png")
 
     print("EVAL TIME", (timer.time()-t0)/60)

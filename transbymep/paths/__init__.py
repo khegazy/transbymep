@@ -1,6 +1,3 @@
-import jax.tree_util as jtu
-import equinox as eqx
-
 from .mlp import MLPpath
 from .b_spline import BSpline
 from .elastic_band import ElasticBand

@@ -1,5 +1,3 @@
-import jax
-import jax.numpy as jnp
 import numpy as np
 
 
@@ -47,13 +45,13 @@ class ElasticBand():
             The special point around which the elastic band is formed
             (default is None, in which case it is the midpoint between initial_point and final_point).
         """
-        self.initial_point = jnp.array(initial_point)
-        self.final_point = jnp.array(final_point)
+        self.initial_point = np.array(initial_point)
+        self.final_point = np.array(final_point)
         if special_point is None:
-            self.special_point = jnp.array(initial_point) + jnp.array(final_point)
+            self.special_point = np.array(initial_point) + np.array(final_point)
             self.special_point = self.special_point/2
         else:
-            self.special_point = jnp.array(special_point)
+            self.special_point = np.array(special_point)
         self.n_images = n_images
 
         images_1 = self.compute_initial_points(
@@ -62,15 +60,15 @@ class ElasticBand():
         images_2 = self.compute_initial_points(
             self.special_point, self.final_point, self.n_images//2
         )
-        self.path = jnp.vstack([images_1, images_2])
+        self.path = np.vstack([images_1, images_2])
 
             
     def compute_initial_points(
             self,
-            start: jnp.array,
-            end: jnp.array,
+            start: np.array,
+            end: np.array,
             n_images: int
-    ) -> jnp.array:
+    ) -> np.array:
         """
         Compute the initial points between start and end.
 
@@ -90,4 +88,4 @@ class ElasticBand():
         """
         ts = np.linspace(0.0, 1.0, n_images+1)[1:]
         points = [start*(1 - t) + end*t for t in ts]
-        return jnp.stack(points)
+        return np.stack(points)

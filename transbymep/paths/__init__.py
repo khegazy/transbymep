@@ -1,11 +1,13 @@
 from .mlp import MLPpath
+from .mlpdist import MLPDistpath
 from .b_spline import BSpline
 from .elastic_band import ElasticBand
 
 path_dict = {
     "elastic_band" : ElasticBand,
     "mlp" : MLPpath,
-    "bspline" : BSpline
+    "bspline" : BSpline,
+    "mlpdist" : MLPDistpath,
 }
 
 def get_path(name, potential, initial_point, final_point, **config):

@@ -35,7 +35,7 @@ class MLPDistpath(BasePath):
             device=device,
         )
         self.activation = nn.SELU()
-        self.n_atoms = final_point.shape[-1] // 3
+        self.n_atoms = self.final_point.shape[-1] // 3
         self.indices = torch.triu_indices(self.n_atoms, self.n_atoms, offset=1)
         input_sizes = [1] + [n_embed]*(depth - 1)
         output_sizes = input_sizes[1:] + [self.indices.shape[-1]]
@@ -114,7 +114,6 @@ class MLPDistpath(BasePath):
         eigvals, eigvecs = torch.linalg.eigh(- 0.5 * center @ (dist ** 2) @ center)
         geo_path = eigvals[..., None, -3:].clamp(min=0).sqrt() * eigvecs[..., :, -3:]
         geo_path = geo_path.reshape(*geo_path.shape[:-2], -1)
-        print(geo_path.shape)
         return geo_path
 
     """

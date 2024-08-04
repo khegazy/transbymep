@@ -2,6 +2,7 @@ import os
 import sys
 import torch
 import numpy as np
+import pandas as pd
 from typing import NamedTuple
 from matplotlib import pyplot as plt
 import time as timer
@@ -118,9 +119,13 @@ def run_opt(
             )
             fig, ax = plt.subplots()
             ax.plot(loss_curve)
+            ax.set_xlabel("Step")
+            ax.set_ylabel("Loss")
             if not os.path.exists("./plots"):
                 os.makedirs("./plots")
             fig.savefig("./plots/loss_curve.png")
+            plt.close(fig)
+            pd.DataFrame(loss_curve).to_csv("./plots/loss_curve.csv", header=False)
 
     print("EVAL TIME", (timer.time()-t0)/60)
     # Plot gif animation of the MEP optimization (only for 2d potentials)

@@ -32,7 +32,6 @@ class NewtonNetPotential(PotentialBase):
         # else:
         #     self.models = [self.load_model(model_path, settings_path)]
         self.device = device
-        print(os.listdir())
         self.model = self.load_model(os.path.join(config_dir, model_path))
         self.numbers = np.array(numbers)
         self.n_atoms = len(numbers)

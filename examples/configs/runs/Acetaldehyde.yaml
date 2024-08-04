@@ -4,7 +4,7 @@ potential : newtonnet
 potential_params :
     numbers : [8, 6, 6, 1, 1, 1, 1]
     device : cuda
-path : mlp
+path : mlpdist
 path_config_tag : small
 integral_params :
     solver : euler

@@ -122,7 +122,8 @@ class MLPDistpath(BasePath):
         dist[..., self.indices[1], self.indices[0]] = dist_path
         center = torch.eye(self.n_atoms, device=self.device) - 1 / self.n_atoms
         eigvals, eigvecs = torch.linalg.eigh(- 0.5 * center @ (dist ** 2) @ center)
-        geo_path = eigvals[..., None, -3:].clamp(min=0).sqrt() * eigvecs[..., :, -3:]
+        geo_path = eigvals[..., None, -3:].clamp(min=0).sqrt() * eigvecs[..., :, -3:] 
+        geo_path = geo_path * eigvecs[..., [0], -3:].sign()    # only an ad hoc fix for the direction
         geo_path = geo_path.reshape(*geo_path.shape[:-2], -1)
         return geo_path
 

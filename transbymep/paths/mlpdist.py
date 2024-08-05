@@ -38,8 +38,8 @@ class MLPDistpath(BasePath):
         self.n_atoms = self.final_point.shape[-1] // 3
         self.indices = torch.triu_indices(self.n_atoms, self.n_atoms, offset=1)
         input_sizes = [1] + [n_embed]*(depth - 1)
-        # output_sizes = input_sizes[1:] + [self.indices.shape[-1]]
-        output_sizes = [n_embed]*(depth - 1) + [self.final_point.shape[-1]]
+        output_sizes = input_sizes[1:] + [self.indices.shape[-1]]
+        # output_sizes = [n_embed]*(depth - 1) + [self.final_point.shape[-1]]
         self.layers = [
             nn.Linear(input_sizes[i//2], output_sizes[i//2]) if i%2 == 0\
             else self.activation\
@@ -67,14 +67,14 @@ class MLPDistpath(BasePath):
         # final = self.final_point
         interpolation = self.interpolate(time, initial, final)
         # interpolation = self.geo_to_dist(interpolation).pow(-1)
-        interpolation = self.dist_to_geo(interpolation.pow(-1))
+        # interpolation = self.dist_to_geo(interpolation.pow(-1))
 
         initial = self.mlp(torch.tensor([[0.]], device=self.device))
         final = self.mlp(torch.tensor([[1.]], device=self.device))
         correction = self.mlp(time) - self.interpolate(time, initial, final)
 
         geo_path = interpolation + correction
-        # geo_path = self.dist_to_geo(geo_path.pow(-1))
+        geo_path = self.dist_to_geo(geo_path.pow(-1))
         return geo_path
         
     

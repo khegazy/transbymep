@@ -1,11 +1,13 @@
 import os
 import sys
+import ase.io
 import torch
 import numpy as np
 import pandas as pd
 from typing import NamedTuple
 from matplotlib import pyplot as plt
 import time as timer
+import ase
 
 from transbymep import tools
 from transbymep import paths
@@ -30,10 +32,13 @@ def run_opt(
         logger (NamedTuple): Logger settings.
     """
     # Create output directories
-    output_dir = os.path.join(args.output_dir, config.potential, config.optimizer)
+    output_dir = args.output_dir
     log_dir = os.path.join(output_dir, "logs")
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
+    plot_dir = os.path.join(output_dir, "plots")
+    if not os.path.exists(plot_dir):
+        os.makedirs(plot_dir)
     
     #####  Get chemical potential  #####
     potential = get_potential(
@@ -121,11 +126,11 @@ def run_opt(
             ax.plot(loss_curve)
             ax.set_xlabel("Step")
             ax.set_ylabel("Loss")
-            if not os.path.exists("./plots"):
-                os.makedirs("./plots")
-            fig.savefig("./plots/loss_curve.png")
+            fig.savefig(os.path.join(plot_dir, "loss_curve.png"))
             plt.close(fig)
-            pd.DataFrame(loss_curve).to_csv("./plots/loss_curve.csv", header=False)
+            pd.DataFrame(loss_curve).to_csv(os.path.join(plot_dir, "loss_curve.csv"), header=False)
+            traj = [ase.Atoms(numbers=potential.numbers, positions=pos.detach().cpu().numpy().reshape(-1, 3)) for pos in path.get_path(path_integral.t).geometric_path]
+            ase.io.write(os.path.join(log_dir, f"traj_{optim_idx}.xyz"), traj)
 
     print("EVAL TIME", (timer.time()-t0)/60)
     # Plot gif animation of the MEP optimization (only for 2d potentials)

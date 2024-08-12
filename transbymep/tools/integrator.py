@@ -141,7 +141,8 @@ class ODEintegrator(Metrics):
                 return eval_fxn(path=path, t=t)
         else:
             def ode_fxn(t, *args):
-                t = torch.tensor([[t]])
+                # t = torch.tensor([[t]])
+                t = t.reshape(1, 1)
                 #print("ODEF", t)
                 output = eval_fxn(path=path, t=t)
                 #print("ODEF out", output, output.requires_grad)

@@ -3,6 +3,7 @@ import yaml
 
 from .wolfe_schlegel import WolfeSchlegel
 from .muller_brown import MullerBrown
+from .schwefel import Schwefel
 from .constant import Constant
 from .newtonnet import NewtonNetPotential
 
@@ -10,8 +11,9 @@ from .newtonnet import NewtonNetPotential
 potential_dict = {
     "wolfe_schlegel": WolfeSchlegel,
     "muller_brown": MullerBrown,
+    "schwefel": Schwefel,
     "constant": Constant,
-    "newtonnet": NewtonNetPotential
+    "newtonnet": NewtonNetPotential,
 }
 
 

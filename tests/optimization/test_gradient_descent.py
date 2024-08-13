@@ -1,7 +1,7 @@
 import pytest
 import argparse
 from transbymep import tools
-from transbymep.optimization.gradient_descent import gradientDescent
+# from transbymep.optimization.gradient_descent import gradientDescent
 
 '''
 @pytest.fixture

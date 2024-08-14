@@ -132,7 +132,7 @@ def run_opt(
                 f"test_plot_{optim_idx:03d}",
                 pes_fxn=potential,
                 plot_min_max=(-500, 500, -500, 500),
-                levels=np.arange(0, 2000, 10),
+                levels=16,
                 plot_dir=plot_dir,
             )
 
@@ -159,6 +159,7 @@ if __name__ == "__main__":
     arg_parser = tools.build_default_arg_parser()
     args = arg_parser.parse_args()
     logger = tools.logging()
+    torch.manual_seed(42)
 
     # Import configuration files
     print(args.name, args.path_tag, args.tag)

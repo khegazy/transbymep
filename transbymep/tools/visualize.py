@@ -81,7 +81,7 @@ def contour_2d(
     x_vals, y_vals, z_vals = eval_contour_vals(
         potential, x_min, x_max, y_min, y_max, add_dof=add_dof
     )
-    ax.contour(x_vals, y_vals, z_vals, levels=levels)
+    ax.contour(x_vals, y_vals, z_vals, levels=levels, cmap='coolwarm')
     return ax, (x_vals, y_vals, z_vals, levels) 
 
 
@@ -173,9 +173,9 @@ def _plot_path(
     path = from_numpy([path])[0]
     path = pes_fxn.point_transform(path)
     path = to_numpy([path])[0]
-    ax[0].plot(path[:,0], path[:,1], color='r', linestyle='-')
+    ax[0].plot(path[:,0], path[:,1], color='k', linestyle='-')
     velocity = np.sqrt(np.sum((path[:-1] - path[1:])**2, axis=-1))
-    ax[2].plot(np.linspace(0, 1, len(path)-1), velocity)
+    ax[2].plot(np.linspace(0, 1, len(path)-1), velocity, color='k', linestyle='-')
 
     return ax, contour_vals
 

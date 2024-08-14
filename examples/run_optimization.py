@@ -2,6 +2,7 @@ import os
 import sys
 import torch
 import numpy as np
+import pandas as pd
 from typing import NamedTuple
 from matplotlib import pyplot as plt
 import time as timer
@@ -29,10 +30,13 @@ def run_opt(
         logger (NamedTuple): Logger settings.
     """
     # Create output directories
-    output_dir = os.path.join(args.output_dir, config.potential, config.optimizer)
+    output_dir = args.output_dir
     log_dir = os.path.join(output_dir, "logs")
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
+    plot_dir = os.path.join(output_dir, "plots")
+    if not os.path.exists(plot_dir):
+        os.makedirs(plot_dir)
     
     #####  Get chemical potential  #####
     potential = get_potential(
@@ -118,9 +122,19 @@ def run_opt(
             )
             fig, ax = plt.subplots()
             ax.plot(loss_curve)
-            if not os.path.exists("./plots"):
-                os.makedirs("./plots")
-            fig.savefig("./plots/loss_curve.png")
+            ax.set_xlabel("Step")
+            ax.set_ylabel("Loss")
+            fig.savefig(os.path.join(plot_dir, "loss_curve.png"))
+            plt.close(fig)
+            pd.DataFrame(loss_curve).to_csv(os.path.join(plot_dir, "loss_curve.csv"), header=False)
+            visualize.plot_path(
+                path.get_path().geometric_path.detach().to('cpu').numpy(),
+                f"test_plot_{optim_idx:03d}",
+                pes_fxn=potential,
+                plot_min_max=(-500, 500, -500, 500),
+                levels=np.arange(0, 2000, 10),
+                plot_dir=plot_dir,
+            )
 
     print("EVAL TIME", (timer.time()-t0)/60)
     # Plot gif animation of the MEP optimization (only for 2d potentials)

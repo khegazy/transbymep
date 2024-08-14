@@ -34,11 +34,11 @@ def eval_contour_vals(
     x_max,
     y_min,
     y_max,
-    step_size=0.01,
+    num_points=1024,
     add_dof=False
 ):
-    x_vals = np.arange(x_min, x_max, step_size)
-    y_vals = np.arange(y_min, y_max, step_size)
+    x_vals = np.linspace(x_min, x_max, num_points)
+    y_vals = np.linspace(y_min, y_max, num_points)
     l,r = np.meshgrid(x_vals, y_vals)
     size = len(x_vals)
     args = np.reshape(np.stack([l,r],axis=2), (-1, 2))

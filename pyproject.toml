@@ -33,7 +33,7 @@ dependencies = [
     "pytest-cov",
     "PyYAML",
     "torchdiffeq",
-    "git+ssh://git@github.com/khegazy/torchpathdiffeq.git",
+    "git+https://$MY_PRIVATE_REPO_TOKEN@github.com/kumaranu/torchpathdiffeq.git@main",
     "newtonnet",
 ]
 

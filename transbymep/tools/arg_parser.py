@@ -42,6 +42,12 @@ def build_default_arg_parser(test=False) -> argparse.ArgumentParser:
         type=str,
         default="./configs/paths"
     )
+    parser.add_argument(
+        "--device",
+        help="device to run on",
+        type=str,
+        default="cuda"
+    )
 
 
 

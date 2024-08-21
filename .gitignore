@@ -67,3 +67,6 @@ env/
 ENV/
 env.bak/
 venv.bak/
+
+*.png
+*old*

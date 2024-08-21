@@ -7,12 +7,11 @@ potential_params :
 path : mlp
 path_config_tag : small
 integral_params :
-    solver : euler
-    #solver : adaptive_heun
+    method : adaptive_heun
     rtol : 1e-5
     atol : 1e-5
     computation : parallel
-    device : cuda
+    sample_type : uniform
 loss_function : E_pvre
 optimizer : adam
 optimizer_config_tag : test

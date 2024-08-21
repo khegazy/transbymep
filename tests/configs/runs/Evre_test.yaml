@@ -4,7 +4,7 @@ potential : wolfe_schlegel
 path : mlp
 path_config_tag : test
 integral_params :
-    solver : dopri5
+    method : dopri5
     rtol : 1e-5
     atol : 1e-5
     computation : serial

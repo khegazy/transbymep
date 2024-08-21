@@ -1,4 +1,2 @@
-path_params :
-    n_embed : 8
-    depth : 4
-    device : cuda
+n_embed : 8
+depth : 4

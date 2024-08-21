@@ -20,6 +20,7 @@ class RunConfig:
     optimizer_params : Dict
     tag : str = ""
     potential_tag : str = ""
+    device : str = 'cuda'
 
 @dataclass
 class PathConfig:
@@ -47,7 +48,8 @@ def import_run_config(
         potential_tag="",
         dir="./configs/runs",
         is_expected=True,
-        flags=None
+        flags=None,
+        device='cuda'
     ):
     #filename = f"{name}_{path_type}"
     filename = name
@@ -63,7 +65,7 @@ def import_run_config(
 
     if 'integral_params' not in yaml_config:
         yaml_config['integral_params'] = {
-            'solver' : 'dopri5',
+            'method' : 'dopri5',
             'rtol' : 1e-7,
             'atol' : 1e-9,
             'computation' : 'parallel'
@@ -99,6 +101,9 @@ def import_run_config(
             #config.final_point[0] = 0
             # Rotate by pi
             config.final_point[0] = -1*(config.final_point[0] + flags.add_azimuthal_dof)
+        print(config.device)
+        print(flags.device)
+        config.device = flags.device
 
     return config
 
@@ -113,8 +118,13 @@ def import_path_config(
     filename += f"_{path_tag}" if path_tag != "" else ""
     filename += ".yaml"
     yaml_config = import_yaml(os.path.join(dir, filename), is_expected)
-    
+
+    print(os.path.join(dir, filename)) 
     print("path yaml inp", yaml_config)
-    config = PathConfig(name=run_config.path, **yaml_config, tag=path_tag)
+    config = PathConfig(
+        name=run_config.path, 
+        path_params=yaml_config,
+        tag=path_tag,
+    )
     
     return config

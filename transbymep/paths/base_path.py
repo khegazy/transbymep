@@ -87,6 +87,10 @@ class BasePath(torch.nn.Module):
             Additional keyword arguments.
         """
         super().__init__()
+        print("DEVICE", device
+              
+
+              )
         self.potential = potential
         self.initial_point = torch.tensor(initial_point, device=device)
         self.final_point = torch.tensor(final_point, device=device)
@@ -161,10 +165,14 @@ class BasePath(torch.nn.Module):
             An instance of the PathOutput class representing the computed path.
         """
         if times is None:
-            times = torch.unsqueeze(torch.linspace(0, 1., 1000, device=self.device), -1)
+            times = torch.unsqueeze(
+                torch.linspace(0, 1., 1000),
+                dim=-1
+            )
         elif len(times.shape) == 1:
             times = torch.unsqueeze(times, -1)
         
+        times = times.to(torch.float64).to(self.device)
         return self.forward(
             times, return_velocity=return_velocity, return_force=return_force
         )
@@ -192,6 +200,7 @@ class BasePath(torch.nn.Module):
         PathOutput
             An instance of the PathOutput class containing the computed path, potential, velocity, force, and times.
         """
+        t = t.to(torch.float64).to(self.device)
         geo_path = self.geometric_path(t)
         pes_path = self.potential(geo_path)
 

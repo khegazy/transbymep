@@ -55,11 +55,13 @@ def run_opt(
         sys.exit(0)
 
     #####  Get path prediction method  #####
+    print("PATH PARAMS", path_config.path_params)
     path = paths.get_path(
         config.path,
         potential,
         config.initial_point,
         config.final_point,
+        device=config.device,
         #add_azimuthal_dof=args.add_azimuthal_dof,
         #add_translation_dof=args.add_translation_dof,
         **path_config.path_params
@@ -101,7 +103,7 @@ def run_opt(
     loss_curve = []
     for optim_idx in range(args.num_optimizer_iterations):
         path_integral = optimizer.optimization_step(path, integrator)
-        print(f'optim_idx:, {optim_idx}, {path_integral.integral}')
+        #print(f'optim_idx:, {optim_idx}, {path_integral.integral}')
         loss_curve.append(path_integral.integral.item())
         if optim_idx%50 == 0:
             print("EVAL TIME", (timer.time()-t0)/60)

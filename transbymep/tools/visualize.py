@@ -173,7 +173,7 @@ def _plot_path(
     path = from_numpy([path])[0]
     path = pes_fxn.point_transform(path)
     path = to_numpy([path])[0]
-    ax[0].plot(path[:,0], path[:,1], color='k', linestyle='-')
+    ax[0].plot(path[:,0], path[:,1], color='k', linestyle='-', marker='.')
     velocity = np.sqrt(np.sum((path[:-1] - path[1:])**2, axis=-1))
     ax[2].plot(np.linspace(0, 1, len(path)-1), velocity, color='k', linestyle='-')
 

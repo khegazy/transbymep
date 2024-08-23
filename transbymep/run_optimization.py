@@ -142,16 +142,16 @@ def run_opt(
             fig.savefig(os.path.join(plot_dir, "loss_curve.png"))
             plt.close()
             df.to_csv(os.path.join(plot_dir, "loss_curve.csv"), header=False)
-            # visualize.plot_path(
-            #     path.get_path(torch.linspace(0, 1, 32, device='cuda')).geometric_path.detach().to('cpu').numpy(),
-            #     f"test_plot_{optim_idx:03d}",
-            #     pes_fxn=potential,
-            #     plot_min_max=(-2, 2, -2, 2),
-            #     levels=16,
-            #     plot_dir=plot_dir,
-            # )
-            traj = [ase.Atoms(numbers=config.potential_params['numbers'], positions=pos.reshape(-1, 3)) for pos in path.get_path(torch.linspace(0, 1, 101, device='cuda')).geometric_path.detach().to('cpu').numpy()]
-            ase.io.write(os.path.join(plot_dir, f"traj_{optim_idx:03d}.xyz"), traj)
+            visualize.plot_path(
+                path.get_path(torch.linspace(0, 1, 32, device='cuda')).geometric_path.detach().to('cpu').numpy(),
+                f"test_plot_{optim_idx:03d}",
+                pes_fxn=potential,
+                plot_min_max=(-2, 2, -2, 2),
+                levels=16,
+                plot_dir=plot_dir,
+            )
+            # traj = [ase.Atoms(numbers=config.potential_params['numbers'], positions=pos.reshape(-1, 3)) for pos in path.get_path(torch.linspace(0, 1, 101, device='cuda')).geometric_path.detach().to('cpu').numpy()]
+            # ase.io.write(os.path.join(plot_dir, f"traj_{optim_idx:03d}.xyz"), traj)
 
     print("EVAL TIME", (timer.time()-t0)/60)
     # Plot gif animation of the MEP optimization (only for 2d potentials)

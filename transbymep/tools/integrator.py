@@ -58,6 +58,7 @@ class ODEintegrator(Metrics):
             self.sample_type = sample_type
             self.is_parallel = True
             self.remove_cut = remove_cut
+            print("METHOD", self.method)
             self._integrator = get_parallel_RK_solver(
                 self.sample_type,
                 method=self.method,
@@ -109,11 +110,17 @@ class ODEintegrator(Metrics):
             t_final=t_final
         )
         self.integral_output = integral_output
+        #print(integral_output.t_pruned.shape)
         return integral_output
 
 
     def path_integral(
-            self, path, fxn_name, t_init=0., t_final=1., record_evals=False
+            self,
+            path,
+            fxn_name,
+            t_init=torch.tensor([0.], dtype=torch.float64),
+            t_final=torch.tensor([1.], dtype=torch.float64),
+            record_evals=False
         ):
         if record_evals:
             path.begin_time_recording()
@@ -153,7 +160,8 @@ class ODEintegrator(Metrics):
                 return eval_fxn(path=path, t=t)
         else:
             def ode_fxn(t, *args):
-                t = torch.tensor([[t]])
+                #t = torch.tensor([[t]])
+                t = torch.reshape(t, (1, 1))
                 #print("ODEF", t)
                 output = eval_fxn(path=path, t=t)
                 #print("ODEF out", output, output.requires_grad)
@@ -162,12 +170,14 @@ class ODEintegrator(Metrics):
         return ode_fxn, eval_fxn
 
 
+    # Deprecated but keeping because I may resuse parts
+    """
     def _integrand_wrapper(self, t, y, path, ode_fxn):
         vals = path(t)
         return ode_fxn(vals)
 
     def serial_path_integral(self, path, fxn_name, t_init=0., t_final=1.):
-        print("TODO: adaptive integrator evaluates t>1, how to set hard limits?")
+        print("TODO: serial adaptive integrator evaluates t>1, how to set hard limits?")
         ode_fxn, _ = self._get_ode_eval_fxn(fxn_name=fxn_name, path=path)
         integral = odeint(
             func=ode_fxn,
@@ -217,7 +227,6 @@ class ODEintegrator(Metrics):
  
     def _parallel_path_integral(self, path, fxn_name, t_init=0., t_final=1., eval_times=None):
        
-        print("INPUT EVAL TIMES", eval_times.shape)
         self._parallel_integral(
             ode_fxn=lambda x: torch.abs(path.geometric_path(x)),
             t_init=t_init,
@@ -363,13 +372,8 @@ class ODEintegrator(Metrics):
         )
         #self.run_times[self.process.rank] = time.time() - start_time
         self.run_time = time.time() - start_time
-        """
-        if self.process.is_distributed:
-            print("NEVALS", self.process.rank, path.module.Nevals, self.run_time)
-        else:
-            print("NEVALS", self.process.rank, path.Nevals, self.run_time)
-        """
         path.module.Nevals = 0
         path.Nevals = 0
 
         return integral
+    """

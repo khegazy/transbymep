@@ -75,8 +75,7 @@ def optimize_MEP(
 
     #####  Path optimization tools  #####
     # Path integrating function
-    print("int params", config.integral_params)
-    integrator = tools.ODEintegrator(**config.integral_params)
+    integrator = tools.ODEintegrator(**config.integral_params, device=config.device)
     #print("test integrate", integrator.path_integral(path, 'E_pvre'))
 
     # Gradient descent path optimizer
@@ -87,7 +86,8 @@ def optimize_MEP(
         config.loss_function,
         path_type=config.path,
         potential_type=config.potential,
-        config_tag=config.optimizer_config_tag
+        config_tag=config.optimizer_config_tag,
+        device=config.device
     )
 
     # Loss

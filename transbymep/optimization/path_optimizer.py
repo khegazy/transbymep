@@ -21,10 +21,12 @@ class PathOptimizer():
             potential_type=None,
             config_tag="",
             config_dir="./optimizations/configs/",
-            expect_config=False
+            expect_config=False,
+            device='cpu'
         ):
         self.loss_name = loss_name
         name = name.lower()
+        self.device=device
         if name not in optimizer_dict:
             raise ValueError(f"Cannot handle optimizer type {name}, either add it to optimizer_dict or use {list(optimizer_dict.keys())}")
 
@@ -75,7 +77,15 @@ class PathOptimizer():
             ImportWarning(f"Cannot find file {address}, still running")
             return {}
     
-    def optimization_step(self, path, integrator, t_init=0., t_final=1.):
+    def optimization_step(
+            self,
+            path,
+            integrator,
+            t_init=torch.tensor([0.], dtype=torch.float64),
+            t_final=torch.tensor([1.], dtype=torch.float64)
+        ):
+        t_init = t_init.to(torch.float64).to(self.device)
+        t_final = t_final.to(torch.float64).to(self.device)
         self.optimizer.zero_grad()
         path_integral = integrator.path_integral(
             path, self.loss_name, t_init=t_init, t_final=t_final

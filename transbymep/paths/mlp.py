@@ -34,12 +34,20 @@ class MLPpath(BasePath):
             final_point=final_point,
             device=device,
         )
+
+        self.t_init = torch.tensor(
+            [[0]], dtype=torch.float64, device=self.device
+        )
+        self.t_final = torch.tensor(
+            [[1]], dtype=torch.float64, device=self.device
+        )
         self.activation = nn.SELU()
         input_sizes = [1] + [n_embed]*(depth - 1)
         output_sizes = input_sizes[1:] + [self.final_point.shape[-1]]
         self.layers = [
-            nn.Linear(input_sizes[i//2], output_sizes[i//2]) if i%2 == 0\
-            else self.activation\
+            nn.Linear(
+                input_sizes[i//2], output_sizes[i//2], dtype=torch.float64
+            ) if i%2 == 0 else self.activation\
             for i in range(depth*2 - 1)
         ]
         self.mlp = nn.Sequential(*self.layers)
@@ -61,10 +69,9 @@ class MLPpath(BasePath):
         # print(time)
         if self.neval > 1e4:
             raise ValueError("Too many evaluations!")
-        output = self.mlp(time)\
-            - (1 - time)*(self.mlp(torch.tensor([[0.]], device=self.device)) - self.initial_point)\
-            - time*(self.mlp(torch.tensor([[1.]], device=self.device)) - self.final_point)
-        return output
+        return self.mlp(time)\
+            - (1 - time)*(self.mlp(self.t_init) - self.initial_point)\
+            - time*(self.mlp(self.t_final) - self.final_point)
 
     """
     def get_path(self, times=None):

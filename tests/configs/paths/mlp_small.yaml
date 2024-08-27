@@ -1,3 +1,2 @@
-path_params :
-    n_embed : 8
-    depth : 4
+n_embed : 8
+depth : 4

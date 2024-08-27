@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from enum import Enum
 
 from torchdiffeq import odeint
-from torchpathdiffeq import SerialAdaptiveStepsizeSolver, RKParallelAdaptiveStepsizeSolver
+from torchpathdiffeq import SerialAdaptiveStepsizeSolver, get_parallel_RK_solver 
 from .metrics import Metrics
 
 from .metrics import Metrics
@@ -20,10 +20,11 @@ class IntegralOutput():
 class ODEintegrator(Metrics):
     def __init__(
             self,
-            computation='parallel',
-            solver='dopri5',
+            method='dopri5',
             rtol=1e-7,
             atol=1e-9,
+            computation='parallel',
+            sample_type='uniform',
             remove_cut=0.1,
             process=None,
             is_multiprocess=False,
@@ -35,36 +36,38 @@ class ODEintegrator(Metrics):
         self.is_load_balance = is_load_balance
         self.process = process
         
-        self.solver = solver
+        self.method = method
         self.rtol = rtol
         self.atol = atol
-        self.previous_integral_state = None
+        self.integral_output = None
         self.add_y_arg = False
 
         if computation == 'serial':
             self.is_parallel = False
             self._integrator = SerialAdaptiveStepsizeSolver(
-                solver=self.solver,
+                method=self.method,
                 atol=atol,
                 rtol=rtol,
-                y0=torch.tensor([0], dtype=torch.float, device=device),
-                t_init=0.,
-                t_final=1.,
+                t_init=torch.tensor([0], dtype=torch.float64),
+                t_final=torch.tensor([1], dtype=torch.float64),
                 device=device,
             )
             if self.is_load_balance:
                 self.balance_load = self._serial_load_balance
         elif computation == 'parallel':
+            self.sample_type = sample_type
             self.is_parallel = True
             self.remove_cut = remove_cut
-            self._integrator = RKParallelAdaptiveStepsizeSolver(
-                solver=self.solver,
+            print("METHOD", self.method)
+            self._integrator = get_parallel_RK_solver(
+                self.sample_type,
+                method=self.method,
                 atol=self.atol,
                 rtol=self.rtol,
                 remove_cut=self.remove_cut,
                 y0=torch.tensor([0], dtype=torch.float, device=device),
-                t_init=0.,
-                t_final=1.,
+                t_init=torch.tensor([0], dtype=torch.float64),
+                t_final=torch.tensor([1], dtype=torch.float64),
                 device=device,
             )
         else:
@@ -86,22 +89,38 @@ class ODEintegrator(Metrics):
         # else:
         #     self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
-    def integrator(self, path, fxn_name, t_init=0., t_final=1., times=None):
+    def integrator(
+            self,
+            path,
+            fxn_name,
+            t_init=torch.tensor([0], dtype=torch.float64),
+            t_final=torch.tensor([1], dtype=torch.float64),
+            times=None):
         ode_fxn, _ = self._get_ode_eval_fxn(fxn_name=fxn_name, path=path)
 
+        if times is None:
+            if self.integral_output is None:
+                times = None
+            else:
+                times = self.integral_output.t_pruned
         integral_output = self._integrator.integrate(
             ode_fxn=ode_fxn,
-            state=self.previous_integral_state,
             t=times,
             t_init=t_init,
             t_final=t_final
         )
-        self.previous_integral_state = integral_output
+        self.integral_output = integral_output
+        #print(integral_output.t_pruned.shape)
         return integral_output
 
 
     def path_integral(
-            self, path, fxn_name, t_init=0., t_final=1., record_evals=False
+            self,
+            path,
+            fxn_name,
+            t_init=torch.tensor([0.], dtype=torch.float64),
+            t_final=torch.tensor([1.], dtype=torch.float64),
+            record_evals=False
         ):
         if record_evals:
             path.begin_time_recording()
@@ -141,7 +160,6 @@ class ODEintegrator(Metrics):
                 return eval_fxn(path=path, t=t)
         else:
             def ode_fxn(t, *args):
-                # t = torch.tensor([[t]])
                 t = t.reshape(1, -1)
                 #print("ODEF", t)
                 output = eval_fxn(path=path, t=t)
@@ -151,18 +169,20 @@ class ODEintegrator(Metrics):
         return ode_fxn, eval_fxn
 
 
+    # Deprecated but keeping because I may resuse parts
+    """
     def _integrand_wrapper(self, t, y, path, ode_fxn):
         vals = path(t)
         return ode_fxn(vals)
 
     def serial_path_integral(self, path, fxn_name, t_init=0., t_final=1.):
-        print("TODO: adaptive integrator evaluates t>1, how to set hard limits?")
+        print("TODO: serial adaptive integrator evaluates t>1, how to set hard limits?")
         ode_fxn, _ = self._get_ode_eval_fxn(fxn_name=fxn_name, path=path)
         integral = odeint(
             func=ode_fxn,
             y0=torch.tensor([0], dtype=torch.float),
             t=torch.tensor([t_init, t_final]),
-            method=self.solver,
+            method=self.method,
             rtol=self.rtol,
             atol=self.atol,
         )
@@ -206,7 +226,6 @@ class ODEintegrator(Metrics):
  
     def _parallel_path_integral(self, path, fxn_name, t_init=0., t_final=1., eval_times=None):
        
-        print("INPUT EVAL TIMES", eval_times.shape)
         self._parallel_integral(
             ode_fxn=lambda x: torch.abs(path.geometric_path(x)),
             t_init=t_init,
@@ -352,13 +371,8 @@ class ODEintegrator(Metrics):
         )
         #self.run_times[self.process.rank] = time.time() - start_time
         self.run_time = time.time() - start_time
-        """
-        if self.process.is_distributed:
-            print("NEVALS", self.process.rank, path.module.Nevals, self.run_time)
-        else:
-            print("NEVALS", self.process.rank, path.Nevals, self.run_time)
-        """
         path.module.Nevals = 0
         path.Nevals = 0
 
         return integral
+    """

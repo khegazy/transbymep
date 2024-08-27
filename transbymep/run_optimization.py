@@ -9,6 +9,7 @@ import time as timer
 from tqdm import tqdm
 import wandb
 import ase, ase.io
+from typing import NamedTuple
 
 from transbymep import tools
 from transbymep import paths
@@ -33,7 +34,7 @@ def optimize_MEP(
         logger (NamedTuple): Logger settings.
     """
     # Create output directories
-    output_dir = args.output_dir
+    output_dir = os.path.join(args.output_dir, config.potential, config.optimizer)
     log_dir = os.path.join(output_dir, "logs")
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
@@ -67,6 +68,7 @@ def optimize_MEP(
         potential,
         config.initial_point,
         config.final_point,
+        device=config.device,
         #add_azimuthal_dof=args.add_azimuthal_dof,
         #add_translation_dof=args.add_translation_dof,
         **path_config.path_params
@@ -81,7 +83,7 @@ def optimize_MEP(
     #####  Path optimization tools  #####
     # Path integrating function
     print("int params", config.integral_params)
-    integrator = tools.ODEintegrator(**config.integral_params)
+    integrator = tools.ODEintegrator(**config.integral_params, device=config.device)
     #print("test integrate", integrator.path_integral(path, 'E_pvre'))
 
     # Gradient descent path optimizer
@@ -92,7 +94,8 @@ def optimize_MEP(
         config.loss_function,
         path_type=config.path,
         potential_type=config.potential,
-        config_tag=config.optimizer_config_tag
+        config_tag=config.optimizer_config_tag,
+        device=config.device
     )
 
     # Loss

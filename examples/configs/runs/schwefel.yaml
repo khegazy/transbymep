@@ -7,13 +7,11 @@ potential_params :
 path : mlp
 path_config_tag : small
 integral_params :
-  solver: euler
-  computation: parallel
-  # solver: dopri5
-  # computation: serial
-  rtol: 1e-3
-  atol: 1e-3
-  device: cuda
+    method : dopri5
+    rtol : 1e-5
+    atol : 1e-5
+    computation : parallel
+    sample_type : uniform
 loss_function : E_pvre
 optimizer : adam
 optimizer_config_tag : test

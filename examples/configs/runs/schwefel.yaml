@@ -1,6 +1,9 @@
-initial_point : [1.133, -1.486]
-final_point : [-1.166, 1.477]
-potential : wolfe_schlegel
+initial_point : [420.9687, 420.9687]
+final_point : [203.8142, 203.8142]
+# final_point : [-302.5249, -302.5249]
+potential : schwefel
+potential_params :
+    dim: 2
 path : mlp
 path_config_tag : small
 integral_params :

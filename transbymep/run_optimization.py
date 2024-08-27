@@ -2,9 +2,14 @@ import os
 import sys
 import torch
 import numpy as np
+import pandas as pd
 from typing import NamedTuple
 from matplotlib import pyplot as plt
 import time as timer
+from tqdm import tqdm
+import wandb
+import ase, ase.io
+from typing import NamedTuple
 
 from transbymep import tools
 from transbymep import paths
@@ -33,6 +38,9 @@ def optimize_MEP(
     log_dir = os.path.join(output_dir, "logs")
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
+    plot_dir = os.path.join(output_dir, "plots")
+    if not os.path.exists(plot_dir):
+        os.makedirs(plot_dir)
     
     #####  Get chemical potential  #####
     potential = get_potential(
@@ -41,6 +49,7 @@ def optimize_MEP(
         expect_config=config.potential!="constant",
         add_azimuthal_dof=args.add_azimuthal_dof,
         add_translation_dof=args.add_translation_dof,
+        device=config.device,
         **config.potential_params,
     )
 
@@ -55,7 +64,6 @@ def optimize_MEP(
         sys.exit(0)
 
     #####  Get path prediction method  #####
-    print("PATH PARAMS", path_config.path_params)
     path = paths.get_path(
         config.path,
         potential,
@@ -75,6 +83,7 @@ def optimize_MEP(
 
     #####  Path optimization tools  #####
     # Path integrating function
+    print("int params", config.integral_params)
     integrator = tools.ODEintegrator(**config.integral_params, device=config.device)
     #print("test integrate", integrator.path_integral(path, 'E_pvre'))
 
@@ -100,42 +109,66 @@ def optimize_MEP(
     geo_paths = []
     pes_paths = []
     t0 = timer.time()
-    loss_curve = []
-    for optim_idx in range(args.num_optimizer_iterations):
-        path_integral = optimizer.optimization_step(path, integrator)
-        #print(f'optim_idx:, {optim_idx}, {path_integral.integral}')
-        loss_curve.append(path_integral.integral.item())
+    df = pd.DataFrame(columns=["optim_idx", "neval", "loss"])
+    for optim_idx in tqdm(range(args.num_optimizer_iterations)):
+        print(f"Optimization step {optim_idx}")
+        path.neval = 0
+        try:
+            path_integral = optimizer.optimization_step(path, integrator)
+            neval = path.neval
+            print(f'n_eval: {neval}, loss: {path_integral.integral.item()}')
+            df.loc[optim_idx] = [optim_idx, neval, path_integral.integral.item()]
+            # wandb.log({"optim_idx": optim_idx, "neval": neval, "loss": path_integral.integral.item()})
+        except ValueError as e:
+            print("ValueError", e)
+            neval = path.neval
+            # wandb.log({"optim_idx": optim_idx, "neval": neval, "loss": np.nan})
+            raise e
+        
         if optim_idx%50 == 0:
             print("EVAL TIME", (timer.time()-t0)/60)
-            path_output = logger.optimization_step(
-                optim_idx,
-                path,
-                potential,
-                path_integral.integral,
-                plot=args.make_opt_plots,
-                geo_paths=geo_paths,
-                pes_paths=pes_paths,
-                add_azimuthal_dof=args.add_azimuthal_dof,
-                add_translation_dof=args.add_translation_dof
-            )
+            # path_output = logger.optimization_step(
+            #     optim_idx,
+            #     path,
+            #     potential,
+            #     path_integral.integral,
+            #     plot=args.make_opt_plots,
+            #     geo_paths=geo_paths,
+            #     pes_paths=pes_paths,
+            #     add_azimuthal_dof=args.add_azimuthal_dof,
+            #     add_translation_dof=args.add_translation_dof
+            # )
             fig, ax = plt.subplots()
-            ax.plot(loss_curve)
-            if not os.path.exists("./plots"):
-                os.makedirs("./plots")
-            fig.savefig("./plots/loss_curve.png")
+            ax.plot(df["optim_idx"], df["loss"])
+            ax.set_xlabel("Step")
+            ax.set_ylabel("Loss")
+            ax.set_yscale("log")
+            fig.savefig(os.path.join(plot_dir, "loss_curve.png"))
+            plt.close()
+            df.to_csv(os.path.join(plot_dir, "loss_curve.csv"), header=False)
+            # visualize.plot_path(
+            #     path.get_path(torch.linspace(0, 1, 32, device='cuda')).geometric_path.detach().to('cpu').numpy(),
+            #     f"test_plot_{optim_idx:03d}",
+            #     pes_fxn=potential,
+            #     plot_min_max=(-2, 2, -2, 2),
+            #     levels=16,
+            #     plot_dir=plot_dir,
+            # )
+            # traj = [ase.Atoms(numbers=config.potential_params['numbers'], positions=pos.reshape(-1, 3)) for pos in path.get_path(torch.linspace(0, 1, 101, device='cuda')).geometric_path.detach().to('cpu').numpy()]
+            # ase.io.write(os.path.join(plot_dir, f"traj_{optim_idx:03d}.xyz"), traj)
 
     print("EVAL TIME", (timer.time()-t0)/60)
     # Plot gif animation of the MEP optimization (only for 2d potentials)
-    if args.make_animation:
-        geo_paths = potential.point_transform(torch.tensor(geo_paths))
-        ani_name = f"{config.potential}_W{path_config.path_params['n_embed']}_D{path_config.path_params['depth']}_LR{config.optimizer_params['lr']}"
-        visualize.animate_optimization_2d(
-            geo_paths, ani_name, ani_name,
-            potential, plot_min_max=(-2, 2, -2, 2),
-            levels=np.arange(-100,100,5),
-            add_translation_dof=args.add_translation_dof,
-            add_azimuthal_dof=args.add_azimuthal_dof
-        )
+    # if args.make_animation:
+    #     geo_paths = potential.point_transform(torch.tensor(geo_paths))
+    #     ani_name = f"{config.potential}_W{path_config.path_params['n_embed']}_D{path_config.path_params['depth']}_LR{config.optimizer_params['lr']}"
+    #     visualize.animate_optimization_2d(
+    #         geo_paths, ani_name, ani_name,
+    #         potential, plot_min_max=(-2, 2, -2, 2),
+    #         levels=np.arange(-100,100,5),
+    #         add_translation_dof=args.add_translation_dof,
+    #         add_azimuthal_dof=args.add_azimuthal_dof
+    #     )
     return path_integral
 
 
@@ -147,6 +180,8 @@ if __name__ == "__main__":
     arg_parser = tools.build_default_arg_parser()
     args = arg_parser.parse_args()
     logger = tools.logging()
+    torch.manual_seed(42)
+    # wandb.init(project="Geodesic_Sella")
 
     # Import configuration files
     print(args.name, args.path_tag, args.tag)

@@ -3,11 +3,10 @@ final_point : [0.5275460481643677, -1.0480250120162964, -0.8651441335678101, 0.2
 potential : newtonnet
 potential_params :
     numbers : [8, 6, 6, 1, 1, 1, 1]
-    device : cuda
 path : mlp
 path_config_tag : small
 integral_params :
-    method : adaptive_heun
+    method : dopri5
     rtol : 1e-5
     atol : 1e-5
     computation : parallel

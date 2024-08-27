@@ -34,11 +34,11 @@ def eval_contour_vals(
     x_max,
     y_min,
     y_max,
-    step_size=0.01,
+    num_points=1024,
     add_dof=False
 ):
-    x_vals = np.arange(x_min, x_max, step_size)
-    y_vals = np.arange(y_min, y_max, step_size)
+    x_vals = np.linspace(x_min, x_max, num_points)
+    y_vals = np.linspace(y_min, y_max, num_points)
     l,r = np.meshgrid(x_vals, y_vals)
     size = len(x_vals)
     args = np.reshape(np.stack([l,r],axis=2), (-1, 2))
@@ -81,7 +81,7 @@ def contour_2d(
     x_vals, y_vals, z_vals = eval_contour_vals(
         potential, x_min, x_max, y_min, y_max, add_dof=add_dof
     )
-    ax.contour(x_vals, y_vals, z_vals, levels=levels)
+    ax.contour(x_vals, y_vals, z_vals, levels=levels, cmap='coolwarm')
     return ax, (x_vals, y_vals, z_vals, levels) 
 
 
@@ -173,9 +173,9 @@ def _plot_path(
     path = from_numpy([path])[0]
     path = pes_fxn.point_transform(path)
     path = to_numpy([path])[0]
-    ax[0].plot(path[:,0], path[:,1], color='r', linestyle='-')
+    ax[0].plot(path[:,0], path[:,1], color='k', linestyle='-', marker='.')
     velocity = np.sqrt(np.sum((path[:-1] - path[1:])**2, axis=-1))
-    ax[2].plot(np.linspace(0, 1, len(path)-1), velocity)
+    ax[2].plot(np.linspace(0, 1, len(path)-1), velocity, color='k', linestyle='-')
 
     return ax, contour_vals
 

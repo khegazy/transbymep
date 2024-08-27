@@ -2,7 +2,7 @@ import torch
 from torch import nn
 
 class PotentialBase(nn.Module):
-    def __init__(self, add_azimuthal_dof=False, add_translation_dof=False, **kwargs) -> None:
+    def __init__(self, device='cpu', add_azimuthal_dof=False, add_translation_dof=False, **kwargs) -> None:
         super().__init__()
         self.point_option = 0
         self.point_arg = 0
@@ -11,6 +11,7 @@ class PotentialBase(nn.Module):
             self.point_arg = add_azimuthal_dof
         elif add_translation_dof:
             self.point_option = 2
+        self.device = device
         
         # Put model in eval mode
         self.eval()

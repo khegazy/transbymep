@@ -17,7 +17,7 @@ from transbymep.tools import visualize
 from transbymep.potentials import get_potential
 
 
-def optimize_MEP(
+def run_opt(
         args: NamedTuple,
         config: NamedTuple,
         path_config: NamedTuple,
@@ -189,4 +189,4 @@ if __name__ == "__main__":
         config, path_tag=args.path_tag
     )
 
-    path_integral = optimize_MEP(args, config, path_config, logger)
+    path_integral = run_opt(args, config, path_config, logger)

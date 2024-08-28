@@ -1,3 +1,4 @@
+import os
 import numpy as np
 from .visualize import plot_path
 
@@ -18,6 +19,7 @@ class logging():
             potential,
             loss,
             plot=True,
+            plot_dir='./',
             geo_paths=None,
             pes_paths=None,
             add_azimuthal_dof=False,
@@ -44,6 +46,7 @@ class logging():
                 pes_fxn=potential,
                 plot_min_max=(-2, 2, -2, 2),
                 levels=np.arange(-100, 100, 5),
+                plot_dir=plot_dir,
                 add_translation_dof=add_translation_dof,
                 add_azimuthal_dof=add_azimuthal_dof
             )

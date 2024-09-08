@@ -4,7 +4,7 @@ from transbymep.tools import metrics
 from transbymep.potentials.base_class import PotentialBase
 from typing import Callable, Any
 from ase import Atoms
-from ase.io import read
+from ase.io import read, write
 
 
 @dataclass
@@ -129,22 +129,23 @@ class BasePath(torch.nn.Module):
         if isinstance(initial_point, torch.Tensor):
             self.initial_point = initial_point
             self.final_point = final_point
+            self.vec = self.final_point - self.initial_point
             self.wrap_fn = None
         elif isinstance(initial_point, Atoms) or isinstance(initial_point, str):
             if isinstance(initial_point, str):
                 initial_point = read(initial_point)
                 final_point = read(final_point)
-            assert initial_point.get_positions().shape[0] == final_point.get_positions().shape[0], "Initial and final points must have the same number of atoms."
-            assert initial_point.get_positions().shape[1] == 3, "Initial and final points must have 3D positions."
-            assert initial_point.get_atomic_numbers() == final_point.get_atomic_numbers(), "Initial and final points must have the same atomic numbers."
-            assert initial_point.get_pbc() == final_point.get_pbc(), "Initial and final points must have the same periodic boundary conditions."
-            assert initial_point.get_cell() == final_point.get_cell(), "Initial and final points must have the same cell."
+            assert (initial_point.get_positions().shape[0] == final_point.get_positions().shape[0]), "Initial and final points must have the same number of atoms."
+            assert (initial_point.get_positions().shape[1] == 3), "Initial and final points must have 3D positions."
+            assert (initial_point.get_atomic_numbers() == final_point.get_atomic_numbers()).all(), "Initial and final points must have the same atomic numbers."
+            assert (initial_point.get_pbc() == final_point.get_pbc()).all(), "Initial and final points must have the same periodic boundary conditions."
+            assert (initial_point.get_cell() == final_point.get_cell()).all(), "Initial and final points must have the same cell."
             self.initial_point = torch.tensor(
                 initial_point.get_positions(), dtype=torch.float64, device=device
-            )
+            ).flatten()
             self.final_point = torch.tensor(
                 final_point.get_positions(), dtype=torch.float64, device=device
-            )
+            ).flatten()
             self.numbers = torch.tensor(
                 initial_point.get_atomic_numbers(), dtype=torch.int64, device=device
             )
@@ -154,11 +155,15 @@ class BasePath(torch.nn.Module):
             self.cell = torch.tensor(
                 initial_point.get_cell(), dtype=torch.float64, device=device
             )
-            pair = initial_point + final_point
             self.n_atoms = len(initial_point)
+            self.potential.numbers = self.numbers
+            self.potential.pbc = self.pbc
+            self.potential.cell = self.cell
+            self.potential.n_atoms = self.n_atoms
+            pair = initial_point + final_point
             self.vec = torch.tensor(
-                [pair.get_distance(i, i + n, mic=True, vector=True) for i in range(n)], dtype=torch.float64, device=device
-            )
+                [pair.get_distance(i, i + self.n_atoms, mic=True, vector=True) for i in range(self.n_atoms)], dtype=torch.float64, device=device
+            ).flatten()
             self.wrap_fn = self.wrap_points if self.pbc.any() else None
         else:
             raise ValueError("Invalid type for initial_point and final_point.")
@@ -173,7 +178,7 @@ class BasePath(torch.nn.Module):
 
         fractional[..., :, self.pbc] %= 1.0
 
-        return torch.matmul(fractional, cell)
+        return torch.matmul(fractional, self.cell)
 
 
     def geometric_path(
@@ -226,12 +231,9 @@ class BasePath(torch.nn.Module):
         """
         if t is None:
             t = torch.linspace(0, 1, 1001)
-        if len(t.shape) == 1:
-            t = torch.unsqueeze(t, -1)
         
-        t = t.to(torch.float64).to(self.device)
         return self.forward(
-            times, return_velocity=return_velocity, return_force=return_force
+            t, return_velocity=return_velocity, return_force=return_force
         )
     
     def forward(
@@ -257,8 +259,20 @@ class BasePath(torch.nn.Module):
         PathOutput
             An instance of the PathOutput class containing the computed path, potential, velocity, force, and times.
         """
+        if len(t.shape) == 1:
+            t = torch.unsqueeze(t, -1)
         t = t.to(torch.float64).to(self.device)
         geo_path = self.geometric_path(t)
+        if self.wrap_fn is not None:
+            geo_path = self.wrap_fn(geo_path)
+        # traj = [Atoms(
+        #         numbers=self.numbers.detach().cpu().numpy(), 
+        #         positions=pos.reshape(self.n_atoms, 3).detach().cpu().numpy(),
+        #         pbc=self.pbc.detach().cpu().numpy(),
+        #         cell=self.cell.detach().cpu().numpy()
+        #     ) for pos in geo_path]
+        # write("test.xyz", traj)
+        # raise ValueError("STOP")
         pes_path = self.potential(geo_path)
 
         velocity, force = None, None

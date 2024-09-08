@@ -2,6 +2,7 @@ import torch
 from torch import nn
 
 from .base_path import BasePath
+from .linear import LinearPath
 from typing import Tuple, Optional
 import numpy as np
 
@@ -11,29 +12,18 @@ class MLPpath(BasePath):
     Multilayer Perceptron (MLP) path class for generating geometric paths.
 
     Args:
-        potential (callable): The potential energy function.
-        initial_point (torch.Tensor): The initial point of the path.
-        final_point (torch.Tensor): The final point of the path.
         n_embed (int, optional): Number of embedding dimensions. Defaults to 32.
         depth (int, optional): Depth of the MLP. Defaults to 3.
-        seed (int, optional): Random seed. Defaults to 123.
+        base: Path class to correct. Defaults to LinearPath.
     """
     def __init__(
         self,
-        potential: callable,
-        initial_point: torch.tensor,
-        final_point: torch.tensor,
         n_embed: int = 32,
         depth: int = 3,
-        device: torch.device = None,
-        seed: int = 123,
+        base: BasePath = None,
+        **kwargs,
     ):
-        super().__init__(
-            potential=potential,
-            initial_point=initial_point,
-            final_point=final_point,
-            device=device,
-        )
+        super().__init__(**kwargs)
 
         self.activation = nn.SELU()
         input_sizes = [1] + [n_embed]*(depth - 1)
@@ -47,6 +37,8 @@ class MLPpath(BasePath):
         self.mlp = nn.Sequential(*self.layers)
         self.mlp.to(self.device)
         self.neval = 0
+
+        self.base = base if base is not None else LinearPath(**kwargs)
 
     def geometric_path(self, time: float, *args):
         """
@@ -63,9 +55,8 @@ class MLPpath(BasePath):
         # print(time)
         if self.neval > 1e4:
             raise ValueError("Too many evaluations!")
-        return self.mlp(time)\
-            - (1 - time)*(self.mlp(self.t_init) - self.initial_point)\
-            - time*(self.mlp(self.t_final) - self.final_point)
+        return self.base.geometric_path(time) + \
+            self.mlp(time) - (1 - time) * self.mlp(self.t_init) - time * self.mlp(self.t_final)
 
     """
     def get_path(self, times=None):

@@ -35,12 +35,6 @@ class MLPpath(BasePath):
             device=device,
         )
 
-        self.t_init = torch.tensor(
-            [[0]], dtype=torch.float64, device=self.device
-        )
-        self.t_final = torch.tensor(
-            [[1]], dtype=torch.float64, device=self.device
-        )
         self.activation = nn.SELU()
         input_sizes = [1] + [n_embed]*(depth - 1)
         output_sizes = input_sizes[1:] + [self.final_point.shape[-1]]

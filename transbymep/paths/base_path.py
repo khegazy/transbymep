@@ -109,8 +109,8 @@ class BasePath(torch.nn.Module):
 
     def set_points(
             self,
-            initial_point: torch.Tensor | Atoms | str,
-            final_point: torch.Tensor | Atoms | str,
+            initial_point: torch.Tensor | list | np.ndarray | Atoms | str,
+            final_point: torch.Tensor | list | np.ndarray | Atoms | str,
             device: torch.device
     ) -> None:
         """
@@ -118,15 +118,18 @@ class BasePath(torch.nn.Module):
 
         Parameters:
         -----------
-        initial_point : torch.Tensor, ase.Atoms, str
+        initial_point : torch.Tensor, list, np.ndarray, ase.Atoms, str
             The initial point of the path.
-        final_point : torch.Tensor, ase.Atoms, str
+        final_point : torch.Tensor, list, np.ndarray, ase.Atoms, str
             The final point of the path.
         device : torch.device
             The device on which to run the path.
         """
         assert type(initial_point) == type(final_point), "Initial and final points must be of the same type."
-        if isinstance(initial_point, torch.Tensor):
+        if isinstance(initial_point, torch.Tensor) or isinstance(initial_point, list) or isinstance(initial_point, np.ndarray):
+            if isinstance(initial_point, list) or isinstance(initial_point, np.ndarray):
+                initial_point = torch.tensor(initial_point, dtype=torch.float64, device=device)
+                final_point = torch.tensor(final_point, dtype=torch.float64, device=device)
             self.initial_point = initial_point
             self.final_point = final_point
             self.vec = self.final_point - self.initial_point

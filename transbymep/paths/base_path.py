@@ -277,7 +277,6 @@ class BasePath(torch.nn.Module):
         #     ) for pos in geo_path]
         # write("test.xyz", traj)
         # raise ValueError("STOP")
-        print("GEOPATH", geo_path.shape)
         pes_path = self.potential(geo_path)
 
         velocity, force = None, None

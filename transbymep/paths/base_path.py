@@ -3,6 +3,9 @@ from dataclasses import dataclass
 from transbymep.tools import metrics
 from transbymep.potentials.base_class import PotentialBase
 from typing import Callable, Any
+from ase import Atoms
+from ase.io import read, write
+import numpy as np
 
 
 @dataclass
@@ -61,8 +64,8 @@ class BasePath(torch.nn.Module):
     def __init__(
         self,
         potential: Callable,
-        initial_point: torch.Tensor,
-        final_point: torch.Tensor,
+        initial_point: torch.Tensor | Atoms | str,
+        final_point: torch.Tensor | Atoms | str,
         return_velocity: bool = False,
         return_force: bool = False,
         device: torch.device = None,
@@ -92,11 +95,95 @@ class BasePath(torch.nn.Module):
 
               )
         self.potential = potential
-        self.initial_point = torch.tensor(initial_point, device=device)
-        self.final_point = torch.tensor(final_point, device=device)
+        self.set_points(
+            initial_point, final_point, device
+        )
         self.return_velocity = return_velocity
         self.return_force = return_force
         self.device = device
+        self.t_init = torch.tensor(
+            [[0]], dtype=torch.float64, device=self.device
+        )
+        self.t_final = torch.tensor(
+            [[1]], dtype=torch.float64, device=self.device
+        )
+
+    def set_points(
+            self,
+            initial_point: torch.Tensor | list | np.ndarray | Atoms | str,
+            final_point: torch.Tensor | list | np.ndarray | Atoms | str,
+            device: torch.device
+    ) -> None:
+        """
+        Set the initial and final points of the path.
+
+        Parameters:
+        -----------
+        initial_point : torch.Tensor, list, np.ndarray, ase.Atoms, str
+            The initial point of the path.
+        final_point : torch.Tensor, list, np.ndarray, ase.Atoms, str
+            The final point of the path.
+        device : torch.device
+            The device on which to run the path.
+        """
+        assert type(initial_point) == type(final_point), "Initial and final points must be of the same type."
+        if isinstance(initial_point, torch.Tensor) or isinstance(initial_point, list) or isinstance(initial_point, np.ndarray):
+            if isinstance(initial_point, list) or isinstance(initial_point, np.ndarray):
+                initial_point = torch.tensor(initial_point, dtype=torch.float64, device=device)
+                final_point = torch.tensor(final_point, dtype=torch.float64, device=device)
+            self.initial_point = initial_point
+            self.final_point = final_point
+            self.vec = self.final_point - self.initial_point
+            self.transform = None
+        elif isinstance(initial_point, Atoms) or isinstance(initial_point, str):
+            if isinstance(initial_point, str):
+                initial_point = read(initial_point)
+                final_point = read(final_point)
+            assert (initial_point.get_positions().shape[0] == final_point.get_positions().shape[0]), "Initial and final points must have the same number of atoms."
+            assert (initial_point.get_positions().shape[1] == 3), "Initial and final points must have 3D positions."
+            assert (initial_point.get_atomic_numbers() == final_point.get_atomic_numbers()).all(), "Initial and final points must have the same atomic numbers."
+            assert (initial_point.get_pbc() == final_point.get_pbc()).all(), "Initial and final points must have the same periodic boundary conditions."
+            assert (initial_point.get_cell() == final_point.get_cell()).all(), "Initial and final points must have the same cell."
+            self.initial_point = torch.tensor(
+                initial_point.get_positions(), dtype=torch.float64, device=device
+            ).flatten()
+            self.final_point = torch.tensor(
+                final_point.get_positions(), dtype=torch.float64, device=device
+            ).flatten()
+            self.numbers = torch.tensor(
+                initial_point.get_atomic_numbers(), dtype=torch.int64, device=device
+            )
+            self.pbc = torch.tensor(
+                initial_point.get_pbc(), dtype=torch.bool, device=device
+            )
+            self.cell = torch.tensor(
+                initial_point.get_cell(), dtype=torch.float64, device=device
+            )
+            self.n_atoms = len(initial_point)
+            self.potential.numbers = self.numbers
+            self.potential.pbc = self.pbc
+            self.potential.cell = self.cell
+            self.potential.n_atoms = self.n_atoms
+            pair = initial_point + final_point
+            self.vec = torch.tensor(
+                [pair.get_distance(i, i + self.n_atoms, mic=True, vector=True) for i in range(self.n_atoms)], dtype=torch.float64, device=device
+            ).flatten()
+            self.transform = self.wrap_points if self.pbc.any() else None
+        else:
+            raise ValueError("Invalid type for initial_point and final_point.")
+
+    def wrap_points(
+            self, 
+            points: torch.Tensor,
+    ) -> torch.Tensor:
+        """PyTorch implementation of ase.geometry.wrap_positions function."""
+
+        fractional = torch.linalg.solve(self.cell.T, points.view(*points.shape[:-1], self.n_atoms, 3).transpose(-1, -2)).transpose(-1, -2)
+
+        fractional[..., :, self.pbc] %= 1.0
+
+        return torch.matmul(fractional, self.cell).view(*points.shape)
+
 
     def geometric_path(
             self,
@@ -123,27 +210,9 @@ class BasePath(torch.nn.Module):
         """
         raise NotImplementedError()
     
-    """
-    def get_path(self, times=None):
-        raise NotImplementedError()
-    
-    def pes_path(self, t, y, *args):
-        t = torch.tensor([t]).transpose()
-        return self.potential.evaluate(self.geometric_path(t, y , *args))
-    
-    def pes_ode_term(self, t, y, in_integral=True, *args):
-        t = torch.tensor([t]).transpose()
-        return self.potential.evaluate(self.geometric_path(torch.tensor([t]), y , *args))
- 
-    def total_path(self, t, y, *args):
-        t = torch.tensor([t]).transpose()
-        geo_path = self.geometric_path(t, y , *args)
-        return geo_path, self.potential.evaluate(geo_path)
-    """
-    
     def get_path(
             self,
-            times: torch.Tensor = None,
+            t: torch.Tensor = None,
             return_velocity: bool = False,
             return_force: bool = False
     ) -> PathOutput:
@@ -152,7 +221,7 @@ class BasePath(torch.nn.Module):
 
         Parameters:
         -----------
-        times : torch.Tensor, optional
+        t : torch.Tensor, optional
             The times at which to evaluate the path (default is None).
         return_velocity : bool, optional
             Whether to return velocity along the path (default is False).
@@ -164,17 +233,11 @@ class BasePath(torch.nn.Module):
         PathOutput
             An instance of the PathOutput class representing the computed path.
         """
-        if times is None:
-            times = torch.unsqueeze(
-                torch.linspace(0, 1., 1000),
-                dim=-1
-            )
-        elif len(times.shape) == 1:
-            times = torch.unsqueeze(times, -1)
+        if t is None:
+            t = torch.linspace(0, 1, 1001)
         
-        times = times.to(torch.float64).to(self.device)
         return self.forward(
-            times, return_velocity=return_velocity, return_force=return_force
+            t, return_velocity=return_velocity, return_force=return_force
         )
     
     def forward(
@@ -200,8 +263,20 @@ class BasePath(torch.nn.Module):
         PathOutput
             An instance of the PathOutput class containing the computed path, potential, velocity, force, and times.
         """
+        if len(t.shape) == 1:
+            t = torch.unsqueeze(t, -1)
         t = t.to(torch.float64).to(self.device)
         geo_path = self.geometric_path(t)
+        if self.transform is not None:
+            geo_path = self.transform(geo_path)
+        # traj = [Atoms(
+        #         numbers=self.numbers.detach().cpu().numpy(), 
+        #         positions=pos.reshape(self.n_atoms, 3).detach().cpu().numpy(),
+        #         pbc=self.pbc.detach().cpu().numpy(),
+        #         cell=self.cell.detach().cpu().numpy()
+        #     ) for pos in geo_path]
+        # write("test.xyz", traj)
+        # raise ValueError("STOP")
         pes_path = self.potential(geo_path)
 
         velocity, force = None, None
@@ -241,32 +316,3 @@ class BasePath(torch.nn.Module):
             force=force,
             times=t
         )
-
-    """
-    def total_grad_path(self, t, y, *args):
-        t = torch.tensor([t]).transpose()
-        geo_path, geo_grad = jax.jvp(self.geometric_path, (t, y), (jnp.ones_like(t), 1.))
-        pes_path, pes_grad = eqx.filter_value_and_grad(self.potential.evaluate)(geo_path)
-        return geo_path, geo_grad, pes_path, pes_grad
-    """
-
-    """
-    def eval_self(self, fxn_name, *input):
-        path_output = self(*input, self.metric_args[fxn_name])
-        return self.fxn_name(path_output, *input)
-    """ 
-    
-    """
-    # Loss functions
-    def E_vre(self, t, y, *args):
-        return metrics.E_vre(*self.total_grad_path(t, y, *args))
-    
-    def E_pvre(self, t, y, *args):
-        return metrics.E_pvre(*self.total_grad_path(t, y, *args))
-    
-    def E_pvre_mag(self, t, y, *args):
-        return metrics.E_pvre_mag(*self.total_grad_path(t, y, *args))
-    
-    def vre_residual(self, t, y, *args):
-        return metrics.vre_residual(*self.total_grad_path(t, y, *args))
-    """

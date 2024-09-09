@@ -5,6 +5,7 @@ from transbymep.potentials.base_class import PotentialBase
 from typing import Callable, Any
 from ase import Atoms
 from ase.io import read, write
+import numpy as np
 
 
 @dataclass
@@ -133,7 +134,7 @@ class BasePath(torch.nn.Module):
             self.initial_point = initial_point
             self.final_point = final_point
             self.vec = self.final_point - self.initial_point
-            self.wrap_fn = None
+            self.transform = None
         elif isinstance(initial_point, Atoms) or isinstance(initial_point, str):
             if isinstance(initial_point, str):
                 initial_point = read(initial_point)
@@ -167,7 +168,7 @@ class BasePath(torch.nn.Module):
             self.vec = torch.tensor(
                 [pair.get_distance(i, i + self.n_atoms, mic=True, vector=True) for i in range(self.n_atoms)], dtype=torch.float64, device=device
             ).flatten()
-            self.wrap_fn = self.wrap_points if self.pbc.any() else None
+            self.transform = self.wrap_points if self.pbc.any() else None
         else:
             raise ValueError("Invalid type for initial_point and final_point.")
 
@@ -181,7 +182,7 @@ class BasePath(torch.nn.Module):
 
         fractional[..., :, self.pbc] %= 1.0
 
-        return torch.matmul(fractional, self.cell)
+        return torch.matmul(fractional, self.cell).view(*points.shape)
 
 
     def geometric_path(
@@ -266,8 +267,8 @@ class BasePath(torch.nn.Module):
             t = torch.unsqueeze(t, -1)
         t = t.to(torch.float64).to(self.device)
         geo_path = self.geometric_path(t)
-        if self.wrap_fn is not None:
-            geo_path = self.wrap_fn(geo_path)
+        if self.transform is not None:
+            geo_path = self.transform(geo_path)
         # traj = [Atoms(
         #         numbers=self.numbers.detach().cpu().numpy(), 
         #         positions=pos.reshape(self.n_atoms, 3).detach().cpu().numpy(),
@@ -276,6 +277,7 @@ class BasePath(torch.nn.Module):
         #     ) for pos in geo_path]
         # write("test.xyz", traj)
         # raise ValueError("STOP")
+        print("GEOPATH", geo_path.shape)
         pes_path = self.potential(geo_path)
 
         velocity, force = None, None

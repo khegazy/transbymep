@@ -27,8 +27,6 @@ class NewtonNetPotential(PotentialBase):
         """
         super().__init__(**kwargs)
         self.model = self.load_model(os.path.join(config_dir, model_path))
-        # self.numbers = np.array(numbers)
-        # self.n_atoms = len(numbers)
         self.n_eval = 0
 
     
@@ -51,7 +49,8 @@ class NewtonNetPotential(PotentialBase):
         n_data = pos.numel() // (self.n_atoms * 3)
         data  = {
             'R': pos.view(n_data, self.n_atoms, 3),
-            'Z': np.stack([self.numbers for _ in range(n_data)]),
+            'Z': self.numbers.repeat(n_data, 1).cpu().numpy(),
+            # 'Z': np.stack([self.numbers for _ in range(n_data)]),
             # 'E': torch.zeros((1, 1)),
             # 'F': torch.zeros((1, len(self.numbers), 3)),
         }
@@ -61,4 +60,6 @@ class NewtonNetPotential(PotentialBase):
         data['NM'] = torch.tensor(NM, device=self.device)
         data['AM'] = torch.tensor(AM, device=self.device)
         # data = batch_dataset_converter(data, device=self.device)
+        # print(data)
+        # raise ValueError
         return data

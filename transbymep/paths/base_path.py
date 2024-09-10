@@ -315,12 +315,6 @@ class BasePath(torch.nn.Module):
             #print("VEL F OUTPUT", velocity.shape, force.shape)
         else:
             path_velocity = None
-
-        print("T", t.shape)
-        print("GEO", path_geometry.shape)
-        print("VEL", path_velocity.shape)
-        print("PES", path_energy.shape)
-        print("FOR", path_force.shape)
         
         return PathOutput(
             times=t,

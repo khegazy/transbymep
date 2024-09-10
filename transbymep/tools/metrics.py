@@ -83,8 +83,6 @@ class Metrics():
         #print(kwargs['t'].requires_grad, velocity.requires_grad, force.requires_grad)
         # return torch.abs(torch.sum(velocity*force, dim=-1, keepdim=True))
         Epvre = torch.abs(torch.sum(path_velocity*path_force, dim=-1, keepdim=True))
-        print("Epvre", Epvre.shape)
-        print("T", kwargs['t'].shape)
         return Epvre
 
     # def E_pvre_mag(self, **kwargs):

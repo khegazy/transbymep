@@ -40,7 +40,7 @@ class MLPpath(BasePath):
 
         self.base = base if base is not None else LinearPath(**kwargs)
 
-    def geometric_path(self, time: float, *args):
+    def get_geometry(self, time: float, *args):
         """
         Generates a geometric path using the MLP.
 
@@ -55,7 +55,7 @@ class MLPpath(BasePath):
         # print(time)
         if self.neval > 1e4:
             raise ValueError("Too many evaluations!")
-        return self.base.geometric_path(time) + \
+        return self.base.get_geometry(time) + \
             self.mlp(time) - (1 - time) * self.mlp(self.t_init) - time * self.mlp(self.t_final)
 
     """

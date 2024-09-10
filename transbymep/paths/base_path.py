@@ -180,7 +180,7 @@ class BasePath(torch.nn.Module):
     def get_geometry(
             self,
             time: torch.Tensor,
-            y: Any,
+            # y: Any,
             *args: Any
     ) -> torch.Tensor:
         """

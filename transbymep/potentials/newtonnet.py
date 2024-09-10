@@ -8,9 +8,9 @@ from ase import units
 import os
 import numpy as np
 
-from .base_class import PotentialBase
+from .base_potential import BasePotential
 
-class NewtonNetPotential(PotentialBase):
+class NewtonNetPotential(BasePotential):
     def __init__(self, config_dir, model_path, **kwargs):
         """
         Constructor for NewtonNetPotential

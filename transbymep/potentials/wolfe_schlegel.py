@@ -1,6 +1,6 @@
 import torch
 
-from .base_class import BasePotential
+from .base_potential import BasePotential
 
 class WolfeSchlegel(BasePotential):
     def __init__(self, **kwargs):

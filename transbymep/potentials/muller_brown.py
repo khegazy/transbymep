@@ -1,5 +1,5 @@
 import torch
-from .base_class import BasePotential
+from .base_potential import BasePotential
 
 
 class MullerBrown(BasePotential):

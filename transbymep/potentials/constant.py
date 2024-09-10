@@ -1,4 +1,4 @@
-from .base_class import BasePotential
+from .base_potential import BasePotential
 
 class Constant(BasePotential):
     def __init__(self, scale=1., **kwargs):

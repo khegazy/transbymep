@@ -1,7 +1,7 @@
 import torch
 from dataclasses import dataclass
 from transbymep.tools import metrics
-from transbymep.potentials.base_class import BasePotential
+from transbymep.potentials.base_potential import BasePotential
 from typing import Callable, Any
 from ase import Atoms
 from ase.io import read, write

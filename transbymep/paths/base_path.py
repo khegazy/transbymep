@@ -26,11 +26,11 @@ class PathOutput():
     times : torch.Tensor
         The times at which the path was evaluated.
     """
-    path_geometry: torch.Tensor
-    path_velocity: torch.Tensor = None
-    path_energy: torch.Tensor
-    path_force: torch.Tensor = None
     times: torch.Tensor
+    path_geometry: torch.Tensor
+    path_energy: torch.Tensor
+    path_velocity: torch.Tensor = None
+    path_force: torch.Tensor = None
 
 
 class BasePath(torch.nn.Module):
@@ -274,16 +274,16 @@ class BasePath(torch.nn.Module):
 
         if return_force:
             if potential_output.force is not None:
-                force = potential_output.force
+                path_force = potential_output.force
             else:
-                force = -torch.autograd.grad(
+                path_force = -torch.autograd.grad(
                     path_energy,
                     path_geometry,
                     grad_outputs=torch.ones_like(path_energy),
                     create_graph=self.training,
                 )[0]
         else:
-            force = None
+            path_force = None
             #print("SHAPES", pes_path.shape, len(pes_path.shape), torch.ones(0), geo_path.shape)
             #print("CHECK IS GRADS BATCHD FOR LEN > 0")
             # force = torch.autograd.grad(
@@ -296,7 +296,7 @@ class BasePath(torch.nn.Module):
             #     force = torch.unsqueeze(force, 0)
             #print("FORCES", force.shape)
         if return_velocity:
-            velocity = torch.autograd.grad(
+            path_velocity = torch.autograd.grad(
                 path_geometry,
                 t,
                 create_graph=self.training,
@@ -316,12 +316,12 @@ class BasePath(torch.nn.Module):
             #     velocity = velocity[:,:,0]
             #print("VEL F OUTPUT", velocity.shape, force.shape)
         else:
-            velocity = None
+            path_velocity = None
         
         return PathOutput(
+            times=t,
             path_geometry=path_geometry,
-            path_velocity=velocity,
             path_energy=path_energy,
-            path_force=force,
-            times=t
+            path_velocity=path_velocity,
+            path_force=path_force,
         )

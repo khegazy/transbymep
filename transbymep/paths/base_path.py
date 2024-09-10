@@ -6,6 +6,7 @@ from typing import Callable, Any
 from ase import Atoms
 from ase.io import read, write
 import numpy as np
+import rmsd
 
 
 @dataclass
@@ -136,6 +137,7 @@ class BasePath(torch.nn.Module):
             assert (initial_point.get_atomic_numbers() == final_point.get_atomic_numbers()).all(), "Initial and final points must have the same atomic numbers."
             assert (initial_point.get_pbc() == final_point.get_pbc()).all(), "Initial and final points must have the same periodic boundary conditions."
             assert (initial_point.get_cell() == final_point.get_cell()).all(), "Initial and final points must have the same cell."
+            final_point.set_positions(rmsd.kabsch_rotate(final_point.get_positions(), initial_point.get_positions()))
             self.initial_point = torch.tensor(
                 initial_point.get_positions(), dtype=torch.float64, device=device
             ).flatten()

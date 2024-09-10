@@ -66,8 +66,6 @@ class BasePath(torch.nn.Module):
         potential: Callable,
         initial_point: torch.Tensor | Atoms | str,
         final_point: torch.Tensor | Atoms | str,
-        return_velocity: bool = False,
-        return_force: bool = False,
         device: torch.device = None,
         **kwargs: Any
     ) -> None:
@@ -82,10 +80,6 @@ class BasePath(torch.nn.Module):
             The initial point of the path.
         final_point : torch.Tensor
             The final point of the path.
-        return_velocity : bool, optional
-            Whether to return velocity along the path (default is False).
-        return_force : bool, optional
-            Whether to return force along the path (default is False).
         **kwargs : Any
             Additional keyword arguments.
         """
@@ -98,8 +92,6 @@ class BasePath(torch.nn.Module):
         self.set_points(
             initial_point, final_point, device
         )
-        self.return_velocity = return_velocity
-        self.return_force = return_force
         self.device = device
         self.t_init = torch.tensor(
             [[0]], dtype=torch.float64, device=self.device
@@ -278,44 +270,58 @@ class BasePath(torch.nn.Module):
         # write("test.xyz", traj)
         # raise ValueError("STOP")
         potential_output = self.potential(path_geometry)
+        path_energy = potential_output.energy
 
-        velocity, force = None, None
-        is_batched = len(pes_path.shape) > 0
-        if self.return_force or return_force:
+        if return_force:
+            if potential_output.force is not None:
+                force = potential_output.force
+            else:
+                force = -torch.autograd.grad(
+                    path_energy,
+                    path_geometry,
+                    grad_outputs=torch.ones_like(path_energy),
+                    create_graph=self.training,
+                )[0]
+        else:
+            force = None
             #print("SHAPES", pes_path.shape, len(pes_path.shape), torch.ones(0), geo_path.shape)
             #print("CHECK IS GRADS BATCHD FOR LEN > 0")
-            force = torch.autograd.grad(
-                torch.sum(pes_path),
-                geo_path,
-                create_graph=self.training,
-            )[0]
+            # force = torch.autograd.grad(
+            #     torch.sum(pes_path),
+            #     geo_path,
+            #     create_graph=self.training,
+            # )[0]
             #print("LEN F", len(force), force[0].shape)
-            if not is_batched:
-                force = torch.unsqueeze(force, 0)
+            # if not is_batched:
+            #     force = torch.unsqueeze(force, 0)
             #print("FORCES", force.shape)
-        if self.return_velocity or return_velocity:
-            #print("VEL SHAPES", geo_path.shape, t.shape)
-            if is_batched:
-                fxn = lambda t: torch.sum(self.geometric_path(t), axis=0)
-            else:
-                fxn = lambda t: self.geometric_path(t)
-            velocity = torch.autograd.functional.jacobian(
-                fxn, t, create_graph=self.training, vectorize=is_batched
+        if return_velocity:
+            velocity = torch.autograd.grad(
+                path_geometry,
+                t,
+                create_graph=self.training,
             )
+            #print("VEL SHAPES", geo_path.shape, t.shape)
+            # if is_batched:
+            #     fxn = lambda t: torch.sum(self.geometric_path(t), axis=0)
+            # else:
+            #     fxn = lambda t: self.geometric_path(t)
+            # velocity = torch.autograd.functional.jacobian(
+            #     fxn, t, create_graph=self.training, vectorize=is_batched
+            # )
             #print("VEL INIT SHAPE", velocity.shape)
             #print("VEL TEST", velocity[:5])
-            velocity = torch.transpose(velocity, 0, 1)
-            if is_batched:
-                velocity = velocity[:,:,0]
+            # velocity = torch.transpose(velocity, 0, 1)
+            # if is_batched:
+            #     velocity = velocity[:,:,0]
             #print("VEL F OUTPUT", velocity.shape, force.shape)
+        else:
+            velocity = None
         
         return PathOutput(
             path_geometry=path_geometry,
             path_velocity=velocity,
-
-            geometric_path=geo_path,
-            potential_path=pes_path,
-            velocity=velocity,
-            force=force,
+            path_energy=path_energy,
+            path_force=force,
             times=t
         )

@@ -8,7 +8,7 @@ from ase import units
 import os
 import numpy as np
 
-from .base_potential import BasePotential
+from .base_potential import BasePotential, PotentialOutput
 
 class NewtonNetPotential(BasePotential):
     def __init__(self, config_dir, model_path, **kwargs):
@@ -34,7 +34,11 @@ class NewtonNetPotential(BasePotential):
         data = self.data_formatter(points)
         pred = self.model(data)
         self.n_eval += 1
-        return pred['E'].squeeze(dim=-1) * (units.kcal/units.mol)
+        energy = pred['E'] * (units.kcal/units.mol)
+        force = pred['F'] * (units.kcal/units.mol/units.Ang)
+        energy = energy.view(-1)
+        force = force.view(*points.shape)
+        return PotentialOutput(energy=energy, force=force)
         
 
     def load_model(self, model_path):

@@ -1,7 +1,7 @@
 import torch
 from dataclasses import dataclass
 from transbymep.tools import metrics
-from transbymep.potentials.base_class import PotentialBase
+from transbymep.potentials.base_class import BasePotential
 from typing import Callable, Any
 from ase import Atoms
 from ase.io import read, write
@@ -15,22 +15,22 @@ class PathOutput():
 
     Attributes:
     -----------
-    geometric_path : torch.Tensor
-        The geometric path.
-    potential_path : torch.Tensor
-        The potential path.
-    velocity : torch.Tensor, optional
+    path_geometry : torch.Tensor
+        The coordinates along the path.
+    path_velocity : torch.Tensor, optional
         The velocity along the path (default is None).
-    force : torch.Tensor, optional
+    path_energy : torch.Tensor
+        The potential energy along the path.
+    path_force : torch.Tensor, optional
         The force along the path (default is None).
-    times : torch.Tensor, optional
-        The times at which the path was evaluated (default is None).
+    times : torch.Tensor
+        The times at which the path was evaluated.
     """
-    geometric_path: torch.Tensor
-    potential_path: torch.Tensor
-    velocity: torch.Tensor = None
-    force: torch.Tensor = None
-    times: torch.Tensor = None
+    path_geometry: torch.Tensor
+    path_velocity: torch.Tensor = None
+    path_energy: torch.Tensor
+    path_force: torch.Tensor = None
+    times: torch.Tensor
 
 
 class BasePath(torch.nn.Module):
@@ -59,7 +59,7 @@ class BasePath(torch.nn.Module):
     """
     initial_point: torch.Tensor
     final_point: torch.Tensor
-    potential: PotentialBase
+    potential: BasePotential
 
     def __init__(
         self,
@@ -185,7 +185,7 @@ class BasePath(torch.nn.Module):
         return torch.matmul(fractional, self.cell).view(*points.shape)
 
 
-    def geometric_path(
+    def get_geometry(
             self,
             time: torch.Tensor,
             y: Any,
@@ -266,9 +266,9 @@ class BasePath(torch.nn.Module):
         if len(t.shape) == 1:
             t = torch.unsqueeze(t, -1)
         t = t.to(torch.float64).to(self.device)
-        geo_path = self.geometric_path(t)
+        path_geometry = self.get_geometry(t)
         if self.transform is not None:
-            geo_path = self.transform(geo_path)
+            path_geometry = self.transform(path_geometry)
         # traj = [Atoms(
         #         numbers=self.numbers.detach().cpu().numpy(), 
         #         positions=pos.reshape(self.n_atoms, 3).detach().cpu().numpy(),
@@ -277,7 +277,7 @@ class BasePath(torch.nn.Module):
         #     ) for pos in geo_path]
         # write("test.xyz", traj)
         # raise ValueError("STOP")
-        pes_path = self.potential(geo_path)
+        potential_output = self.potential(path_geometry)
 
         velocity, force = None, None
         is_batched = len(pes_path.shape) > 0
@@ -310,6 +310,9 @@ class BasePath(torch.nn.Module):
             #print("VEL F OUTPUT", velocity.shape, force.shape)
         
         return PathOutput(
+            path_geometry=path_geometry,
+            path_velocity=velocity,
+
             geometric_path=geo_path,
             potential_path=pes_path,
             velocity=velocity,

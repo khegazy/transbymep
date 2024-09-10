@@ -1,8 +1,8 @@
 import torch
-from .base_class import PotentialBase
+from .base_class import BasePotential
 
 
-class MullerBrown(PotentialBase):
+class MullerBrown(BasePotential):
     ai = [-200.0, -100.0, -170.0, 15.0]
     bi = [-1.0, -1.0, -6.5, 0.7]
     ci = [0.0, 0.0, 11.0, 0.6]

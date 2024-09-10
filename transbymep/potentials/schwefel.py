@@ -1,8 +1,8 @@
 import torch
-from .base_class import PotentialBase
+from .base_class import BasePotential
 
 
-class Schwefel(PotentialBase):
+class Schwefel(BasePotential):
     def __init__(self, dim=2, **kwargs) -> None:
         super().__init__(**kwargs)
         self.dim = dim

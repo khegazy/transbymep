@@ -15,7 +15,7 @@ class PotentialOutput():
         The force along the path.
     """
     energy: torch.Tensor
-    force: torch.Tensor
+    force: torch.Tensor = None
 
 class BasePotential(nn.Module):
     def __init__(self, device='cpu', **kwargs) -> None:
@@ -29,7 +29,7 @@ class BasePotential(nn.Module):
         
     def forward(
             self,
-            t: torch.Tensor
+            points: torch.Tensor
     ) -> PotentialOutput:
         raise NotImplementedError
     

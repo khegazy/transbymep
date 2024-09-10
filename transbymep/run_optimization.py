@@ -34,7 +34,8 @@ def optimize_MEP(
         logger (NamedTuple): Logger settings.
     """
     # Create output directories
-    output_dir = os.path.join(args.output_dir, config.potential, config.optimizer)
+    # output_dir = os.path.join(args.output_dir, config.potential, config.optimizer)
+    output_dir = args.output_dir
     log_dir = os.path.join(output_dir, "logs")
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
@@ -154,8 +155,8 @@ def optimize_MEP(
             #     levels=16,
             #     plot_dir=plot_dir,
             # )
-            # traj = [ase.Atoms(numbers=config.potential_params['numbers'], positions=pos.reshape(-1, 3)) for pos in path.get_path(torch.linspace(0, 1, 101, device='cuda')).geometric_path.detach().to('cpu').numpy()]
-            # ase.io.write(os.path.join(plot_dir, f"traj_{optim_idx:03d}.xyz"), traj)
+            traj = [ase.Atoms(numbers=path.numbers.cpu().numpy(), positions=pos.reshape(-1, 3)) for pos in path.get_path(torch.linspace(0, 1, 101, device='cuda')).path_geometry.detach().to('cpu').numpy()]
+            ase.io.write(os.path.join(plot_dir, f"traj_{optim_idx:03d}.xyz"), traj)
 
     print("EVAL TIME", (timer.time()-t0)/60)
     # Plot gif animation of the MEP optimization (only for 2d potentials)

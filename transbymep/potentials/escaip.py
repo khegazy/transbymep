@@ -1,4 +1,6 @@
 import torch
+from torch import nn
+from torch_geometric.data import Data
 import yaml
 from ase import units
 import os
@@ -18,11 +20,7 @@ class EScAIP(nn.Module):
         self.module = EfficientlyScaledAttentionInteratomicPotential(**config['model'])
         self.load_state_dict(checkpoint['state_dict'])
         self.normalizers = checkpoint['normalizers']
-
         self.eval()
-        self.to(torch.float64)
-        self.to(self.device)
-        self.requires_grad_(False)
 
     def forward(self, data):
         output = self.module(data)
@@ -44,6 +42,9 @@ class EScAIPPotential(BasePotential):
         """
         super().__init__(**kwargs)
         self.model = EScAIP(config_file, checkpoint_file)
+        # self.model.to(torch.float64)
+        self.model.to(self.device)
+        self.model.requires_grad_(False)
 
     def forward(self, points):
         data = self.data_formatter(points)
@@ -55,14 +56,20 @@ class EScAIPPotential(BasePotential):
         return PotentialOutput(energy=energy, force=force)
     
     def data_formatter(self, pos):
-        n_data = pos.numel() // (self.n_atoms * 3)
+        pos: torch.Tensor = pos.float()
+        numbers: torch.Tensor = self.numbers
+        cell: torch.Tensor = self.cell
+        pbc: torch.Tensor = self.pbc
+        n_atoms: int = self.n_atoms
+        n_data: int = pos.shape[0]
+
         data = Data(
-            atomic_numbers=self.numbers.repeat(n_data, 1), 
-            pos=pos.view(n_data, self.n_atoms, 3), 
-            cell=self.cell.repeat(n_data, 1, 1),
-            batch=torch.arange(n_data).repeat_interleave(self.n_atoms),
-            natoms=torch.tensor([self.n_atoms for _ in range(n_data)]), 
+            atomic_numbers=numbers.repeat(n_data), 
+            pos=pos.view(n_data * n_atoms, 3), 
+            cell=cell.repeat(n_data, 1, 1),
+            batch=torch.arange(n_data, device=self.device).repeat_interleave(n_atoms),
+            natoms=torch.tensor(n_atoms, device=self.device).repeat(n_data), 
             num_graphs=n_data, 
         )
-        assert (self.pbc == self.model.module.use_pbc).all(), f'Path periodicity {self.pbc} does not match model periodicity {self.model.module.use_pbc}'
+        assert (pbc == self.model.module.use_pbc).all(), f'Path periodicity {pbc} does not match model periodicity {self.model.module.use_pbc}'
         return data

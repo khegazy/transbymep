@@ -6,6 +6,7 @@ from .muller_brown import MullerBrown
 from .schwefel import Schwefel
 from .constant import Constant
 from .newtonnet import NewtonNetPotential
+from .escaip import EScAIPPotential
 
 
 potential_dict = {
@@ -14,6 +15,7 @@ potential_dict = {
     "schwefel": Schwefel,
     "constant": Constant,
     "newtonnet": NewtonNetPotential,
+    "escaip": EScAIPPotential,
 }
 
 

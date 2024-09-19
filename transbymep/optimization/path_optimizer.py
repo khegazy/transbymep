@@ -93,7 +93,9 @@ class PathOptimizer():
         #for n, prm in path.named_parameters():
         #    print(n, prm.grad)
         #print("path integral", path_integral)
-        path_integral.integral.backward()
+        if integrator._integrator.max_batch is None:
+            #TODO: Better to change this to backprop if not detached
+            path_integral.integral.backward()
         self.optimizer.step()
         return path_integral
 

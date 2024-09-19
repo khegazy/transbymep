@@ -67,7 +67,7 @@ class MLPpath(BasePath):
         """
         self.neval += time.numel()
         # print(time)
-        if self.neval > 1e4:
+        if self.neval > 1e5:
             raise ValueError("Too many evaluations!")
         return self.mlp(time)\
             - (1 - time)*(self.mlp(self.t_init) - self.initial_point)\

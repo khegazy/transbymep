@@ -48,6 +48,14 @@ def build_default_arg_parser(test=False) -> argparse.ArgumentParser:
         type=str,
         default="cuda"
     )
+    parser.add_argument(
+        '--max_batch',
+        default=None,
+        type=int,
+        help="Maximum number of integrad evaluations to hold in memory."
+    )
+
+
 
 
 

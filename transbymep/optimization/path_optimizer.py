@@ -13,16 +13,17 @@ class PathOptimizer():
     def __init__(
             self,
             name,
-            config,
+            # config,
             path,
             loss_name,
-            config_path=None,
-            path_type=None,
-            potential_type=None,
-            config_tag="",
-            config_dir="./optimizations/configs/",
-            expect_config=False,
-            device='cpu'
+            # config_path=None,
+            # path_type=None,
+            # potential_type=None,
+            # config_tag="",
+            # config_dir="./optimizations/configs/",
+            # expect_config=False,
+            device='cpu',
+            **config
         ):
         self.loss_name = loss_name
         name = name.lower()
@@ -30,52 +31,52 @@ class PathOptimizer():
         if name not in optimizer_dict:
             raise ValueError(f"Cannot handle optimizer type {name}, either add it to optimizer_dict or use {list(optimizer_dict.keys())}")
 
-        if config_path is None and (path_type is None and potential_type is None):
-            raise ValueError(f"get_optimizer requires either config_path")
+        # if config_path is None and (path_type is None and potential_type is None):
+        #     raise ValueError(f"get_optimizer requires either config_path")
         
         # Import saved optimizer config and combine with input config
-        config_path_vars = path_type is not None and potential_type is not None 
-        if config_path is None and not config_path_vars and not expect_config:
-            print("Skipping optimizer config import")
-        elif config_path is not None or config_path_vars:
-            config.update(
-                self._import_optimizer_config(
-                    name,
-                    path_type,
-                    potential_type,
-                    tag=config_tag,
-                    dir=config_dir,
-                    is_expected=expect_config
-                )
-            )
-        else:
-            raise ValueError("get_optimizer requires either config_path or both path_type and potential_type to be specified to import the config file.")
+        # config_path_vars = path_type is not None and potential_type is not None 
+        # if config_path is None and not config_path_vars and not expect_config:
+        #     print("Skipping optimizer config import")
+        # elif config_path is not None or config_path_vars:
+        #     config.update(
+        #         self._import_optimizer_config(
+        #             name,
+        #             path_type,
+        #             potential_type,
+        #             tag=config_tag,
+        #             dir=config_dir,
+        #             is_expected=expect_config
+        #         )
+        #     )
+        # else:
+        #     raise ValueError("get_optimizer requires either config_path or both path_type and potential_type to be specified to import the config file.")
         
         # Initialize optimizer
         self.optimizer = optimizer_dict[name](path.parameters(), **config)
     
-    def _import_optimizer_config(
-            self,
-            name, 
-            path_type,
-            potential_type,
-            tag="",
-            dir="./optimizations/configs/",
-            is_expected=True
-        ):
-        filename = f"{name}_{potential_type}_{path_type}"
-        filename += f"_{tag}.yaml" if tag != "" else ".yaml"
-        address = os.path.join(dir, filename)
-        print(f"Importing optimizer config {address}")
-        if os.path.exists(address):
-            with open(address, 'r') as file:
-                loaded_yaml = yaml.safe_load(file)
-            return loaded_yaml
-        elif is_expected:
-            raise ImportError(f"Cannot find required file {address}")
-        else:
-            ImportWarning(f"Cannot find file {address}, still running")
-            return {}
+    # def _import_optimizer_config(
+    #         self,
+    #         name, 
+    #         path_type,
+    #         potential_type,
+    #         tag="",
+    #         dir="./optimizations/configs/",
+    #         is_expected=True
+    #     ):
+    #     filename = f"{name}_{potential_type}_{path_type}"
+    #     filename += f"_{tag}.yaml" if tag != "" else ".yaml"
+    #     address = os.path.join(dir, filename)
+    #     print(f"Importing optimizer config {address}")
+    #     if os.path.exists(address):
+    #         with open(address, 'r') as file:
+    #             loaded_yaml = yaml.safe_load(file)
+    #         return loaded_yaml
+    #     elif is_expected:
+    #         raise ImportError(f"Cannot find required file {address}")
+    #     else:
+    #         ImportWarning(f"Cannot find file {address}, still running")
+    #         return {}
     
     def optimization_step(
             self,

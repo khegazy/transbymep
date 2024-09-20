@@ -3,7 +3,7 @@ import sys
 import torch
 import numpy as np
 import pandas as pd
-from typing import NamedTuple
+from typing import NamedTuple, Any
 from matplotlib import pyplot as plt
 import time as time
 from tqdm import tqdm
@@ -19,10 +19,19 @@ from transbymep.potentials import get_potential
 
 
 def optimize_MEP(
-        args: NamedTuple,
-        config: NamedTuple,
-        path_config: NamedTuple,
-        logger: NamedTuple
+        images: list[ase.Atoms],
+        output_dir: str | None = None,
+        potential_params: dict[str, Any] = {},
+        # minimize_end_points: bool = False,
+        path_params: dict[str, Any] = {},
+        # randomly_initialize_path: int | None = None,
+        integrator_params: dict[str, Any] = {},
+        optimizer_params: dict[str, Any] = {},
+        # args: NamedTuple,
+        # config: NamedTuple,
+        # path_config: NamedTuple,
+        # logger: NamedTuple
+        num_optimizer_iterations: int = 1000
 ):
     """
     Run optimization process.
@@ -33,72 +42,88 @@ def optimize_MEP(
         path_config (NamedTuple): Path configuration.
         logger (NamedTuple): Logger settings.
     """
+    print("Images", images)
+    print("Potential Params", potential_params)
+    print("Path Params", path_params)
+    print("Integrator Params", integrator_params)
+    print("Optimizer Params", optimizer_params)
+
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
     # Create output directories
     # output_dir = os.path.join(args.output_dir, config.potential, config.optimizer)
-    output_dir = args.output_dir
-    log_dir = os.path.join(output_dir, "logs")
-    if not os.path.exists(log_dir):
-        os.makedirs(log_dir)
-    plot_dir = os.path.join(output_dir, "plots")
-    if not os.path.exists(plot_dir):
-        os.makedirs(plot_dir)
+    # output_dir = args.output_dir
+    if output_dir is not None:
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+        log_dir = os.path.join(output_dir, "logs")
+        if not os.path.exists(log_dir):
+            os.makedirs(log_dir)
+        plot_dir = os.path.join(output_dir, "plots")
+        if not os.path.exists(plot_dir):
+            os.makedirs(plot_dir)
     
     #####  Get chemical potential  #####
-    potential = get_potential(
-        config.potential,
-        tag=config.potential_tag,
-        expect_config=config.potential!="constant",
-        add_azimuthal_dof=args.add_azimuthal_dof,
-        add_translation_dof=args.add_translation_dof,
-        device=config.device,
-        **config.potential_params,
-    )
+    # potential = get_potential(
+    #     config.potential,
+    #     tag=config.potential_tag,
+    #     expect_config=config.potential!="constant",
+    #     add_azimuthal_dof=args.add_azimuthal_dof,
+    #     add_translation_dof=args.add_translation_dof,
+    #     device=config.device,
+    #     **config.potential_params,
+    # )
+    potential = get_potential(**potential_params, device=device)
 
     # Minimize initial points with the given potential
-    if args.minimize_end_points:
-        minima_finder = optimization.MinimaUpdate(potential)
-        minima = minima_finder.find_minima(
-            [config.initial_point, config.final_point]
-        )
-        print(f"Optimized Initial Point: {minima[0]}")
-        print(f"Optimized Final Point: {minima[1]}")
-        sys.exit(0)
+    # if args.minimize_end_points:
+    # if minimize_end_points:
+    #     minima_finder = optimization.MinimaUpdate(potential)
+    #     minima = minima_finder.find_minima(
+    #         [config.initial_point, config.final_point]
+    #     )
+    #     print(f"Optimized Initial Point: {minima[0]}")
+    #     print(f"Optimized Final Point: {minima[1]}")
+    #     sys.exit(0)
 
     #####  Get path prediction method  #####
-    path = paths.get_path(
-        config.path,
-        potential,
-        config.initial_point,
-        config.final_point,
-        device=config.device,
-        #add_azimuthal_dof=args.add_azimuthal_dof,
-        #add_translation_dof=args.add_translation_dof,
-        **path_config.path_params
-    )
+    # path = paths.get_path(
+    #     config.path,
+    #     potential,
+    #     config.initial_point,
+    #     config.final_point,
+    #     device=config.device,
+    #     #add_azimuthal_dof=args.add_azimuthal_dof,
+    #     #add_translation_dof=args.add_translation_dof,
+    #     **path_config.path_params
+    # )
+    path = paths.get_path(potential=potential, initial_point=images[0], final_point=images[-1], **path_params, device=device)
 
     # Randomly initialize the path, otherwise a straight line
-    if args.randomly_initialize_path is not None:
-        path = optimization.randomly_initialize_path(
-            path, args.randomly_initialize_path
-        )
+    # if args.randomly_initialize_path is not None:
+    #     path = optimization.randomly_initialize_path(
+    #         path, args.randomly_initialize_path
+    #     )
 
     #####  Path optimization tools  #####
     # Path integrating function
-    print("int params", config.integral_params)
-    integrator = tools.ODEintegrator(**config.integral_params, device=config.device)
+    # print("int params", config.integral_params)
+    # integrator = tools.ODEintegrator(**config.integral_params, device=config.device)
+    integrator = tools.ODEintegrator(**integrator_params, device=device)
     #print("test integrate", integrator.path_integral(path, 'E_pvre'))
 
     # Gradient descent path optimizer
-    optimizer = optimization.PathOptimizer(
-        config.optimizer,
-        config.optimizer_params,
-        path,
-        config.loss_function,
-        path_type=config.path,
-        potential_type=config.potential,
-        config_tag=config.optimizer_config_tag,
-        device=config.device
-    )
+    # optimizer = optimization.PathOptimizer(
+    #     config.optimizer,
+    #     config.optimizer_params,
+    #     path,
+    #     config.loss_function,
+    #     path_type=config.path,
+    #     potential_type=config.potential,
+    #     config_tag=config.optimizer_config_tag,
+    #     device=config.device
+    # )
+    optimizer = optimization.PathOptimizer(path=path, **optimizer_params, device=device)
 
     # Loss
     #print(config.loss_functions)
@@ -107,60 +132,72 @@ def optimize_MEP(
     ##########################################
     #####  Optimize minimum energy path  ##### 
     ##########################################
-    geo_paths = []
-    pes_paths = []
-    t0 = time.time()
-    df = pd.DataFrame(columns=["optim_idx", "neval", "loss"])
-    for optim_idx in tqdm(range(args.num_optimizer_iterations)):
+    # geo_paths = []
+    # pes_paths = []
+    paths_geometry = []
+    paths_energy = []
+    paths_velocity = []
+    paths_force = []
+    paths_integral = []
+    # t0 = time.time()
+    # df = pd.DataFrame(columns=["optim_idx", "neval", "loss"])
+    # for optim_idx in tqdm(range(args.num_optimizer_iterations)):
+    for optim_idx in tqdm(range(num_optimizer_iterations)):
         #print(f"Optimization step {optim_idx}")
-        path.neval = 0
+        # path.neval = 0
         try:
             path_integral = optimizer.optimization_step(path, integrator)
-            neval = path.neval
+            # neval = path.neval
             #print(f'n_eval: {neval}, loss: {path_integral.integral.item()}')
-            df.loc[optim_idx] = [optim_idx, neval, path_integral.integral.item()]
+            # df.loc[optim_idx] = [optim_idx, neval, path_integral.integral.item()]
             # wandb.log({"optim_idx": optim_idx, "neval": neval, "loss": path_integral.integral.item()})
         except ValueError as e:
             print("ValueError", e)
-            neval = path.neval
+            # neval = path.neval
             # wandb.log({"optim_idx": optim_idx, "neval": neval, "loss": np.nan})
             raise e
         
-        if optim_idx%250 == 0:
-            print("EVAL TIME", (time.time()-t0)/60)
-            path_output = logger.optimization_step(
-                optim_idx,
-                path,
-                potential,
-                path_integral.integral,
-                plot=args.make_opt_plots,
-                plot_dir=plot_dir,
-                geo_paths=geo_paths,
-                pes_paths=pes_paths,
-                add_azimuthal_dof=args.add_azimuthal_dof,
-                add_translation_dof=args.add_translation_dof
-            )
-            print("finished logging")
-            fig, ax = plt.subplots()
-            ax.plot(df["optim_idx"], df["loss"])
-            ax.set_xlabel("Step")
-            ax.set_ylabel("Loss")
-            ax.set_yscale("log")
-            fig.savefig(os.path.join(plot_dir, "loss_curve.png"))
-            plt.close()
-            df.to_csv(os.path.join(plot_dir, "loss_curve.csv"), header=False)
-            # visualize.plot_path(
-            #     path.get_path(torch.linspace(0, 1, 32, device='cuda')).geometric_path.detach().to('cpu').numpy(),
-            #     f"test_plot_{optim_idx:03d}",
-            #     pes_fxn=potential,
-            #     plot_min_max=(-2, 2, -2, 2),
-            #     levels=16,
-            #     plot_dir=plot_dir,
-            # )
-            traj = [ase.Atoms(numbers=path.numbers.cpu().numpy(), positions=pos.reshape(-1, 3)) for pos in path.get_path(torch.linspace(0, 1, 101, device='cuda')).path_geometry.detach().to('cpu').numpy()]
-            ase.io.write(os.path.join(plot_dir, f"traj_{optim_idx:03d}.xyz"), traj)
+        # if optim_idx%250 == 0:
+        #     print("EVAL TIME", (time.time()-t0)/60)
+        #     path_output = logger.optimization_step(
+        #         optim_idx,
+        #         path,
+        #         potential,
+        #         path_integral.integral,
+        #         plot=args.make_opt_plots,
+        #         plot_dir=plot_dir,
+        #         geo_paths=geo_paths,
+        #         pes_paths=pes_paths,
+        #         add_azimuthal_dof=args.add_azimuthal_dof,
+        #         add_translation_dof=args.add_translation_dof
+        #     )
+        #     print("finished logging")
+        #     fig, ax = plt.subplots()
+        #     ax.plot(df["optim_idx"], df["loss"])
+        #     ax.set_xlabel("Step")
+        #     ax.set_ylabel("Loss")
+        #     ax.set_yscale("log")
+        #     fig.savefig(os.path.join(plot_dir, "loss_curve.png"))
+        #     plt.close()
+        #     df.to_csv(os.path.join(plot_dir, "loss_curve.csv"), header=False)
+        #     # visualize.plot_path(
+        #     #     path.get_path(torch.linspace(0, 1, 32, device='cuda')).geometric_path.detach().to('cpu').numpy(),
+        #     #     f"test_plot_{optim_idx:03d}",
+        #     #     pes_fxn=potential,
+        #     #     plot_min_max=(-2, 2, -2, 2),
+        #     #     levels=16,
+        #     #     plot_dir=plot_dir,
+        #     # )
+        #     traj = [ase.Atoms(numbers=path.numbers.cpu().numpy(), positions=pos.reshape(-1, 3)) for pos in path.get_path(torch.linspace(0, 1, 101, device='cuda')).path_geometry.detach().to('cpu').numpy()]
+        #     ase.io.write(os.path.join(plot_dir, f"traj_{optim_idx:03d}.xyz"), traj)
+    path_output = path.get_path(torch.linspace(0, 1, 101, device='cuda'), return_velocity=True, return_force=True)
+    paths_geometry.append(path_output.path_geometry.detach().to('cpu').numpy())
+    paths_energy.append(path_output.path_energy.detach().to('cpu').numpy())
+    paths_velocity.append(path_output.path_velocity.detach().to('cpu').numpy())
+    paths_force.append(path_output.path_force.detach().to('cpu').numpy())
+    paths_integral.append(path_integral.integral.item())
 
-    print("EVAL TIME", (time.time()-t0)/60)
+    # print("EVAL TIME", (time.time()-t0)/60)
     # Plot gif animation of the MEP optimization (only for 2d potentials)
     # if args.make_animation:
     #     geo_paths = potential.point_transform(torch.tensor(geo_paths))
@@ -172,7 +209,9 @@ def optimize_MEP(
     #         add_translation_dof=args.add_translation_dof,
     #         add_azimuthal_dof=args.add_azimuthal_dof
     #     )
-    return path_integral
+
+    # return path_integral
+    return paths_geometry, paths_energy, paths_velocity, paths_force, paths_integral
 
 
 if __name__ == "__main__":

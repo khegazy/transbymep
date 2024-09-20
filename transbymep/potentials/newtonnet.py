@@ -11,7 +11,8 @@ import numpy as np
 from .base_potential import BasePotential, PotentialOutput
 
 class NewtonNetPotential(BasePotential):
-    def __init__(self, config_dir, model_path, **kwargs):
+    # def __init__(self, config_dir, model_path, **kwargs):
+    def __init__(self, model_path, **kwargs):
         """
         Constructor for NewtonNetPotential
 
@@ -26,7 +27,8 @@ class NewtonNetPotential(BasePotential):
         kwargs
         """
         super().__init__(**kwargs)
-        self.model = self.load_model(os.path.join(config_dir, model_path))
+        # self.model = self.load_model(os.path.join(config_dir, model_path))
+        self.model = self.load_model(model_path)
         self.n_eval = 0
 
     

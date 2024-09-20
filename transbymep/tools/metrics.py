@@ -12,6 +12,7 @@ class Metrics():
             t=None,
             # path_output=None,
             requires_velocity=False,
+            requires_energy=False,
             requires_force=False,
             # fxn_name=None
             ):
@@ -43,7 +44,7 @@ class Metrics():
         if path is not None:
             if t is None:
                 raise ValueError("Must specify evaluation times for path when using path argument")
-            path_output = path(t, return_velocity=requires_velocity, return_force=requires_force)
+            path_output = path(t, return_velocity=requires_velocity, return_energy=requires_energy, return_force=requires_force)
             #print("CALCULATE PATH", path_output.geometric_path, path_output.velocity, path_output.potential_path, path_output.force)
             # return path_output.geometric_path, path_output.velocity,\
             #     path_output.potential_path, path_output.force
@@ -60,6 +61,7 @@ class Metrics():
     
     def E_vre(self, **kwargs):
         kwargs['requires_force'] = True
+        kwargs['requires_energy'] = True
         kwargs['requires_velocity'] = True
         # kwargs['fxn_name'] = self.E_vre.__name__
 
@@ -73,6 +75,7 @@ class Metrics():
 
     def E_pvre(self, **kwargs):
         kwargs['requires_force'] = True
+        kwargs['requires_energy'] = True
         kwargs['requires_velocity'] = True
         # kwargs['fxn_name'] = self.E_pvre.__name__
 

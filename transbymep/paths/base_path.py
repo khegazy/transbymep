@@ -1,6 +1,6 @@
 import torch
 from dataclasses import dataclass
-from transbymep.tools import metrics
+from transbymep.tools import metrics, read_atoms, pair_displacement
 from transbymep.potentials.base_potential import BasePotential
 from typing import Callable, Any
 from ase import Atoms
@@ -129,39 +129,26 @@ class BasePath(torch.nn.Module):
             self.vec = self.final_point - self.initial_point
             self.transform = None
         elif isinstance(initial_point, Atoms) or isinstance(initial_point, str):
-            if isinstance(initial_point, str):
-                initial_point = read(initial_point)
-                final_point = read(final_point)
-            assert (initial_point.get_positions().shape[0] == final_point.get_positions().shape[0]), "Initial and final points must have the same number of atoms."
-            assert (initial_point.get_positions().shape[1] == 3), "Initial and final points must have 3D positions."
-            assert (initial_point.get_atomic_numbers() == final_point.get_atomic_numbers()).all(), "Initial and final points must have the same atomic numbers."
-            assert (initial_point.get_pbc() == final_point.get_pbc()).all(), "Initial and final points must have the same periodic boundary conditions."
-            assert (initial_point.get_cell() == final_point.get_cell()).all(), "Initial and final points must have the same cell."
-            final_point.set_positions(rmsd.kabsch_rotate(final_point.get_positions(), initial_point.get_positions()))
-            self.initial_point = torch.tensor(
-                initial_point.get_positions(), dtype=torch.float64, device=device
-            ).flatten()
-            self.final_point = torch.tensor(
-                final_point.get_positions(), dtype=torch.float64, device=device
-            ).flatten()
-            self.numbers = torch.tensor(
-                initial_point.get_atomic_numbers(), dtype=torch.int64, device=device
-            )
-            self.pbc = torch.tensor(
-                initial_point.get_pbc(), dtype=torch.bool, device=device
-            )
-            self.cell = torch.tensor(
-                initial_point.get_cell(), dtype=torch.float64, device=device
-            )
-            self.n_atoms = len(initial_point)
+            initial_atoms = read(initial_point) if isinstance(initial_point, str) else initial_point
+            final_atoms = read(final_point) if isinstance(final_point, str) else final_point
+            assert (initial_atoms.get_positions().shape[0] == final_atoms.get_positions().shape[0]), "Initial and final points must have the same number of atoms."
+            assert (initial_atoms.get_positions().shape[1] == 3), "Initial and final points must have 3D positions."
+            assert (initial_atoms.get_atomic_numbers() == final_atoms.get_atomic_numbers()).all(), "Initial and final points must have the same atomic numbers."
+            assert (initial_atoms.get_pbc() == final_atoms.get_pbc()).all(), "Initial and final points must have the same periodic boundary conditions."
+            assert (initial_atoms.get_cell() == final_atoms.get_cell()).all(), "Initial and final points must have the same cell."
+            initial_dict = read_atoms(initial_atoms)
+            final_dict = read_atoms(final_atoms)
+            self.initial_point = initial_dict["positions"].flatten().to(device)
+            self.final_point = final_dict["positions"].flatten().to(device)
+            self.numbers = initial_dict["numbers"].to(device)
+            self.pbc = initial_dict["pbc"].to(device)
+            self.cell = initial_dict["cell"].to(device)
+            self.n_atoms = initial_dict["n_atoms"]
             self.potential.numbers = self.numbers
             self.potential.pbc = self.pbc
             self.potential.cell = self.cell
             self.potential.n_atoms = self.n_atoms
-            pair = initial_point + final_point
-            self.vec = torch.tensor(
-                [pair.get_distance(i, i + self.n_atoms, mic=True, vector=True) for i in range(self.n_atoms)], dtype=torch.float64, device=device
-            ).flatten()
+            self.vec = pair_displacement(initial_atoms, final_atoms).flatten().to(device)
             self.transform = self.wrap_points if self.pbc.any() else None
         else:
             raise ValueError("Invalid type for initial_point and final_point.")
@@ -208,6 +195,7 @@ class BasePath(torch.nn.Module):
             self,
             t: torch.Tensor = None,
             return_velocity: bool = False,
+            return_energy: bool = False,
             return_force: bool = False
     ) -> PathOutput:
         """
@@ -231,13 +219,14 @@ class BasePath(torch.nn.Module):
             t = torch.linspace(0, 1, 1001)
         
         return self.forward(
-            t, return_velocity=return_velocity, return_force=return_force
+            t, return_velocity=return_velocity, return_energy=return_energy, return_force=return_force
         )
     
     def forward(
             self,
             t,
             return_velocity: bool = False,
+            return_energy: bool = False,
             return_force: bool = False
     ) -> PathOutput:
         """
@@ -271,8 +260,11 @@ class BasePath(torch.nn.Module):
         #     ) for pos in geo_path]
         # write("test.xyz", traj)
         # raise ValueError("STOP")
-        potential_output = self.potential(path_geometry)
-        path_energy = potential_output.energy
+        if return_energy:
+            potential_output = self.potential(path_geometry)
+            path_energy = potential_output.energy
+        else:
+            path_energy = None
 
         if return_force:
             if potential_output.force is not None:

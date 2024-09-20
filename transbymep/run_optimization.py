@@ -14,6 +14,7 @@ from typing import NamedTuple
 from transbymep import tools
 from transbymep import paths
 from transbymep import optimization
+from transbymep.optimization import initialize_path
 from transbymep.tools import visualize
 from transbymep.potentials import get_potential
 
@@ -104,6 +105,12 @@ def optimize_MEP(
     #     path = optimization.randomly_initialize_path(
     #         path, args.randomly_initialize_path
     #     )
+    if len(images) > 2:
+        path = initialize_path(
+            path=path, 
+            times=torch.linspace(0, 1, len(images), device=device), 
+            init_points=torch.tensor([image.positions.flatten() for image in images], device=device),
+            )
 
     #####  Path optimization tools  #####
     # Path integrating function
@@ -190,7 +197,7 @@ def optimize_MEP(
         #     # )
         #     traj = [ase.Atoms(numbers=path.numbers.cpu().numpy(), positions=pos.reshape(-1, 3)) for pos in path.get_path(torch.linspace(0, 1, 101, device='cuda')).path_geometry.detach().to('cpu').numpy()]
         #     ase.io.write(os.path.join(plot_dir, f"traj_{optim_idx:03d}.xyz"), traj)
-    path_output = path.get_path(torch.linspace(0, 1, 101, device='cuda'), return_velocity=True, return_force=True)
+    path_output = path.get_path(torch.linspace(0, 1, 101, device='cuda'), return_velocity=True, return_energy=True, return_force=True)
     paths_geometry.append(path_output.path_geometry.detach().to('cpu').numpy())
     paths_energy.append(path_output.path_energy.detach().to('cpu').numpy())
     paths_velocity.append(path_output.path_velocity.detach().to('cpu').numpy())

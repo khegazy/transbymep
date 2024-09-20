@@ -86,7 +86,8 @@ def loss_init(
     torch.Tensor
         Loss value.
     """
-    preds = path.geometric_path(times)
+    preds = path.get_path(times).path_geometry
+    assert preds.shape == points.shape, f"Shapes do not match: {preds.shape} != {points.shape}"
     return torch.mean((points - preds)**2)
 
 

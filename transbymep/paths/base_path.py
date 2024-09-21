@@ -85,10 +85,7 @@ class BasePath(torch.nn.Module):
             Additional keyword arguments.
         """
         super().__init__()
-        print("DEVICE", device
-              
-
-              )
+        print("DEVICE", device)
         self.potential = potential
         self.set_points(
             initial_point, final_point, device
@@ -100,6 +97,7 @@ class BasePath(torch.nn.Module):
         self.t_final = torch.tensor(
             [[1]], dtype=torch.float64, device=self.device
         )
+        self.neval = 0
 
     def set_points(
             self,
@@ -249,6 +247,12 @@ class BasePath(torch.nn.Module):
         if len(t.shape) == 1:
             t = torch.unsqueeze(t, -1)
         t = t.to(torch.float64).to(self.device)
+
+        self.neval += t.numel()
+        # print(time)
+        # if self.neval > 1e5:
+        #     raise ValueError("Too many evaluations!")
+
         path_geometry = self.get_geometry(t)
         if self.transform is not None:
             path_geometry = self.transform(path_geometry)

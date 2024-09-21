@@ -50,6 +50,7 @@ def optimize_MEP(
     print("Optimizer Params", optimizer_params)
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    torch.random.manual_seed(42)
 
     # Create output directories
     # output_dir = os.path.join(args.output_dir, config.potential, config.optimizer)
@@ -146,16 +147,17 @@ def optimize_MEP(
     paths_velocity = []
     paths_force = []
     paths_integral = []
+    paths_neval = []
     # t0 = time.time()
     # df = pd.DataFrame(columns=["optim_idx", "neval", "loss"])
     # for optim_idx in tqdm(range(args.num_optimizer_iterations)):
     for optim_idx in tqdm(range(num_optimizer_iterations)):
-        #print(f"Optimization step {optim_idx}")
-        # path.neval = 0
+        # print(f"Optimization step {optim_idx}")
+        path.neval = 0
         try:
             path_integral = optimizer.optimization_step(path, integrator)
-            # neval = path.neval
-            #print(f'n_eval: {neval}, loss: {path_integral.integral.item()}')
+            neval = path.neval
+            print(f'n_eval: {neval}, loss: {path_integral.integral.item()}')
             # df.loc[optim_idx] = [optim_idx, neval, path_integral.integral.item()]
             # wandb.log({"optim_idx": optim_idx, "neval": neval, "loss": path_integral.integral.item()})
         except ValueError as e:
@@ -197,12 +199,13 @@ def optimize_MEP(
         #     # )
         #     traj = [ase.Atoms(numbers=path.numbers.cpu().numpy(), positions=pos.reshape(-1, 3)) for pos in path.get_path(torch.linspace(0, 1, 101, device='cuda')).path_geometry.detach().to('cpu').numpy()]
         #     ase.io.write(os.path.join(plot_dir, f"traj_{optim_idx:03d}.xyz"), traj)
-    path_output = path.get_path(torch.linspace(0, 1, 101, device='cuda'), return_velocity=True, return_energy=True, return_force=True)
-    paths_geometry.append(path_output.path_geometry.detach().to('cpu').numpy())
-    paths_energy.append(path_output.path_energy.detach().to('cpu').numpy())
-    paths_velocity.append(path_output.path_velocity.detach().to('cpu').numpy())
-    paths_force.append(path_output.path_force.detach().to('cpu').numpy())
-    paths_integral.append(path_integral.integral.item())
+        path_output = path.get_path(torch.linspace(0, 1, 101, device='cuda'), return_velocity=True, return_energy=True, return_force=True)
+        paths_geometry.append(path_output.path_geometry.detach().to('cpu').numpy())
+        paths_energy.append(path_output.path_energy.detach().to('cpu').numpy())
+        paths_velocity.append(path_output.path_velocity.detach().to('cpu').numpy())
+        paths_force.append(path_output.path_force.detach().to('cpu').numpy())
+        paths_integral.append(path_integral.integral.item())
+        paths_neval.append(neval)
 
     # print("EVAL TIME", (time.time()-t0)/60)
     # Plot gif animation of the MEP optimization (only for 2d potentials)
@@ -218,7 +221,7 @@ def optimize_MEP(
     #     )
 
     # return path_integral
-    return paths_geometry, paths_energy, paths_velocity, paths_force, paths_integral
+    return paths_geometry, paths_energy, paths_velocity, paths_force, paths_integral, paths_neval
 
 
 if __name__ == "__main__":

@@ -50,7 +50,6 @@ def optimize_MEP(
     print("Optimizer Params", optimizer_params)
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    torch.random.manual_seed(42)
 
     # Create output directories
     # output_dir = os.path.join(args.output_dir, config.potential, config.optimizer)

@@ -3,6 +3,7 @@ from newtonnet.models import NewtonNet
 from newtonnet.layers.activations import get_activation_by_string
 from newtonnet.data import ExtensiveEnvironment
 from newtonnet.data import batch_dataset_converter
+from newtonnet.utils.ase_interface import MLAseCalculator
 import yaml
 from ase import units
 import os
@@ -12,7 +13,7 @@ from .base_potential import BasePotential, PotentialOutput
 
 class NewtonNetPotential(BasePotential):
     # def __init__(self, config_dir, model_path, **kwargs):
-    def __init__(self, model_path, **kwargs):
+    def __init__(self, model_path, settings_path, **kwargs):
         """
         Constructor for NewtonNetPotential
 
@@ -28,7 +29,8 @@ class NewtonNetPotential(BasePotential):
         """
         super().__init__(**kwargs)
         # self.model = self.load_model(os.path.join(config_dir, model_path))
-        self.model = self.load_model(model_path)
+        # self.model = self.load_model(model_path)
+        self.model = self.load_model(model_path, settings_path)
         self.n_eval = 0
 
     
@@ -43,11 +45,13 @@ class NewtonNetPotential(BasePotential):
         return PotentialOutput(energy=energy, force=force)
         
 
-    def load_model(self, model_path):
-        model = torch.load(model_path, map_location=self.device)
+    def load_model(self, model_path, settings_path):
+        # model = torch.load(model_path, map_location=self.device)
+        calc = MLAseCalculator(model_path, settings_path, device=self.device)
+        model = calc.models[0]
         model.eval()
         model.to(torch.float64)
-        model.to(self.device)
+        # model.to(self.device)
         model.requires_grad_(False)
         return model
     

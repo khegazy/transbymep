@@ -12,12 +12,12 @@ from EScAIP.src import EfficientlyScaledAttentionInteratomicPotential
 from .base_potential import BasePotential, PotentialOutput
 
 class EScAIP(nn.Module):
-    def __init__(self, config_file, checkpoint_file):
+    def __init__(self, config_file, checkpoint_file, device='cuda'):
         super().__init__()
         with open(config_file) as f:
             config = yaml.safe_load(f)
-        checkpoint = torch.load(checkpoint_file)
-        self.module = EfficientlyScaledAttentionInteratomicPotential(**config['model'])
+        checkpoint = torch.load(checkpoint_file, map_location=device)
+        self.module = EfficientlyScaledAttentionInteratomicPotential(**config['model']).to(device)
         self.load_state_dict(checkpoint['state_dict'])
         self.normalizers = checkpoint['normalizers']
         self.eval()
@@ -41,9 +41,9 @@ class EScAIPPotential(BasePotential):
             path to the checkpoint file. eg. 'SPICE_L6_H16_256_75Epochs_checkpoint.pt'
         """
         super().__init__(**kwargs)
-        self.model = EScAIP(config_file, checkpoint_file)
+        self.model = EScAIP(config_file, checkpoint_file, self.device)
         # self.model.to(torch.float64)
-        self.model.to(self.device)
+        # self.model.to(self.device)
         self.model.requires_grad_(False)
 
     def forward(self, points):

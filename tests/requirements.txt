@@ -5,7 +5,7 @@ pytest==7.4.4
 pytest-cov==4.1.0
 PyYAML==6.0.1
 torchdiffeq==0.2.2
-jax==0.4.23
+jax==0.4.31
 jaxlib==0.4.23
 equinox==0.11.4
 git+https://$MY_PRIVATE_REPO_TOKEN@github.com/kumaranu/torchpathdiffeq.git@main

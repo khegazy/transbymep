@@ -28,6 +28,7 @@ def optimize_MEP(
         # randomly_initialize_path: int | None = None,
         integrator_params: dict[str, Any] = {},
         optimizer_params: dict[str, Any] = {},
+        scheduler_params: dict[str, Any] = {},
         # args: NamedTuple,
         # config: NamedTuple,
         # path_config: NamedTuple,
@@ -131,6 +132,9 @@ def optimize_MEP(
     #     device=config.device
     # )
     optimizer = optimization.PathOptimizer(path=path, **optimizer_params, device=device)
+    if scheduler_params:
+        optimizer.set_scheduler(**scheduler_params)
+        
 
     # Loss
     #print(config.loss_functions)
@@ -156,7 +160,7 @@ def optimize_MEP(
         try:
             path_integral = optimizer.optimization_step(path, integrator)
             neval = path.neval
-            print(f'n_eval: {neval}, loss: {path_integral.integral.item()}')
+            print(f'n_eval: {neval}, loss: {path_integral.integral.item()}, lr: {optimizer.optimizer.param_groups[0]["lr"]}')
             # df.loc[optim_idx] = [optim_idx, neval, path_integral.integral.item()]
             # wandb.log({"optim_idx": optim_idx, "neval": neval, "loss": path_integral.integral.item()})
         except ValueError as e:
@@ -205,6 +209,10 @@ def optimize_MEP(
         paths_force.append(path_output.path_force.detach().to('cpu').numpy())
         paths_integral.append(path_integral.integral.item())
         paths_neval.append(neval)
+
+        if optimizer.converged:
+            print(f"Converged at step {optim_idx}")
+            break
 
     # print("EVAL TIME", (time.time()-t0)/60)
     # Plot gif animation of the MEP optimization (only for 2d potentials)

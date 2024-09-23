@@ -2,11 +2,19 @@ import os
 import yaml
 import torch
 from torch import optim
+from torch.optim import lr_scheduler
 
 optimizer_dict = {
     "sgd" : optim.SGD,
     "adagrad" : optim.Adagrad,
     "adam" : optim.Adam
+}
+scheduler_dict = {
+    "step" : lr_scheduler.StepLR,
+    "multi_step" : lr_scheduler.MultiStepLR,
+    "exponential" : lr_scheduler.ExponentialLR,
+    "cosine" : lr_scheduler.CosineAnnealingLR,
+    "plateau" : lr_scheduler.ReduceLROnPlateau
 }
 
 class PathOptimizer():
@@ -26,10 +34,10 @@ class PathOptimizer():
             **config
         ):
         self.loss_name = loss_name
-        name = name.lower()
+        # name = name.lower()
         self.device=device
-        if name not in optimizer_dict:
-            raise ValueError(f"Cannot handle optimizer type {name}, either add it to optimizer_dict or use {list(optimizer_dict.keys())}")
+        # if name not in optimizer_dict:
+        #     raise ValueError(f"Cannot handle optimizer type {name}, either add it to optimizer_dict or use {list(optimizer_dict.keys())}")
 
         # if config_path is None and (path_type is None and potential_type is None):
         #     raise ValueError(f"get_optimizer requires either config_path")
@@ -54,6 +62,14 @@ class PathOptimizer():
         
         # Initialize optimizer
         self.optimizer = optimizer_dict[name](path.parameters(), **config)
+        self.scheduler = None
+        self.converged = False
+
+    def set_scheduler(self, name, **config):
+        name = name.lower()
+        if name not in scheduler_dict:
+            raise ValueError(f"Cannot handle scheduler type {name}, either add it to scheduler_dict or use {list(scheduler_dict.keys())}")
+        self.scheduler = scheduler_dict[name](self.optimizer, **config)
     
     # def _import_optimizer_config(
     #         self,
@@ -98,6 +114,13 @@ class PathOptimizer():
             #TODO: Better to change this to backprop if not detached
             path_integral.integral.backward()
         self.optimizer.step()
+        if self.scheduler is not None:
+            if isinstance(self.scheduler, lr_scheduler.ReduceLROnPlateau):
+                self.scheduler.step(path_integral.loss)
+                if self.optimizer.param_groups[0]['lr'] <= self.scheduler.min_lrs[0]:
+                    self.converged = True
+            else:
+                self.scheduler.step()
         return path_integral
 
     

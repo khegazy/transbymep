@@ -94,6 +94,8 @@ def import_run_config(
     """
 
     if flags is not None:
+        if flags.max_batch is not None or 'max_batch' not in config.integral_params:
+            config.integral_params['max_batch'] = flags.max_batch
         if flags.add_azimuthal_dof is not None:
             config.initial_point[0] += flags.add_azimuthal_dof 
             # Rotate by pi/2

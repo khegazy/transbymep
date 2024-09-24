@@ -145,10 +145,12 @@ def optimize_MEP(
     ##########################################
     # geo_paths = []
     # pes_paths = []
+    paths_time = []
     paths_geometry = []
     paths_energy = []
     paths_velocity = []
     paths_force = []
+    paths_loss = []
     paths_integral = []
     paths_neval = []
     # t0 = time.time()
@@ -202,11 +204,20 @@ def optimize_MEP(
         #     # )
         #     traj = [ase.Atoms(numbers=path.numbers.cpu().numpy(), positions=pos.reshape(-1, 3)) for pos in path.get_path(torch.linspace(0, 1, 101, device='cuda')).path_geometry.detach().to('cpu').numpy()]
         #     ase.io.write(os.path.join(plot_dir, f"traj_{optim_idx:03d}.xyz"), traj)
-        path_output = path.get_path(torch.linspace(0, 1, 101, device='cuda'), return_velocity=True, return_energy=True, return_force=True)
-        paths_geometry.append(path_output.path_geometry.detach().to('cpu').numpy())
-        paths_energy.append(path_output.path_energy.detach().to('cpu').numpy())
-        paths_velocity.append(path_output.path_velocity.detach().to('cpu').numpy())
-        paths_force.append(path_output.path_force.detach().to('cpu').numpy())
+
+        path_geometry, path_energy, path_velocity, path_force = [], [], [], []
+        for t in path_integral.t:
+            path_output = path.get_path(t, return_velocity=True, return_energy=True, return_force=True)
+            path_geometry.append(path_output.path_geometry.detach().to('cpu').numpy())
+            path_energy.append(path_output.path_energy.detach().to('cpu').numpy())
+            path_velocity.append(path_output.path_velocity.detach().to('cpu').numpy())
+            path_force.append(path_output.path_force.detach().to('cpu').numpy())
+        paths_time.append(path_integral.t.flatten().detach().to('cpu').numpy())
+        paths_geometry.append(np.concatenate(path_geometry))
+        paths_energy.append(np.concatenate(path_energy))
+        paths_velocity.append(np.concatenate(path_velocity))
+        paths_force.append(np.concatenate(path_force))
+        paths_loss.append(path_integral.y.flatten().detach().to('cpu').numpy())
         paths_integral.append(path_integral.integral.item())
         paths_neval.append(neval)
 

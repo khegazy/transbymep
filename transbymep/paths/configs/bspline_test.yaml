@@ -1,6 +1,0 @@
-path_params:
-    degree : 2
-    n_anchors : 4
-optimizer : sgd
-optimizer_params :
-    learning_rate : 0.05

@@ -1,6 +1,6 @@
-from .base_class import PotentialBase
+from .base_potential import BasePotential
 
-class Constant(PotentialBase):
+class Constant(BasePotential):
     def __init__(self, scale=1., **kwargs):
         super().__init__(**kwargs)
         self.scale = scale

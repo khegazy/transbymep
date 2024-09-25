@@ -112,6 +112,8 @@ def optimize_MEP(
             times=torch.linspace(0, 1, len(images), device=device), 
             init_points=torch.tensor([image.positions.flatten() for image in images], device=device),
             )
+        # path.mlp.requires_grad_(False)
+        # path = paths.get_path(potential=potential, initial_point=images[0], final_point=images[-1], **path_params, device=device, base=path)
 
     #####  Path optimization tools  #####
     # Path integrating function
@@ -239,7 +241,7 @@ def optimize_MEP(
     #     )
 
     # return path_integral
-    return paths_geometry, paths_energy, paths_velocity, paths_force, paths_integral, paths_neval
+    return paths_time, paths_geometry, paths_energy, paths_velocity, paths_force, paths_loss, paths_integral, paths_neval
 
 
 if __name__ == "__main__":

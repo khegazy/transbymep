@@ -96,7 +96,7 @@ def initialize_path(
         times: torch.tensor,
         init_points: torch.tensor,
         lr: float = 0.001,
-        max_steps: int = 5000
+        max_steps: int = 10000 # 5000
 ) -> torch.tensor:
     """
     Initialize the path.
@@ -124,7 +124,8 @@ def initialize_path(
     print(path.named_parameters())
     optimizer = torch.optim.Adam(path.parameters(), lr=lr)
     idx, rel_error = 0, 100
-    while (idx < 1500 or loss > 1e-8) and idx < max_steps:
+    # while (idx < 1500 or loss > 1e-8) and idx < max_steps:
+    for idx in range(max_steps):
         optimizer.zero_grad()
 
         prev_loss = loss.item()
@@ -133,15 +134,21 @@ def initialize_path(
         loss.backward()
         optimizer.step()
         rel_error = np.abs(prev_loss - loss.item())/prev_loss
-        idx = idx + 1
-        # if idx % 250 == 0:
-        #     print(f"\tIteration {idx}: Loss {loss:.4} | Relative Error {rel_error:.5}")
+        # idx = idx + 1
+        if idx % 1000 == 0:
+            print(f"\tIteration {idx}: Loss {loss:.4} | Relative Error {rel_error:.5}")
         #     fig, ax = plt.subplots()
         #     path_output = path.get_path()
         #     geometric_path = path_output.geometric_path.detach().cpu().numpy()
         #     ax.plot(init_points[:,0], init_points[:,1], 'ob')
         #     ax.plot(geometric_path[:,0], geometric_path[:,1], '-k')
         #     fig.savefig(f"./plots/initialization/init_path_{idx}.png")
+        # if rel_error < 1e-8:
+        #     break
+        if loss.item() < 1e-2:
+            break
+    else:
+        raise ValueError(f"INFO: Maximum number of steps reached: {max_steps}")
 
         #print(prev_loss, loss, jnp.abs(prev_loss - loss)/prev_loss)
 

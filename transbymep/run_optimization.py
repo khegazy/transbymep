@@ -33,7 +33,8 @@ def optimize_MEP(
         # config: NamedTuple,
         # path_config: NamedTuple,
         # logger: NamedTuple
-        num_optimizer_iterations: int = 1000
+        num_optimizer_iterations: int = 1000,
+        device: str = 'cuda',
 ):
     """
     Run optimization process.
@@ -50,7 +51,7 @@ def optimize_MEP(
     print("Integrator Params", integrator_params)
     print("Optimizer Params", optimizer_params)
 
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    # device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
     # Create output directories
     # output_dir = os.path.join(args.output_dir, config.potential, config.optimizer)

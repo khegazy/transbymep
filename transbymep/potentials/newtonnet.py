@@ -3,15 +3,17 @@ from newtonnet.models import NewtonNet
 from newtonnet.layers.activations import get_activation_by_string
 from newtonnet.data import ExtensiveEnvironment
 from newtonnet.data import batch_dataset_converter
+from newtonnet.utils.ase_interface import MLAseCalculator
 import yaml
 from ase import units
 import os
 import numpy as np
 
-from .base_class import PotentialBase
+from .base_potential import BasePotential, PotentialOutput
 
-class NewtonNetPotential(PotentialBase):
-    def __init__(self, config_dir, model_path, numbers, **kwargs):
+class NewtonNetPotential(BasePotential):
+    # def __init__(self, config_dir, model_path, **kwargs):
+    def __init__(self, model_path, settings_path, **kwargs):
         """
         Constructor for NewtonNetPotential
 
@@ -26,15 +28,9 @@ class NewtonNetPotential(PotentialBase):
         kwargs
         """
         super().__init__(**kwargs)
-        # torch.set_default_tensor_type(torch.DoubleTensor)
-        # if type(model_path) is list:
-        #     self.models = [self.load_model(model_path_, settings_path_) for model_path_, settings_path_ in zip(model_path, settings_path)]
-        # else:
-        #     self.models = [self.load_model(model_path, settings_path)]
-        print(os.listdir())
-        self.model = self.load_model(os.path.join(config_dir, model_path))
-        self.numbers = np.array(numbers)
-        self.n_atoms = len(numbers)
+        # self.model = self.load_model(os.path.join(config_dir, model_path))
+        # self.model = self.load_model(model_path)
+        self.model = self.load_model(model_path, settings_path)
         self.n_eval = 0
 
     
@@ -42,14 +38,20 @@ class NewtonNetPotential(PotentialBase):
         data = self.data_formatter(points)
         pred = self.model(data)
         self.n_eval += 1
-        return pred['E'].squeeze(dim=-1) * (units.kcal/units.mol)
+        energy = pred['E'] * (units.kcal/units.mol)
+        force = pred['F'] * (units.kcal/units.mol/units.Ang)
+        energy = energy.view(-1)
+        force = force.view(*points.shape)
+        return PotentialOutput(energy=energy, force=force)
         
 
-    def load_model(self, model_path):
-        model = torch.load(model_path, map_location=self.device)
+    def load_model(self, model_path, settings_path):
+        # model = torch.load(model_path, map_location=self.device)
+        calc = MLAseCalculator(model_path, settings_path, device=self.device)
+        model = calc.models[0]
         model.eval()
         model.to(torch.float64)
-        model.to(self.device)
+        # model.to(self.device)
         model.requires_grad_(False)
         return model
     
@@ -57,7 +59,8 @@ class NewtonNetPotential(PotentialBase):
         n_data = pos.numel() // (self.n_atoms * 3)
         data  = {
             'R': pos.view(n_data, self.n_atoms, 3),
-            'Z': np.stack([self.numbers for _ in range(n_data)]),
+            'Z': self.numbers.repeat(n_data, 1).cpu().numpy(),
+            # 'Z': np.stack([self.numbers for _ in range(n_data)]),
             # 'E': torch.zeros((1, 1)),
             # 'F': torch.zeros((1, len(self.numbers), 3)),
         }
@@ -67,4 +70,6 @@ class NewtonNetPotential(PotentialBase):
         data['NM'] = torch.tensor(NM, device=self.device)
         data['AM'] = torch.tensor(AM, device=self.device)
         # data = batch_dataset_converter(data, device=self.device)
+        # print(data)
+        # raise ValueError
         return data

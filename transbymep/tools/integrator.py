@@ -26,6 +26,7 @@ class ODEintegrator(Metrics):
             computation='parallel',
             sample_type='uniform',
             remove_cut=0.1,
+            metric_parameters=None,
             process=None,
             is_multiprocess=False,
             is_load_balance=False,
@@ -33,6 +34,7 @@ class ODEintegrator(Metrics):
             max_batch=None,
             device=None,
         ):
+        super().__init__(metric_parameters)
         self.is_multiprocess = is_multiprocess
         self.is_load_balance = is_load_balance
         self.process = process

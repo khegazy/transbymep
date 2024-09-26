@@ -2,6 +2,12 @@ import torch
 
 class Metrics():
 
+    def __init__(self, fxn_parameters=None):
+        self.parameters = fxn_parameters
+
+    def update_metric_parameters(self, fxn_parameters):
+        self.parameters = fxn_parameters
+
     def _parse_input(
             self,
             # geo_val=None,
@@ -87,6 +93,20 @@ class Metrics():
         # return torch.abs(torch.sum(velocity*force, dim=-1, keepdim=True))
         Epvre = torch.abs(torch.sum(path_velocity*path_force, dim=-1, keepdim=True))
         return Epvre
+
+    def E_pvre_vre(self, **kwargs):
+        kwargs['requires_force'] = True
+        kwargs['requires_energy'] = True
+        kwargs['requires_velocity'] = True
+        # kwargs['fxn_name'] = self.E_pvre_vre.__name__
+        
+        # geo_val, velocity, pes_val, force = self._parse_input(**kwargs)
+        path_geometry, path_velocity, path_energy, path_force = self._parse_input(**kwargs)
+
+        vre = torch.linalg.norm(path_force, dim=-1, keepdim=True) * torch.linalg.norm(path_velocity, dim=-1, keepdim=True)
+        pvre = torch.abs(torch.sum(path_velocity*path_force, dim=-1, keepdim=True))
+        #print("IN LOSS", torch.sum(pvre), torch.sum(vre))
+        return self.parameters['vre_scale'] * vre + self.parameters['pvre_scale'] * pvre
 
     # def E_pvre_mag(self, **kwargs):
     #     kwargs['requires_force'] = True

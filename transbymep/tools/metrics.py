@@ -2,6 +2,12 @@ import torch
 
 class Metrics():
 
+    def __init__(self, fxn_parameters=None):
+        self.parameters = fxn_parameters
+
+    def update_metric_parameters(self, fxn_parameters):
+        self.parameters = fxn_parameters
+
     def _parse_input(
             geo_val=None,
             velocity=None,
@@ -47,7 +53,7 @@ class Metrics():
             return path_output.geometric_path, path_output.velocity,\
                 path_output.potential_path, path_output.force
         
-        message = f"Cannot parse input arguments to {fxn_name}, please use one of the following opitons\n"
+        message = f"Cannot parse input arguments to {fxn_name}, please use one of the following options\n"
         message += f"\t1) Provide geometric_path and potential path, and if needed velocity and/or force\n"
         message += f"\t2) Provide a PathOutput class\n"
         message += f"\t3) Provide the path calculator and the time(s) to be evaluated"
@@ -59,8 +65,8 @@ class Metrics():
         kwargs['fxn_name'] = self.E_vre.__name__
         geo_val, velocity, pes_val, force = self._parse_input(**kwargs)
         
-        Evre = torch.linalg.norm(force)*torch.linalg.norm(velocity)
-        return Evre.unsqueeze(1)
+        Evre = torch.linalg.norm(force, dim=-1)*torch.linalg.norm(velocity, dim=-1)
+        return Evre.unsqueeze(-1)
 
     def E_pvre(self, **kwargs):
         kwargs['requires_force'] = True
@@ -71,6 +77,18 @@ class Metrics():
         #print("E_pvre SHPES", kwargs['t'].shape, force.shape, torch.abs(torch.sum(velocity*force, dim=-1, keepdim=True)).shape) 
         #print(kwargs['t'].requires_grad, velocity.requires_grad, force.requires_grad)
         return torch.abs(torch.sum(velocity*force, dim=-1, keepdim=True))
+
+    def E_pvre_vre(self, **kwargs):
+        kwargs['requires_force'] = True
+        kwargs['requires_velocity'] = True
+        kwargs['fxn_name'] = self.E_pvre_vre.__name__
+        geo_val, velocity, pes_val, force = self._parse_input(**kwargs)
+
+        vre = self.E_vre(force=force, velocity=velocity, **kwargs)
+        pvre = self.E_pvre(force=force, velocity=velocity, **kwargs)
+        #print("IN LOSS", torch.sum(pvre), torch.sum(vre))
+        return self.parameters['vre_scale']*vre + self.parameters['pvre_scale']*pvre
+
 
     def E_pvre_mag(self, **kwargs):
         kwargs['requires_force'] = True

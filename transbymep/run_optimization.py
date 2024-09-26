@@ -29,6 +29,7 @@ def optimize_MEP(
         integrator_params: dict[str, Any] = {},
         optimizer_params: dict[str, Any] = {},
         scheduler_params: dict[str, Any] = {},
+        loss_scheduler_params: dict[str, Any] = {},
         # args: NamedTuple,
         # config: NamedTuple,
         # path_config: NamedTuple,
@@ -137,6 +138,10 @@ def optimize_MEP(
     optimizer = optimization.PathOptimizer(path=path, **optimizer_params, device=device)
     if scheduler_params:
         optimizer.set_scheduler(**scheduler_params)
+    if loss_scheduler_params:
+        optimizer.set_loss_scheduler(**loss_scheduler_params)
+        metric_parameters = {key: loss_scheduler.get_value() for key, loss_scheduler in optimizer.loss_scheduler.items()}
+        integrator.update_metric_parameters(metric_parameters)
         
 
     # Loss

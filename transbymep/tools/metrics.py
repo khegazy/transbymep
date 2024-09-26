@@ -103,10 +103,10 @@ class Metrics():
         # geo_val, velocity, pes_val, force = self._parse_input(**kwargs)
         path_geometry, path_velocity, path_energy, path_force = self._parse_input(**kwargs)
 
-        vre = torch.linalg.norm(path_force, dim=-1, keepdim=True) * torch.linalg.norm(path_velocity, dim=-1, keepdim=True)
-        pvre = torch.abs(torch.sum(path_velocity*path_force, dim=-1, keepdim=True))
+        Evre = torch.linalg.norm(path_force, dim=-1, keepdim=True) * torch.linalg.norm(path_velocity, dim=-1, keepdim=True)
+        Epvre = torch.abs(torch.sum(path_velocity*path_force, dim=-1, keepdim=True))
         #print("IN LOSS", torch.sum(pvre), torch.sum(vre))
-        return self.parameters['vre_scale'] * vre + self.parameters['pvre_scale'] * pvre
+        return self.parameters['vre_scale'] * Evre + self.parameters['pvre_scale'] * Epvre
 
     # def E_pvre_mag(self, **kwargs):
     #     kwargs['requires_force'] = True

@@ -3,6 +3,7 @@ import yaml
 import torch
 from torch import optim
 from torch.optim import lr_scheduler
+from transbymep.tools import scheduler
 
 optimizer_dict = {
     "sgd" : optim.SGD,
@@ -14,7 +15,13 @@ scheduler_dict = {
     "multi_step" : lr_scheduler.MultiStepLR,
     "exponential" : lr_scheduler.ExponentialLR,
     "cosine" : lr_scheduler.CosineAnnealingLR,
-    "plateau" : lr_scheduler.ReduceLROnPlateau
+    "reduce_on_plateau" : lr_scheduler.ReduceLROnPlateau
+}
+loss_scheduler_dict = {
+    "linear" : scheduler.Linear,
+    "cosine" : scheduler.Cosine,
+    "reduce_on_plateau" : scheduler.ReduceOnPlateau,
+    "increase_on_plateau" : scheduler.IncreaseOnPlateau
 }
 
 class PathOptimizer():
@@ -63,6 +70,7 @@ class PathOptimizer():
         # Initialize optimizer
         self.optimizer = optimizer_dict[name](path.parameters(), **config)
         self.scheduler = None
+        self.loss_scheduler = None
         self.converged = False
 
     def set_scheduler(self, name, **config):
@@ -70,6 +78,17 @@ class PathOptimizer():
         if name not in scheduler_dict:
             raise ValueError(f"Cannot handle scheduler type {name}, either add it to scheduler_dict or use {list(scheduler_dict.keys())}")
         self.scheduler = scheduler_dict[name](self.optimizer, **config)
+
+    def set_loss_scheduler(self, **kwargs):
+        self.loss_scheduler = {}
+        for key, value in kwargs.items():
+            name = value.pop('name').lower()
+            if name not in loss_scheduler_dict:
+                raise ValueError(f"Cannot handle loss scheduler type {name}, either add it to loss_scheduler_dict or use {list(loss_scheduler_dict.keys())}")
+            if name == "reduce_on_plateau" or name == "increase_on_plateau":
+                self.loss_scheduler[key] = loss_scheduler_dict[name](lr_scheduler=self.scheduler, **value)
+            else:
+                self.loss_scheduler[key] = loss_scheduler_dict[name](**value)
     
     # def _import_optimizer_config(
     #         self,
@@ -121,6 +140,12 @@ class PathOptimizer():
                     self.converged = True
             else:
                 self.scheduler.step()
+        if self.loss_scheduler is not None:
+            for key, loss_scheduler in self.loss_scheduler.items():
+                loss_scheduler.step()
+            metric_parameters = {key: loss_scheduler.get_value() for key, loss_scheduler in self.loss_scheduler.items()}
+            integrator.update_metric_parameters(metric_parameters)
+            print(metric_parameters)
         return path_integral
 
     

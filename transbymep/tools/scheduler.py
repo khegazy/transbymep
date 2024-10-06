@@ -28,13 +28,15 @@ class Linear(Scheduler):
         return self.value * (self.start_factor + (self.end_factor - self.start_factor) * min(self.last_epoch, self.total_iters) / self.total_iters)
     
 class Cosine(Scheduler):
-    def __init__(self, value, T_max, eta_min=0, last_epoch=-1):
-        self.T_max = T_max
-        self.eta_min = eta_min
+    def __init__(self, value, start_factor, end_factor, total_iters, last_epoch=-1):
+        self.start_factor = start_factor
+        self.end_factor = end_factor
+        self.total_iters = total_iters
         super().__init__(value, last_epoch)
     
     def _get_closed_form(self):
-        return self.eta_min + (self.value - self.eta_min) * (1 + math.cos(math.pi * self.last_epoch / self.T_max)) / 2
+        # return self.eta_min + (self.value - self.eta_min) * (1 + math.cos(math.pi * self.last_epoch / self.T_max)) / 2
+        return self.value * (self.end_factor + (self.start_factor - self.end_factor) * (1 + math.cos(math.pi * self.last_epoch / self.total_iters)) / 2)
     
 class ReduceOnPlateau(Scheduler):
     def __init__(self, value, lr_scheduler, factor=0.1, last_epoch=-1):

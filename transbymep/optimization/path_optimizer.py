@@ -12,6 +12,7 @@ optimizer_dict = {
 }
 scheduler_dict = {
     "step" : lr_scheduler.StepLR,
+    "linear" : lr_scheduler.LinearLR,
     "multi_step" : lr_scheduler.MultiStepLR,
     "exponential" : lr_scheduler.ExponentialLR,
     "cosine" : lr_scheduler.CosineAnnealingLR,

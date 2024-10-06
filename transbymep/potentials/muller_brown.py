@@ -1,5 +1,5 @@
 import torch
-from .base_potential import BasePotential
+from .base_potential import BasePotential, PotentialOutput
 
 
 class MullerBrown(BasePotential):
@@ -23,4 +23,4 @@ class MullerBrown(BasePotential):
             d = self.di[i]*(y - self.yi[i])*(y - self.yi[i])
             total += self.ai[i]*torch.exp(b + c + d)
 
-        return  total
+        return PotentialOutput(energy=total, force=None)

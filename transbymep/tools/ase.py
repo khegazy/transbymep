@@ -23,15 +23,17 @@ def read_atoms(atoms):
     positions = torch.tensor(atoms.get_positions(), dtype=torch.float64)
     numbers = torch.tensor(atoms.get_atomic_numbers(), dtype=torch.int64)
     pbc = torch.tensor(atoms.get_pbc(), dtype=torch.bool)
-    cell = torch.tensor(atoms.get_cell(), dtype=torch.float64)
+    cell = torch.tensor(atoms.get_cell().array, dtype=torch.float64)
     n_atoms = len(atoms)
+    tags = torch.tensor(atoms.get_tags(), dtype=torch.int64)
 
     return {
         "positions": positions,
         "numbers": numbers,
         "pbc": pbc,
         "cell": cell,
-        "n_atoms": n_atoms
+        "n_atoms": n_atoms,
+        "tags": tags,
     }
     
 

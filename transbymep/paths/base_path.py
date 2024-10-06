@@ -134,6 +134,7 @@ class BasePath(torch.nn.Module):
             assert (initial_atoms.get_atomic_numbers() == final_atoms.get_atomic_numbers()).all(), "Initial and final points must have the same atomic numbers."
             assert (initial_atoms.get_pbc() == final_atoms.get_pbc()).all(), "Initial and final points must have the same periodic boundary conditions."
             assert (initial_atoms.get_cell() == final_atoms.get_cell()).all(), "Initial and final points must have the same cell."
+            assert (initial_atoms.get_tags() == final_atoms.get_tags()).all(), "Initial and final points must have the same tags."
             initial_dict = read_atoms(initial_atoms)
             final_dict = read_atoms(final_atoms)
             self.initial_point = initial_dict["positions"].flatten().to(device)
@@ -141,12 +142,14 @@ class BasePath(torch.nn.Module):
             self.numbers = initial_dict["numbers"].to(device)
             self.pbc = initial_dict["pbc"].to(device)
             self.cell = initial_dict["cell"].to(device)
+            self.tags = initial_dict["tags"].to(device)
             self.n_atoms = initial_dict["n_atoms"]
             self.potential.numbers = self.numbers
             self.potential.pbc = self.pbc
             self.potential.cell = self.cell
             self.potential.n_atoms = self.n_atoms
             self.vec = pair_displacement(initial_atoms, final_atoms).flatten().to(device)
+            self.potential.tags = self.tags
             self.transform = self.wrap_points if self.pbc.any() else None
         else:
             raise ValueError("Invalid type for initial_point and final_point.")
@@ -154,12 +157,14 @@ class BasePath(torch.nn.Module):
     def wrap_points(
             self, 
             points: torch.Tensor,
+            center: float = 0
     ) -> torch.Tensor:
         """PyTorch implementation of ase.geometry.wrap_positions function."""
 
         fractional = torch.linalg.solve(self.cell.T, points.view(*points.shape[:-1], self.n_atoms, 3).transpose(-1, -2)).transpose(-1, -2)
 
-        fractional[..., :, self.pbc] %= 1.0
+        # fractional[..., :, self.pbc] %= 1.0
+        fractional = (fractional + center) % 1.0 - center    # TODO: Modify this to handle partially true PBCs
 
         return torch.matmul(fractional, self.cell).view(*points.shape)
 
@@ -254,6 +259,8 @@ class BasePath(torch.nn.Module):
         #     raise ValueError("Too many evaluations!")
 
         path_geometry = self.get_geometry(t)
+        # print("MEMORY before MLIP")
+        # print(torch.cuda.memory_allocated(), torch.cuda.memory_reserved())
         if self.transform is not None:
             path_geometry = self.transform(path_geometry)
         # traj = [Atoms(
@@ -264,8 +271,10 @@ class BasePath(torch.nn.Module):
         #     ) for pos in geo_path]
         # write("test.xyz", traj)
         # raise ValueError("STOP")
-        if return_energy:
+        if return_energy or return_force:
             potential_output = self.potential(path_geometry)
+
+        if return_energy:
             path_energy = potential_output.energy
         else:
             path_energy = None
@@ -313,6 +322,12 @@ class BasePath(torch.nn.Module):
             #print("VEL F OUTPUT", velocity.shape, force.shape)
         else:
             path_velocity = None
+
+        if return_energy or return_force:
+            del potential_output
+
+        # print("MEMORY after MLIP")
+        # print(torch.cuda.memory_allocated(), torch.cuda.memory_reserved())
         
         return PathOutput(
             times=t,

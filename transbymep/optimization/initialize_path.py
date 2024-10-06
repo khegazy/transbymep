@@ -88,7 +88,12 @@ def loss_init(
     """
     preds = path.get_path(times).path_geometry
     assert preds.shape == points.shape, f"Shapes do not match: {preds.shape} != {points.shape}"
-    return torch.mean((points - preds)**2)
+    disp = points - preds
+    if path.transform is not None:
+        disp = path.transform(disp, center=0.5)
+    return torch.mean(disp ** 2)
+    
+    
 
 
 def initialize_path(
@@ -148,7 +153,8 @@ def initialize_path(
         if loss.item() < 1e-2:
             break
     else:
-        raise ValueError(f"INFO: Maximum number of steps reached: {max_steps}")
+        # raise ValueError(f"INFO: Maximum number of steps reached: {max_steps}")
+        pass
 
         #print(prev_loss, loss, jnp.abs(prev_loss - loss)/prev_loss)
 

@@ -53,6 +53,7 @@ def optimize_MEP(
     print("Optimizer Params", optimizer_params)
 
     # device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    torch.manual_seed(42)
 
     # Create output directories
     # output_dir = os.path.join(args.output_dir, config.potential, config.optimizer)
@@ -66,6 +67,8 @@ def optimize_MEP(
         plot_dir = os.path.join(output_dir, "plots")
         if not os.path.exists(plot_dir):
             os.makedirs(plot_dir)
+
+    # ase.io.write("input.xyz", images)
     
     #####  Get chemical potential  #####
     # potential = get_potential(
@@ -114,6 +117,13 @@ def optimize_MEP(
             times=torch.linspace(0, 1, len(images), device=device), 
             init_points=torch.tensor([image.positions.flatten() for image in images], device=device),
             )
+        # traj = []
+        # for image, im in zip(images, path.get_path(torch.linspace(0, 1, len(images), device=device)).path_geometry.detach().to('cpu').numpy()):
+        #     atoms = image.copy()
+        #     atoms.set_positions(im.reshape(-1, 3))
+        #     traj.append(atoms)
+        # ase.io.write("init_path.xyz", traj)
+        # raise ValueError("Path initialization not implemented")
         # path.mlp.requires_grad_(False)
         # path = paths.get_path(potential=potential, initial_point=images[0], final_point=images[-1], **path_params, device=device, base=path)
 
@@ -121,8 +131,13 @@ def optimize_MEP(
     # Path integrating function
     # print("int params", config.integral_params)
     # integrator = tools.ODEintegrator(**config.integral_params, device=config.device)
-    integrator = tools.ODEintegrator(**integrator_params, device=device)
+    integrator = tools.ODEintegrator(**integrator_params, device=device, max_batch=2048//path.n_atoms)
     #print("test integrate", integrator.path_integral(path, 'E_pvre'))
+
+    potential.trainer.model.molecular_graph_cfg.max_num_nodes_per_batch = path.n_atoms
+    potential.trainer.model.global_cfg.batch_size = integrator._integrator.max_batch
+    # potential.trainer.model.global_cfg.use_export = False
+    # potential.trainer.model.global_cfg.use_compile = False
 
     # Gradient descent path optimizer
     # optimizer = optimization.PathOptimizer(
@@ -178,6 +193,14 @@ def optimize_MEP(
             # neval = path.neval
             # wandb.log({"optim_idx": optim_idx, "neval": neval, "loss": np.nan})
             raise e
+
+        paths_integral.append(path_integral.integral.item())
+        paths_neval.append(neval)
+        paths_time.append(path_integral.t.flatten().detach().to('cpu').numpy())
+        paths_loss.append(path_integral.y.flatten().detach().to('cpu').numpy())
+        time = path_integral.t.detach()
+
+        del path_integral
         
         # if optim_idx%250 == 0:
         #     print("EVAL TIME", (time.time()-t0)/60)
@@ -214,20 +237,19 @@ def optimize_MEP(
         #     ase.io.write(os.path.join(plot_dir, f"traj_{optim_idx:03d}.xyz"), traj)
 
         path_geometry, path_energy, path_velocity, path_force = [], [], [], []
-        for t in path_integral.t:
+        for t in time:
+            # print("t", t)
+            # with torch.no_grad():
             path_output = path.get_path(t, return_velocity=True, return_energy=True, return_force=True)
             path_geometry.append(path_output.path_geometry.detach().to('cpu').numpy())
             path_energy.append(path_output.path_energy.detach().to('cpu').numpy())
             path_velocity.append(path_output.path_velocity.detach().to('cpu').numpy())
             path_force.append(path_output.path_force.detach().to('cpu').numpy())
-        paths_time.append(path_integral.t.flatten().detach().to('cpu').numpy())
+            del path_output
         paths_geometry.append(np.concatenate(path_geometry))
         paths_energy.append(np.concatenate(path_energy))
         paths_velocity.append(np.concatenate(path_velocity))
         paths_force.append(np.concatenate(path_force))
-        paths_loss.append(path_integral.y.flatten().detach().to('cpu').numpy())
-        paths_integral.append(path_integral.integral.item())
-        paths_neval.append(neval)
 
         if optimizer.converged:
             print(f"Converged at step {optim_idx}")

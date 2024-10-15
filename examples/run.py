@@ -19,20 +19,10 @@ if __name__ == "__main__":
     #####  Setup environment  #####
     ###############################
 
-    arg_parser = tools.build_default_arg_parser()
-    args = arg_parser.parse_args()
-    logger = tools.logging()
     torch.manual_seed(42)
     # wandb.init(project="Geodesic_Sella")
 
     # Import configuration files
-    print(args.name, args.path_tag, args.tag)
-    config = tools.import_run_config(
-        args.name, path_tag=args.path_tag, tag=args.tag, flags=args
-    )
+    config = tools.import_run_config('configs/wolfe.yaml')
 
-    path_config = tools.import_path_config(
-        config, path_tag=args.path_tag
-    )
-
-    path_integral = optimize_MEP(args, config, path_config, logger)
+    paths_time, paths_geometry, paths_energy, paths_velocity, paths_force, paths_loss, paths_integral, paths_neval = optimize_MEP(**config)

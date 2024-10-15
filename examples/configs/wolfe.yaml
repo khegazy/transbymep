@@ -1,0 +1,25 @@
+images: [[1.133, -1.486], [-1.166, 1.477]]
+
+potential_params:
+    potential: wolfe_schlegel
+
+path_params:
+    name: mlp
+    n_embed : 8
+    depth : 4
+
+integrator_params:
+    method : dopri5
+    rtol : 1.0e-5
+    atol : 1.0e-5
+    computation : parallel
+    sample_type : uniform
+
+optimizer_params:
+    name: adam
+    loss_name: E_pvre
+    lr : 1.0e-3    
+
+device: cpu
+
+num_optimizer_iterations: 100

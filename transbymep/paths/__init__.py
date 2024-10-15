@@ -1,11 +1,13 @@
 from .mlp import MLPpath
 from .b_spline import BSpline
 from .elastic_band import ElasticBand
+from .bezier import Bezier
 
 path_dict = {
     "elastic_band" : ElasticBand,
     "mlp" : MLPpath,
-    "bspline" : BSpline
+    "bspline" : BSpline,
+    "bezier" : Bezier,
 }
 
 def get_path(name, potential, initial_point, final_point, device='cuda', **config):

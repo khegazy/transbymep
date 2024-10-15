@@ -146,7 +146,7 @@ class PathOptimizer():
                 loss_scheduler.step()
             metric_parameters = {key: loss_scheduler.get_value() for key, loss_scheduler in self.loss_scheduler.items()}
             integrator.update_metric_parameters(metric_parameters)
-            print(metric_parameters)
+            # print(metric_parameters)
         return path_integral
 
     

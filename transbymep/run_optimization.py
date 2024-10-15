@@ -131,11 +131,12 @@ def optimize_MEP(
     # Path integrating function
     # print("int params", config.integral_params)
     # integrator = tools.ODEintegrator(**config.integral_params, device=config.device)
-    integrator = tools.ODEintegrator(**integrator_params, device=device, max_batch=2048//path.n_atoms)
+    integrator = tools.ODEintegrator(**integrator_params, device=device)
+    # integrator = tools.ODEintegrator(**integrator_params, device=device, max_batch=2048//path.n_atoms)
     #print("test integrate", integrator.path_integral(path, 'E_pvre'))
 
-    potential.trainer.model.molecular_graph_cfg.max_num_nodes_per_batch = path.n_atoms
-    potential.trainer.model.global_cfg.batch_size = integrator._integrator.max_batch
+    # potential.trainer.model.molecular_graph_cfg.max_num_nodes_per_batch = path.n_atoms
+    # potential.trainer.model.global_cfg.batch_size = integrator._integrator.max_batch
     # potential.trainer.model.global_cfg.use_export = False
     # potential.trainer.model.global_cfg.use_compile = False
 
@@ -185,7 +186,7 @@ def optimize_MEP(
         try:
             path_integral = optimizer.optimization_step(path, integrator)
             neval = path.neval
-            print(f'n_eval: {neval}, loss: {path_integral.integral.item()}, lr: {optimizer.optimizer.param_groups[0]["lr"]}')
+            # print(f'n_eval: {neval}, loss: {path_integral.integral.item()}, lr: {optimizer.optimizer.param_groups[0]["lr"]}')
             # df.loc[optim_idx] = [optim_idx, neval, path_integral.integral.item()]
             # wandb.log({"optim_idx": optim_idx, "neval": neval, "loss": path_integral.integral.item()})
         except ValueError as e:

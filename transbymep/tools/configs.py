@@ -112,7 +112,6 @@ def import_run_config(
     #     print(config.device)
     #     print(flags.device)
     #     config.device = flags.device
-
     return config
 
 

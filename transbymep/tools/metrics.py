@@ -53,7 +53,7 @@ class Metrics():
             path_output = path(t, return_velocity=requires_velocity, return_energy=requires_energy, return_force=requires_force)
             return path_output.path_geometry, path_output.path_velocity, path_output.path_energy, path_output.path_force
         
-        message = f"Cannot parse input arguments to {fxn_name}, please use one of the following opitons\n"
+        message = f"Cannot parse input arguments to {fxn_name}, please use one of the following options\n"
         message += f"\t1) Provide geometric_path and potential path, and if needed velocity and/or force\n"
         message += f"\t2) Provide a PathOutput class\n"
         message += f"\t3) Provide the path calculator and the time(s) to be evaluated"
@@ -104,6 +104,18 @@ class Metrics():
         Epvre = torch.abs(torch.sum(path_velocity*path_force, dim=-1, keepdim=True))
         #print("IN LOSS", torch.sum(pvre), torch.sum(vre))
         return self.parameters['vre_scale'] * Evre + self.parameters['pvre_scale'] * Epvre
+
+    def E_pvre_vre(self, **kwargs):
+        kwargs['requires_force'] = True
+        kwargs['requires_velocity'] = True
+        kwargs['fxn_name'] = self.E_pvre_vre.__name__
+        geo_val, velocity, pes_val, force = self._parse_input(**kwargs)
+
+        vre = self.E_vre(force=force, velocity=velocity, **kwargs)
+        pvre = self.E_pvre(force=force, velocity=velocity, **kwargs)
+        #print("IN LOSS", torch.sum(pvre), torch.sum(vre))
+        return self.parameters['vre_scale']*vre + self.parameters['pvre_scale']*pvre
+
 
     def E_pvre_mag(self, **kwargs):
         kwargs['requires_force'] = True

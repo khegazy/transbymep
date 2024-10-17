@@ -1,18 +1,11 @@
 import torch
-from newtonnet.models import NewtonNet
-from newtonnet.layers.activations import get_activation_by_string
 from newtonnet.data import ExtensiveEnvironment
-from newtonnet.data import batch_dataset_converter
 from newtonnet.utils.ase_interface import MLAseCalculator
-import yaml
 from ase import units
-import os
-import numpy as np
 
 from .base_potential import BasePotential, PotentialOutput
 
 class NewtonNetPotential(BasePotential):
-    # def __init__(self, config_dir, model_path, **kwargs):
     def __init__(self, model_path, settings_path, **kwargs):
         """
         Constructor for NewtonNetPotential
@@ -28,8 +21,6 @@ class NewtonNetPotential(BasePotential):
         kwargs
         """
         super().__init__(**kwargs)
-        # self.model = self.load_model(os.path.join(config_dir, model_path))
-        # self.model = self.load_model(model_path)
         self.model = self.load_model(model_path, settings_path)
         self.n_eval = 0
 
@@ -46,12 +37,10 @@ class NewtonNetPotential(BasePotential):
         
 
     def load_model(self, model_path, settings_path):
-        # model = torch.load(model_path, map_location=self.device)
         calc = MLAseCalculator(model_path, settings_path, device=self.device)
         model = calc.models[0]
         model.eval()
         model.to(torch.float64)
-        # model.to(self.device)
         model.requires_grad_(False)
         return model
     
@@ -69,7 +58,4 @@ class NewtonNetPotential(BasePotential):
         data['N'] = torch.tensor(N, device=self.device)
         data['NM'] = torch.tensor(NM, device=self.device)
         data['AM'] = torch.tensor(AM, device=self.device)
-        # data = batch_dataset_converter(data, device=self.device)
-        # print(data)
-        # raise ValueError
         return data

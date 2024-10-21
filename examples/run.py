@@ -1,3 +1,4 @@
+from ase.io import read
 from transbymep import tools, optimize_MEP
 
 
@@ -7,6 +8,7 @@ if __name__ == "__main__":
     ###############################
 
     # Import configuration files
-    config = tools.import_run_config('configs/wolfe.yaml')
+    args = tools.build_default_arg_parser().parse_args()
+    config = tools.import_run_config(args.config)
 
     output = optimize_MEP(**config)

@@ -8,7 +8,8 @@ from matplotlib import pyplot as plt
 import time as time
 from tqdm import tqdm
 import wandb
-import ase, ase.io
+from ase import Atoms
+from ase.io import read, write
 from typing import NamedTuple
 from dataclasses import dataclass
 
@@ -33,7 +34,7 @@ class OptimizationOutput():
 
 
 def optimize_MEP(
-        images: list[ase.Atoms],
+        images: list[Atoms],
         output_dir: str | None = None,
         potential_params: dict[str, Any] = {},
         path_params: dict[str, Any] = {},
@@ -143,6 +144,31 @@ def optimize_MEP(
         paths_energy.append(np.concatenate(path_energy))
         paths_velocity.append(np.concatenate(path_velocity))
         paths_force.append(np.concatenate(path_force))
+        if optim_idx % 50 == 0:
+            if log_dir is not None:
+                log_filename = os.path.join(log_dir, f"output_{optim_idx}.npz")
+                np.savez(
+                    log_filename, 
+                    path_times=paths_time[-1],
+                    path_geometry=paths_geometry[-1],
+                    path_energy=paths_energy[-1],
+                    path_velocity=paths_velocity[-1],
+                    path_force=paths_force[-1],
+                    path_loss=paths_loss[-1],
+                    path_integral=paths_integral[-1],
+                    path_neval=paths_neval[-1],
+                )
+            if plot_dir is not None:
+                plot_filename = os.path.join(plot_dir, f"output_{optim_idx}.png")
+                visualize.plot_path(
+                    plot_filename,
+                    time=paths_time[-1],
+                    geometry=paths_geometry[-1],
+                    energy=paths_energy[-1],
+                    velocity=paths_velocity[-1],
+                    force=paths_force[-1],
+                    loss=paths_loss[-1],
+                )
 
         if optimizer.converged:
             print(f"Converged at step {optim_idx}")

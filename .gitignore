@@ -70,3 +70,6 @@ venv.bak/
 
 *.png
 *old*
+
+# Output files
+examples/output/

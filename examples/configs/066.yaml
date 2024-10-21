@@ -24,12 +24,12 @@ loss_scheduler_params:
     name: cosine
     start_factor: 0.0
     end_factor: 1.0
-    total_iters: 1000
+    total_iters: 1001
   pvre_scale:
     value: 1.0
     name: cosine
     start_factor: 1.0
     end_factor: 0.0
-    total_iters: 1000
-num_optimizer_iterations: 1000
+    total_iters: 1001
+num_optimizer_iterations: 1001
 output_dir: output

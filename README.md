@@ -7,5 +7,5 @@ pip install -e .[dev]
 
 To run one must select the name of a config file. For example, under the `example` folder: 
 ```
-python run.py -c configs/002.yaml
+python run.py -c configs/066.yaml
 ```

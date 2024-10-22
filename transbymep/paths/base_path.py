@@ -248,9 +248,28 @@ class BasePath(torch.nn.Module):
                     grad_outputs=torch.ones_like(path_energy),
                     create_graph=self.training,
                 )[0]
+                #print("SHAPES", pes_path.shape, len(pes_path.shape), torch.ones(0), geo_path.shape)
+                #print("CHECK IS GRADS BATCHD FOR LEN > 0")
+                # force = torch.autograd.grad(
+                #     torch.sum(pes_path),
+                #     geo_path,
+                #     create_graph=self.training,
+                # )[0]
+                #print("LEN F", len(force), force[0].shape)
+                # if not is_batched:
+                #     force = torch.unsqueeze(force, 0)
+                #print("FORCES", force.shape)
         else:
             path_force = None
         if return_velocity:
+            #print("VEL SHAPES", geo_path.shape, t.shape)
+            # if is_batched:
+            #     fxn = lambda t: torch.sum(self.geometric_path(t), axis=0)
+            # else:
+            #     fxn = lambda t: self.geometric_path(t)
+            # velocity = torch.autograd.functional.jacobian(
+            #     fxn, t, create_graph=self.training, vectorize=is_batched
+            # )
             path_velocity = torch.autograd.functional.jacobian(
                 lambda t: torch.sum(self.get_geometry(t), axis=0), t, create_graph=self.training, vectorize=True
             ).transpose(0, 1)[:, :, 0]

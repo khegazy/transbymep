@@ -21,6 +21,7 @@ def test_parallel_integrators(tmp_path, monkeypatch, config, expected_path_integ
     args = argparse.Namespace(**input_dict)
     file_dir = os.path.dirname(os.path.abspath(__file__))
     monkeypatch.chdir(tmp_path)
+    # logger = tools.logging()
 
     # Get run config
     config = tools.import_run_config(

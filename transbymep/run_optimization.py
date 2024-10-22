@@ -92,6 +92,10 @@ def optimize_MEP(
     path = paths.get_path(potential=potential, initial_point=images[0], final_point=images[-1], **path_params, device=device)
 
     # Randomly initialize the path, otherwise a straight line
+    # if args.randomly_initialize_path is not None:
+    #     path = optimization.randomly_initialize_path(
+    #         path, args.randomly_initialize_path
+    #     )
     if len(images) > 2:
         path = initialize_path(
             path=path, 

@@ -18,11 +18,15 @@ class MLPDISTpath(BasePath):
         n_embed: int = 32,
         depth: int = 3,
         base: BasePath = None,
+        mode: str = 'dist',
         **kwargs,
     ):
         super().__init__(**kwargs)
 
         self.ind = torch.triu_indices(self.n_atoms + 4, self.n_atoms + 4, 1)
+        # self.ind = torch.triu_indices(self.n_atoms, self.n_atoms, 1)
+        self.mode = mode
+        assert self.mode in ['dist', 'invdist'], f"Invalid mode: {self.mode}"
         self.initial_point = self.cart_to_dist(self.initial_point[None, :]).squeeze(0)
         self.final_point = self.cart_to_dist(self.final_point[None, :]).squeeze(0)
 
@@ -57,6 +61,7 @@ class MLPDISTpath(BasePath):
         mlp_out = self.mlp(time) - (1 - time) * self.mlp(self.t_init) - time * self.mlp(self.t_final)
         out = self.base.get_geometry(time) + mlp_out
         out = self.dist_to_cart(out)
+        out = out.reshape(out.shape[0], -1)
         return out
     
     def cart_to_dist(self, cart):
@@ -73,7 +78,7 @@ class MLPDISTpath(BasePath):
         n_atoms = self.n_atoms
 
         # Reshape Cartesian coordinates
-        cart = cart.view(n_data, n_atoms, 3)
+        cart = cart.reshape(n_data, n_atoms, 3)
 
         # Define reference axes of [[0, 0, 0], [1, 0, 0], [0, 1, 0], [0, 0, 1]]
         axis = torch.zeros(n_data, 4, 3, device=self.device, dtype=cart.dtype)
@@ -84,6 +89,8 @@ class MLPDISTpath(BasePath):
 
         # Calculate pairwise distances
         dist = torch.norm(cart[:, self.ind[0], :] - cart[:, self.ind[1], :], dim=2)
+        if self.mode == 'invdist':
+            dist = 1 / dist
         return dist
     
     def dist_to_cart(self, dist):
@@ -99,18 +106,26 @@ class MLPDISTpath(BasePath):
         n_data = dist.shape[0]
         n_atoms = self.n_atoms
 
+        # Process inverse distances
+        if self.mode == 'invdist':
+            dist = 1 / dist
+
         # Reshape pairwise distances
         dist_full = torch.zeros(n_data, n_atoms + 4, n_atoms + 4, device=self.device, dtype=dist.dtype)
+        # dist_full = torch.zeros(n_data, n_atoms, n_atoms, device=self.device, dtype=dist.dtype)
         dist_full[:, self.ind[0], self.ind[1]] = dist
         dist_full[:, self.ind[1], self.ind[0]] = dist
 
         # Calculate Cartesian coordinates
         center = torch.eye(n_atoms + 4, device=self.device, dtype=dist.dtype)
         center = center - 1 / (n_atoms + 4)
+        # center = torch.eye(n_atoms, device=self.device, dtype=dist.dtype)
+        # center = center - 1 / n_atoms
         center = center[None, :, :]
         eigvals, eigvecs = torch.linalg.eigh(- 0.5 * center @ (dist_full ** 2) @ center)
         cart = eigvals[:, None, -3:].sqrt() * eigvecs[:, :, -3:]
         cart = cart.reshape(n_data, n_atoms + 4, 3)
+        # cart = cart.reshape(n_data, n_atoms, 3)
 
         # Reconstruct reference axes
         cart = cart[:, 1:, :] - cart[:, :1, :]    # Subtract origin

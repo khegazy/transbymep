@@ -74,6 +74,8 @@ def optimize_MEP(
             os.makedirs(plot_dir)
     
     #####  Get chemical potential  #####
+    #     add_azimuthal_dof=args.add_azimuthal_dof,
+    #     add_translation_dof=args.add_translation_dof,
     potential = get_potential(**potential_params, device=device)
 
     #####  Get path prediction method  #####

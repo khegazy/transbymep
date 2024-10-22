@@ -34,7 +34,7 @@ class OptimizationOutput():
 
 
 def optimize_MEP(
-        images: list[Atoms],
+        images: str | list[Atoms],
         output_dir: str | None = None,
         potential_params: dict[str, Any] = {},
         path_params: dict[str, Any] = {},
@@ -77,6 +77,8 @@ def optimize_MEP(
     potential = get_potential(**potential_params, device=device)
 
     #####  Get path prediction method  #####
+    if isinstance(images, str) and images.endswith('.xyz'):
+        images = read(images, index=':')
     path = paths.get_path(potential=potential, initial_point=images[0], final_point=images[-1], **path_params, device=device)
 
     # Randomly initialize the path, otherwise a straight line
@@ -145,7 +147,7 @@ def optimize_MEP(
         paths_velocity.append(np.concatenate(path_velocity))
         paths_force.append(np.concatenate(path_force))
         if optim_idx % 50 == 0:
-            if log_dir is not None:
+            if output_dir is not None:
                 log_filename = os.path.join(log_dir, f"output_{optim_idx}.npz")
                 np.savez(
                     log_filename, 
@@ -158,7 +160,7 @@ def optimize_MEP(
                     path_integral=paths_integral[-1],
                     path_neval=paths_neval[-1],
                 )
-            if plot_dir is not None:
+            if output_dir is not None:
                 plot_filename = os.path.join(plot_dir, f"output_{optim_idx}.png")
                 visualize.plot_path(
                     plot_filename,

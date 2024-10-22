@@ -181,6 +181,33 @@ def _plot_path(
 
 
 def plot_path(
+        file_name,
+        time,
+        geometry,
+        energy,
+        velocity,
+        force,
+        loss,
+    ):
+    fig, axs = plt.subplots(6, 1, figsize=(4, 6), sharex=True)
+    axs[0].plot(time)
+    axs[0].set_ylabel('Time')
+    axs[1].plot(np.linalg.norm(geometry, axis=1))
+    axs[1].set_ylabel('Geometry')
+    axs[2].plot(energy)
+    axs[2].set_ylabel('Energy')
+    axs[3].plot(np.linalg.norm(velocity, axis=1))
+    axs[3].set_ylabel('Velocity')
+    axs[4].plot(np.linalg.norm(force, axis=1))
+    axs[4].set_ylabel('Force')
+    axs[5].plot(loss)
+    axs[5].set_ylabel('Loss')
+    axs[5].set_xlabel('Index')
+    plt.savefig(file_name, bbox_inches='tight')
+    plt.close()
+
+
+def plot_path_2d(
         path,
         name,
         pes_fxn=None,

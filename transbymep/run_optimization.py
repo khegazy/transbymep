@@ -8,8 +8,10 @@ from matplotlib import pyplot as plt
 import time as time
 from tqdm import tqdm
 import wandb
-import ase, ase.io
+from ase import Atoms
+from ase.io import read, write
 from typing import NamedTuple
+from dataclasses import dataclass
 
 from transbymep import tools
 from transbymep import paths
@@ -19,21 +21,27 @@ from transbymep.tools import visualize
 from transbymep.potentials import get_potential
 
 
+@dataclass
+class OptimizationOutput():
+    paths_time: list[np.ndarray]
+    paths_geometry: list[np.ndarray]
+    paths_energy: list[np.ndarray]
+    paths_velocity: list[np.ndarray]
+    paths_force: list[np.ndarray]
+    paths_loss: list[np.ndarray]
+    paths_integral: list[float]
+    paths_neval: list[int]
+
+
 def optimize_MEP(
-        images: list[ase.Atoms],
+        images: list[Atoms],
         output_dir: str | None = None,
         potential_params: dict[str, Any] = {},
-        # minimize_end_points: bool = False,
         path_params: dict[str, Any] = {},
-        # randomly_initialize_path: int | None = None,
         integrator_params: dict[str, Any] = {},
         optimizer_params: dict[str, Any] = {},
         scheduler_params: dict[str, Any] = {},
         loss_scheduler_params: dict[str, Any] = {},
-        # args: NamedTuple,
-        # config: NamedTuple,
-        # path_config: NamedTuple,
-        # logger: NamedTuple
         num_optimizer_iterations: int = 1000,
         device: str = 'cuda',
 ):
@@ -52,12 +60,9 @@ def optimize_MEP(
     print("Integrator Params", integrator_params)
     print("Optimizer Params", optimizer_params)
 
-    # device = 'cuda' if torch.cuda.is_available() else 'cpu'
     torch.manual_seed(42)
 
     # Create output directories
-    # output_dir = os.path.join(args.output_dir, config.potential, config.optimizer)
-    # output_dir = args.output_dir
     if output_dir is not None:
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
@@ -67,21 +72,13 @@ def optimize_MEP(
         plot_dir = os.path.join(output_dir, "plots")
         if not os.path.exists(plot_dir):
             os.makedirs(plot_dir)
-
-    # ase.io.write("input.xyz", images)
     
     #####  Get chemical potential  #####
-    # potential = get_potential(
-    #     config.potential,
-    #     tag=config.potential_tag,
-    #     expect_config=config.potential!="constant",
     #     add_azimuthal_dof=args.add_azimuthal_dof,
     #     add_translation_dof=args.add_translation_dof,
-    #     device=config.device,
-    #     **config.potential_params,
-    # )
     potential = get_potential(**potential_params, device=device)
 
+    #####  Get path prediction method  #####
     # Minimize initial points with the given potential
     # if args.minimize_end_points:
     # if minimize_end_points:
@@ -92,18 +89,6 @@ def optimize_MEP(
     #     print(f"Optimized Initial Point: {minima[0]}")
     #     print(f"Optimized Final Point: {minima[1]}")
     #     sys.exit(0)
-
-    #####  Get path prediction method  #####
-    # path = paths.get_path(
-    #     config.path,
-    #     potential,
-    #     config.initial_point,
-    #     config.final_point,
-    #     device=config.device,
-    #     #add_azimuthal_dof=args.add_azimuthal_dof,
-    #     #add_translation_dof=args.add_translation_dof,
-    #     **path_config.path_params
-    # )
     path = paths.get_path(potential=potential, initial_point=images[0], final_point=images[-1], **path_params, device=device)
 
     # Randomly initialize the path, otherwise a straight line
@@ -117,23 +102,9 @@ def optimize_MEP(
             times=torch.linspace(0, 1, len(images), device=device), 
             init_points=torch.tensor([image.positions.flatten() for image in images], device=device),
             )
-        # traj = []
-        # for image, im in zip(images, path.get_path(torch.linspace(0, 1, len(images), device=device)).path_geometry.detach().to('cpu').numpy()):
-        #     atoms = image.copy()
-        #     atoms.set_positions(im.reshape(-1, 3))
-        #     traj.append(atoms)
-        # ase.io.write("init_path.xyz", traj)
-        # raise ValueError("Path initialization not implemented")
-        # path.mlp.requires_grad_(False)
-        # path = paths.get_path(potential=potential, initial_point=images[0], final_point=images[-1], **path_params, device=device, base=path)
 
     #####  Path optimization tools  #####
-    # Path integrating function
-    # print("int params", config.integral_params)
-    # integrator = tools.ODEintegrator(**config.integral_params, device=config.device)
     integrator = tools.ODEintegrator(**integrator_params, device=device)
-    # integrator = tools.ODEintegrator(**integrator_params, device=device, max_batch=2048//path.n_atoms)
-    #print("test integrate", integrator.path_integral(path, 'E_pvre'))
 
     # potential.trainer.model.molecular_graph_cfg.max_num_nodes_per_batch = path.n_atoms
     # potential.trainer.model.global_cfg.batch_size = integrator._integrator.max_batch
@@ -141,16 +112,6 @@ def optimize_MEP(
     # potential.trainer.model.global_cfg.use_compile = False
 
     # Gradient descent path optimizer
-    # optimizer = optimization.PathOptimizer(
-    #     config.optimizer,
-    #     config.optimizer_params,
-    #     path,
-    #     config.loss_function,
-    #     path_type=config.path,
-    #     potential_type=config.potential,
-    #     config_tag=config.optimizer_config_tag,
-    #     device=config.device
-    # )
     optimizer = optimization.PathOptimizer(path=path, **optimizer_params, device=device)
     if scheduler_params:
         optimizer.set_scheduler(**scheduler_params)
@@ -158,17 +119,10 @@ def optimize_MEP(
         optimizer.set_loss_scheduler(**loss_scheduler_params)
         metric_parameters = {key: loss_scheduler.get_value() for key, loss_scheduler in optimizer.loss_scheduler.items()}
         integrator.update_metric_parameters(metric_parameters)
-        
-
-    # Loss
-    #print(config.loss_functions)
-    #loss_grad_fxn, loss_fxn = optimization.get_loss(config.loss_functions)
 
     ##########################################
     #####  Optimize minimum energy path  ##### 
     ##########################################
-    # geo_paths = []
-    # pes_paths = []
     paths_time = []
     paths_geometry = []
     paths_energy = []
@@ -177,22 +131,13 @@ def optimize_MEP(
     paths_loss = []
     paths_integral = []
     paths_neval = []
-    # t0 = time.time()
-    # df = pd.DataFrame(columns=["optim_idx", "neval", "loss"])
-    # for optim_idx in tqdm(range(args.num_optimizer_iterations)):
     for optim_idx in tqdm(range(num_optimizer_iterations)):
-        # print(f"Optimization step {optim_idx}")
         path.neval = 0
         try:
             path_integral = optimizer.optimization_step(path, integrator)
             neval = path.neval
-            # print(f'n_eval: {neval}, loss: {path_integral.integral.item()}, lr: {optimizer.optimizer.param_groups[0]["lr"]}')
-            # df.loc[optim_idx] = [optim_idx, neval, path_integral.integral.item()]
-            # wandb.log({"optim_idx": optim_idx, "neval": neval, "loss": path_integral.integral.item()})
         except ValueError as e:
             print("ValueError", e)
-            # neval = path.neval
-            # wandb.log({"optim_idx": optim_idx, "neval": neval, "loss": np.nan})
             raise e
 
         paths_integral.append(path_integral.integral.item())
@@ -202,46 +147,10 @@ def optimize_MEP(
         time = path_integral.t.detach()
 
         del path_integral
-        
-        # if optim_idx%250 == 0:
-        #     print("EVAL TIME", (time.time()-t0)/60)
-        #     path_output = logger.optimization_step(
-        #         optim_idx,
-        #         path,
-        #         potential,
-        #         path_integral.integral,
-        #         plot=args.make_opt_plots,
-        #         plot_dir=plot_dir,
-        #         geo_paths=geo_paths,
-        #         pes_paths=pes_paths,
-        #         add_azimuthal_dof=args.add_azimuthal_dof,
-        #         add_translation_dof=args.add_translation_dof
-        #     )
-        #     print("finished logging")
-        #     fig, ax = plt.subplots()
-        #     ax.plot(df["optim_idx"], df["loss"])
-        #     ax.set_xlabel("Step")
-        #     ax.set_ylabel("Loss")
-        #     ax.set_yscale("log")
-        #     fig.savefig(os.path.join(plot_dir, "loss_curve.png"))
-        #     plt.close()
-        #     df.to_csv(os.path.join(plot_dir, "loss_curve.csv"), header=False)
-        #     # visualize.plot_path(
-        #     #     path.get_path(torch.linspace(0, 1, 32, device='cuda')).geometric_path.detach().to('cpu').numpy(),
-        #     #     f"test_plot_{optim_idx:03d}",
-        #     #     pes_fxn=potential,
-        #     #     plot_min_max=(-2, 2, -2, 2),
-        #     #     levels=16,
-        #     #     plot_dir=plot_dir,
-        #     # )
-        #     traj = [ase.Atoms(numbers=path.numbers.cpu().numpy(), positions=pos.reshape(-1, 3)) for pos in path.get_path(torch.linspace(0, 1, 101, device='cuda')).path_geometry.detach().to('cpu').numpy()]
-        #     ase.io.write(os.path.join(plot_dir, f"traj_{optim_idx:03d}.xyz"), traj)
 
         path_geometry, path_energy, path_velocity, path_force = [], [], [], []
         for t in time:
-            # print("t", t)
-            # with torch.no_grad():
-            path_output = path.get_path(t, return_velocity=True, return_energy=True, return_force=True)
+            path_output = path(t, return_velocity=True, return_energy=True, return_force=True)
             path_geometry.append(path_output.path_geometry.detach().to('cpu').numpy())
             path_energy.append(path_output.path_energy.detach().to('cpu').numpy())
             path_velocity.append(path_output.path_velocity.detach().to('cpu').numpy())
@@ -251,47 +160,56 @@ def optimize_MEP(
         paths_energy.append(np.concatenate(path_energy))
         paths_velocity.append(np.concatenate(path_velocity))
         paths_force.append(np.concatenate(path_force))
+        if optim_idx % 50 == 0:
+            #     path_output = logger.optimization_step(	
+            #         optim_idx,	
+            #         path,	
+            #         potential,	
+            #         path_integral.integral,	
+            #         plot=args.make_opt_plots,	
+            #         plot_dir=plot_dir,	
+            #         geo_paths=geo_paths,	
+            #         pes_paths=pes_paths,	
+            #         add_azimuthal_dof=args.add_azimuthal_dof,	
+            #         add_translation_dof=args.add_translation_dof	
+            #     )
+            if log_dir is not None:
+                log_filename = os.path.join(log_dir, f"output_{optim_idx}.npz")
+                np.savez(
+                    log_filename, 
+                    path_times=paths_time[-1],
+                    path_geometry=paths_geometry[-1],
+                    path_energy=paths_energy[-1],
+                    path_velocity=paths_velocity[-1],
+                    path_force=paths_force[-1],
+                    path_loss=paths_loss[-1],
+                    path_integral=paths_integral[-1],
+                    path_neval=paths_neval[-1],
+                )
+            if plot_dir is not None:
+                plot_filename = os.path.join(plot_dir, f"output_{optim_idx}.png")
+                visualize.plot_path(
+                    plot_filename,
+                    time=paths_time[-1],
+                    geometry=paths_geometry[-1],
+                    energy=paths_energy[-1],
+                    velocity=paths_velocity[-1],
+                    force=paths_force[-1],
+                    loss=paths_loss[-1],
+                )
 
         if optimizer.converged:
             print(f"Converged at step {optim_idx}")
             break
 
-    # print("EVAL TIME", (time.time()-t0)/60)
-    # Plot gif animation of the MEP optimization (only for 2d potentials)
-    # if args.make_animation:
-    #     geo_paths = potential.point_transform(torch.tensor(geo_paths))
-    #     ani_name = f"{config.potential}_W{path_config.path_params['n_embed']}_D{path_config.path_params['depth']}_LR{config.optimizer_params['lr']}"
-    #     visualize.animate_optimization_2d(
-    #         geo_paths, ani_name, ani_name,
-    #         potential, plot_min_max=(-2, 2, -2, 2),
-    #         levels=np.arange(-100,100,5),
-    #         add_translation_dof=args.add_translation_dof,
-    #         add_azimuthal_dof=args.add_azimuthal_dof
-    #     )
-
-    # return path_integral
-    return paths_time, paths_geometry, paths_energy, paths_velocity, paths_force, paths_loss, paths_integral, paths_neval
-
-
-if __name__ == "__main__":
-    ###############################
-    #####  Setup environment  #####
-    ###############################
-
-    arg_parser = tools.build_default_arg_parser()
-    args = arg_parser.parse_args()
-    logger = tools.logging()
-    torch.manual_seed(42)
-    # wandb.init(project="Geodesic_Sella")
-
-    # Import configuration files
-    print(args.name, args.path_tag, args.tag)
-    config = tools.import_run_config(
-        args.name, path_tag=args.path_tag, tag=args.tag, flags=args
+    output = OptimizationOutput(
+        paths_time=paths_time,
+        paths_geometry=paths_geometry,
+        paths_energy=paths_energy,
+        paths_velocity=paths_velocity,
+        paths_force=paths_force,
+        paths_loss=paths_loss,
+        paths_integral=paths_integral,
+        paths_neval=paths_neval,
     )
-
-    path_config = tools.import_path_config(
-        config, path_tag=args.path_tag
-    )
-
-    path_integral = optimize_MEP(args, config, path_config, logger)
+    return output

@@ -1,12 +1,11 @@
 import torch
 from dataclasses import dataclass
-from transbymep.tools import metrics, read_atoms, pair_displacement
+from transbymep.tools import read_atoms, pair_displacement
 from transbymep.potentials.base_potential import BasePotential
 from typing import Callable, Any
 from ase import Atoms
-from ase.io import read, write
+from ase.io import read
 import numpy as np
-import rmsd
 
 
 @dataclass
@@ -172,7 +171,6 @@ class BasePath(torch.nn.Module):
     def get_geometry(
             self,
             time: torch.Tensor,
-            # y: Any,
             *args: Any
     ) -> torch.Tensor:
         """
@@ -194,40 +192,9 @@ class BasePath(torch.nn.Module):
         """
         raise NotImplementedError()
     
-    def get_path(
-            self,
-            t: torch.Tensor = None,
-            return_velocity: bool = False,
-            return_energy: bool = False,
-            return_force: bool = False
-    ) -> PathOutput:
-        """
-        Get the path for the given times.
-
-        Parameters:
-        -----------
-        t : torch.Tensor, optional
-            The times at which to evaluate the path (default is None).
-        return_velocity : bool, optional
-            Whether to return velocity along the path (default is False).
-        return_force : bool, optional
-            Whether to return force along the path (default is False).
-
-        Returns:
-        --------
-        PathOutput
-            An instance of the PathOutput class representing the computed path.
-        """
-        if t is None:
-            t = torch.linspace(0, 1, 1001)
-        
-        return self.forward(
-            t, return_velocity=return_velocity, return_energy=return_energy, return_force=return_force
-        )
-    
     def forward(
             self,
-            t,
+            t : torch.Tensor = None,
             return_velocity: bool = False,
             return_energy: bool = False,
             return_force: bool = False
@@ -249,6 +216,8 @@ class BasePath(torch.nn.Module):
         PathOutput
             An instance of the PathOutput class containing the computed path, potential, velocity, force, and times.
         """
+        if t is None:
+            t = torch.linspace(0, 1, 1001)
         if len(t.shape) == 1:
             t = torch.unsqueeze(t, -1)
         t = t.to(torch.float64).to(self.device)
@@ -259,18 +228,8 @@ class BasePath(torch.nn.Module):
         #     raise ValueError("Too many evaluations!")
 
         path_geometry = self.get_geometry(t)
-        # print("MEMORY before MLIP")
-        # print(torch.cuda.memory_allocated(), torch.cuda.memory_reserved())
         if self.transform is not None:
             path_geometry = self.transform(path_geometry)
-        # traj = [Atoms(
-        #         numbers=self.numbers.detach().cpu().numpy(), 
-        #         positions=pos.reshape(self.n_atoms, 3).detach().cpu().numpy(),
-        #         pbc=self.pbc.detach().cpu().numpy(),
-        #         cell=self.cell.detach().cpu().numpy()
-        #     ) for pos in geo_path]
-        # write("test.xyz", traj)
-        # raise ValueError("STOP")
         if return_energy or return_force:
             potential_output = self.potential(path_geometry)
 
@@ -289,19 +248,19 @@ class BasePath(torch.nn.Module):
                     grad_outputs=torch.ones_like(path_energy),
                     create_graph=self.training,
                 )[0]
+                #print("SHAPES", pes_path.shape, len(pes_path.shape), torch.ones(0), geo_path.shape)
+                #print("CHECK IS GRADS BATCHD FOR LEN > 0")
+                # force = torch.autograd.grad(
+                #     torch.sum(pes_path),
+                #     geo_path,
+                #     create_graph=self.training,
+                # )[0]
+                #print("LEN F", len(force), force[0].shape)
+                # if not is_batched:
+                #     force = torch.unsqueeze(force, 0)
+                #print("FORCES", force.shape)
         else:
             path_force = None
-            #print("SHAPES", pes_path.shape, len(pes_path.shape), torch.ones(0), geo_path.shape)
-            #print("CHECK IS GRADS BATCHD FOR LEN > 0")
-            # force = torch.autograd.grad(
-            #     torch.sum(pes_path),
-            #     geo_path,
-            #     create_graph=self.training,
-            # )[0]
-            #print("LEN F", len(force), force[0].shape)
-            # if not is_batched:
-            #     force = torch.unsqueeze(force, 0)
-            #print("FORCES", force.shape)
         if return_velocity:
             #print("VEL SHAPES", geo_path.shape, t.shape)
             # if is_batched:
@@ -314,20 +273,11 @@ class BasePath(torch.nn.Module):
             path_velocity = torch.autograd.functional.jacobian(
                 lambda t: torch.sum(self.get_geometry(t), axis=0), t, create_graph=self.training, vectorize=True
             ).transpose(0, 1)[:, :, 0]
-            #print("VEL INIT SHAPE", velocity.shape)
-            #print("VEL TEST", velocity[:5])
-            # velocity = torch.transpose(velocity, 0, 1)
-            # if is_batched:
-            #     velocity = velocity[:,:,0]
-            #print("VEL F OUTPUT", velocity.shape, force.shape)
         else:
             path_velocity = None
 
         if return_energy or return_force:
             del potential_output
-
-        # print("MEMORY after MLIP")
-        # print(torch.cuda.memory_allocated(), torch.cuda.memory_reserved())
         
         return PathOutput(
             times=t,

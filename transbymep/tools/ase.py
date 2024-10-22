@@ -1,4 +1,3 @@
-import numpy as np
 import torch
 
 
@@ -58,5 +57,4 @@ def pair_displacement(initial_atoms, final_atoms):
     """
     pair = initial_atoms + final_atoms
     vec = [pair.get_distance(i, i + len(initial_atoms), mic=True, vector=True) for i in range(len(initial_atoms))]
-    vec = np.array(vec)
     return torch.tensor(vec, dtype=torch.float64)

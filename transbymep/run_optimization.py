@@ -161,6 +161,18 @@ def optimize_MEP(
         paths_velocity.append(np.concatenate(path_velocity))
         paths_force.append(np.concatenate(path_force))
         if optim_idx % 50 == 0:
+            #     path_output = logger.optimization_step(	
+            #         optim_idx,	
+            #         path,	
+            #         potential,	
+            #         path_integral.integral,	
+            #         plot=args.make_opt_plots,	
+            #         plot_dir=plot_dir,	
+            #         geo_paths=geo_paths,	
+            #         pes_paths=pes_paths,	
+            #         add_azimuthal_dof=args.add_azimuthal_dof,	
+            #         add_translation_dof=args.add_translation_dof	
+            #     )
             if log_dir is not None:
                 log_filename = os.path.join(log_dir, f"output_{optim_idx}.npz")
                 np.savez(

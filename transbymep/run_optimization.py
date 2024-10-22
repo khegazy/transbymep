@@ -145,7 +145,7 @@ def optimize_MEP(
         paths_velocity.append(np.concatenate(path_velocity))
         paths_force.append(np.concatenate(path_force))
         if optim_idx % 50 == 0:
-            if log_dir is not None:
+            if output_dir is not None:
                 log_filename = os.path.join(log_dir, f"output_{optim_idx}.npz")
                 np.savez(
                     log_filename, 
@@ -158,7 +158,7 @@ def optimize_MEP(
                     path_integral=paths_integral[-1],
                     path_neval=paths_neval[-1],
                 )
-            if plot_dir is not None:
+            if output_dir is not None:
                 plot_filename = os.path.join(plot_dir, f"output_{optim_idx}.png")
                 visualize.plot_path(
                     plot_filename,

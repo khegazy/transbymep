@@ -77,6 +77,16 @@ def optimize_MEP(
     potential = get_potential(**potential_params, device=device)
 
     #####  Get path prediction method  #####
+    # Minimize initial points with the given potential
+    # if args.minimize_end_points:
+    # if minimize_end_points:
+    #     minima_finder = optimization.MinimaUpdate(potential)
+    #     minima = minima_finder.find_minima(
+    #         [config.initial_point, config.final_point]
+    #     )
+    #     print(f"Optimized Initial Point: {minima[0]}")
+    #     print(f"Optimized Final Point: {minima[1]}")
+    #     sys.exit(0)
     path = paths.get_path(potential=potential, initial_point=images[0], final_point=images[-1], **path_params, device=device)
 
     # Randomly initialize the path, otherwise a straight line

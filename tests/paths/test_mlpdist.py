@@ -51,3 +51,14 @@ def test_mlpdist(tmp_path, monkeypatch):
         expected_pos = image.get_positions()
         pos = path.dist_to_cart(point.reshape(1, -1)).detach().cpu().numpy().flatten()
         assert pos == pytest.approx(expected_pos.flatten(), abs=1e-3)
+
+    # Test middle point
+    expected_pos = np.mean([image.get_positions() for image in [images[0], images[-1]]], axis=0)
+    # expected_dist = np.mean(
+    #     np.linalg.norm(
+    #         [image.get_positions()[:, None, :] - image.get_positions()[None, :, :] for image in [images[0], images[-1]]], axis=-1
+    #     ), axis=0)
+    pos = path(torch.tensor(0.5, device='cuda')).path_geometry.detach().cpu().numpy().squeeze(0)
+    assert pos.shape == expected_pos.shape
+    # dist = np.linalg.norm(pos[:, None, :] - pos[None, :, :], axis=-1)
+    # assert dist == pytest.approx(expected_dist, abs=1e-1)

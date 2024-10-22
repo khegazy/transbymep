@@ -5,7 +5,7 @@ potential_params:
   settings_path: configs/newtonnet/training_52/run_scripts/config0.yml
   hess_method: null
 path_params: 
-  name: mlp
+  name: mlp_dist
   n_embed : 32
   depth : 3
 integrator_params: 

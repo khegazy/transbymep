@@ -39,6 +39,8 @@ class MLPDISTpath(BasePath):
         self.mlp.to(self.device)
         self.neval = 0
 
+        kwargs['initial_point'] = self.initial_point
+        kwargs['final_point'] = self.final_point
         self.base = base if base is not None else LinearPath(**kwargs)
 
     def get_geometry(self, time: float, *args):

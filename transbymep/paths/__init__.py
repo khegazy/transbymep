@@ -1,4 +1,5 @@
 from .mlp import MLPpath
+from .mlp_dist import MLPDISTpath
 from .b_spline import BSpline
 from .elastic_band import ElasticBand
 from .bezier import Bezier
@@ -6,6 +7,7 @@ from .bezier import Bezier
 path_dict = {
     "elastic_band" : ElasticBand,
     "mlp" : MLPpath,
+    "mlp_dist" : MLPDISTpath,
     "bspline" : BSpline,
     "bezier" : Bezier,
 }

@@ -120,6 +120,7 @@ def optimize_MEP(
         try:
             path_integral = optimizer.optimization_step(path, integrator)
             neval = path.neval
+            print(f"Step {optim_idx}, Integral: {path_integral.integral.item()}, Neval: {neval}")
         except ValueError as e:
             print("ValueError", e)
             raise e

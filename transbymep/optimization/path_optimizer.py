@@ -7,6 +7,7 @@ optimizer_dict = {
     "sgd" : optim.SGD,
     "adagrad" : optim.Adagrad,
     "adam" : optim.Adam,
+    "lbfgs" : optim.LBFGS,
 }
 scheduler_dict = {
     "step" : lr_scheduler.StepLR,
@@ -69,29 +70,51 @@ class PathOptimizer():
         ):
         t_init = t_init.to(torch.float64).to(self.device)
         t_final = t_final.to(torch.float64).to(self.device)
-        self.optimizer.zero_grad()
-        path_integral = integrator.path_integral(
-            path, self.loss_name, t_init=t_init, t_final=t_final
-        )
-        #for n, prm in path.named_parameters():
-        #    print(n, prm.grad)
-        #print("path integral", path_integral)
-        if integrator._integrator.max_batch is None:
-            #TODO: Better to change this to backprop if not detached
-            loss = path_integral.integral
+        if isinstance(self.optimizer, optim.LBFGS):
+            def closure():
+                self.optimizer.zero_grad()
+                path_integral = integrator.path_integral(
+                    path, self.loss_name, t_init=t_init, t_final=t_final
+                )
+                loss = path_integral.integral
 
-            time = path_integral.t.flatten()
-            time = time[len(time)//10:-len(time)//10]
-            path_output = path(time, return_force=True)
-            # path_output = path(time, return_energy=True, return_force=True)
-            force = torch.linalg.norm(path_output.path_force, dim=-1).min()
-            # force = path_output.path_force[path_output.path_energy.argmax()]
-            # force = torch.linalg.norm(force)
-            loss = loss + force * integrator.parameters['force_scale']
+                # time = path_integral.t.flatten()
+                # time = time[len(time)//10:-len(time)//10]
+                # path_output = path(time, return_force=True)
+                # # path_output = path(time, return_energy=True, return_force=True)
+                # force = torch.linalg.norm(path_output.path_force, dim=-1).min()
+                # # force = path_output.path_force[path_output.path_energy.argmax()]
+                # # force = torch.linalg.norm(force)
+                # loss = loss + force * integrator.parameters['force_scale']
 
-            loss.backward()
-            # (path_integral.integral**2).backward()
-        self.optimizer.step()
+                loss.backward()
+                return loss
+            self.optimizer.step(closure)
+            path_integral = integrator.integral_output
+        else:
+            self.optimizer.zero_grad()
+            path_integral = integrator.path_integral(
+                path, self.loss_name, t_init=t_init, t_final=t_final
+            )
+            #for n, prm in path.named_parameters():
+            #    print(n, prm.grad)
+            #print("path integral", path_integral)
+            if integrator._integrator.max_batch is None:
+                #TODO: Better to change this to backprop if not detached
+                loss = path_integral.integral
+
+                # time = path_integral.t.flatten()
+                # time = time[len(time)//10:-len(time)//10]
+                # path_output = path(time, return_force=True)
+                # # path_output = path(time, return_energy=True, return_force=True)
+                # force = torch.linalg.norm(path_output.path_force, dim=-1).min()
+                # # force = path_output.path_force[path_output.path_energy.argmax()]
+                # # force = torch.linalg.norm(force)
+                # loss = loss + force * integrator.parameters['force_scale']
+
+                loss.backward()
+                # (path_integral.integral**2).backward()
+            self.optimizer.step()
         if self.scheduler is not None:
             if isinstance(self.scheduler, lr_scheduler.ReduceLROnPlateau):
                 self.scheduler.step(path_integral.loss)

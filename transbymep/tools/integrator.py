@@ -143,6 +143,7 @@ class ODEintegrator(Metrics):
             time_record = None
             geo_record = None
         
+        self.integral_output = integral_output
         return integral_output
         return IntegralOutput(
             integral=integral,

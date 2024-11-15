@@ -4,6 +4,16 @@ from torch import nn
 from .base_path import BasePath
 from .linear import LinearPath
 
+activation_dict = {
+    "relu": nn.ReLU(),
+    "elu": nn.ELU(),
+    "tanh": nn.Tanh(),
+    "sigmoid": nn.Sigmoid(),
+    "gelu": nn.GELU(),
+    "silu": nn.SiLU(),
+    "selu": nn.SELU(),
+}
+
 class MLPDISTpath(BasePath):
     """
     Multilayer Perceptron (MLP) path class for generating geometric paths in inverse pairwise distances.
@@ -15,23 +25,26 @@ class MLPDISTpath(BasePath):
     """
     def __init__(
         self,
-        n_embed: int = 32,
+        n_embed: int = 1,
         depth: int = 3,
+        activation: str = "selu",
         base: BasePath = None,
-        mode: str = 'dist',
+        mode: str = 'invdist',
+        initial_point: torch.Tensor = None,
+        final_point: torch.Tensor = None,
         **kwargs,
     ):
-        super().__init__(**kwargs)
+        super().__init__(initial_point=initial_point, final_point=final_point, **kwargs)
 
-        self.ind = torch.triu_indices(self.n_atoms + 4, self.n_atoms + 4, 1)
-        # self.ind = torch.triu_indices(self.n_atoms, self.n_atoms, 1)
+        # self.ind = torch.triu_indices(self.n_atoms + 4, self.n_atoms + 4, 1)
+        self.ind = torch.triu_indices(self.n_atoms, self.n_atoms, 1)
         self.mode = mode
         assert self.mode in ['dist', 'invdist'], f"Invalid mode: {self.mode}"
         self.initial_point = self.cart_to_dist(self.initial_point[None, :]).squeeze(0)
         self.final_point = self.cart_to_dist(self.final_point[None, :]).squeeze(0)
 
-        self.activation = nn.ELU()
-        input_sizes = [1] + [n_embed]*(depth - 1)
+        self.activation = activation_dict[activation]
+        input_sizes = [1] + [self.final_point.shape[-1] * n_embed]*(depth - 1)
         output_sizes = input_sizes[1:] + [self.final_point.shape[-1]]
         self.layers = [
             nn.Linear(
@@ -43,11 +56,10 @@ class MLPDISTpath(BasePath):
         self.mlp.to(self.device)
         self.neval = 0
 
-        kwargs['initial_point'] = self.initial_point
-        kwargs['final_point'] = self.final_point
-        self.base = base if base is not None else LinearPath(**kwargs)
+        self.base = base if base is not None else LinearPath(initial_point=self.initial_point, final_point=self.final_point, **kwargs)
 
-        print("Number of trainable parameters in MLP:", sum(p.numel() for p in self.mlp.parameters() if p.requires_grad))
+        print("Number of trainable parameters in MLP:", sum(p.numel() for p in self.parameters() if p.requires_grad))
+        print(self.mlp)
 
     def get_geometry(self, time: float, *args):
         """
@@ -86,11 +98,11 @@ class MLPDISTpath(BasePath):
         cart = cart.reshape(n_data, n_atoms, 3)
 
         # Define reference axes of [[0, 0, 0], [1, 0, 0], [0, 1, 0], [0, 0, 1]]
-        axis = torch.zeros(n_data, 4, 3, device=self.device, dtype=cart.dtype)
-        axis[:, 1, 0] = 1
-        axis[:, 2, 1] = 1
-        axis[:, 3, 2] = 1
-        cart = torch.cat([axis, cart], dim=1)
+        # axis = torch.zeros(n_data, 4, 3, device=self.device, dtype=cart.dtype)
+        # axis[:, 1, 0] = 1
+        # axis[:, 2, 1] = 1
+        # axis[:, 3, 2] = 1
+        # cart = torch.cat([axis, cart], dim=1)
 
         # Calculate pairwise distances
         dist = torch.norm(cart[:, self.ind[0], :] - cart[:, self.ind[1], :], dim=2)
@@ -116,24 +128,24 @@ class MLPDISTpath(BasePath):
             dist = 1 / dist
 
         # Reshape pairwise distances
-        dist_full = torch.zeros(n_data, n_atoms + 4, n_atoms + 4, device=self.device, dtype=dist.dtype)
-        # dist_full = torch.zeros(n_data, n_atoms, n_atoms, device=self.device, dtype=dist.dtype)
+        # dist_full = torch.zeros(n_data, n_atoms + 4, n_atoms + 4, device=self.device, dtype=dist.dtype)
+        dist_full = torch.zeros(n_data, n_atoms, n_atoms, device=self.device, dtype=dist.dtype)
         dist_full[:, self.ind[0], self.ind[1]] = dist
         dist_full[:, self.ind[1], self.ind[0]] = dist
 
         # Calculate Cartesian coordinates
-        center = torch.eye(n_atoms + 4, device=self.device, dtype=dist.dtype)
-        center = center - 1 / (n_atoms + 4)
-        # center = torch.eye(n_atoms, device=self.device, dtype=dist.dtype)
-        # center = center - 1 / n_atoms
+        # center = torch.eye(n_atoms + 4, device=self.device, dtype=dist.dtype)
+        # center = center - 1 / (n_atoms + 4)
+        center = torch.eye(n_atoms, device=self.device, dtype=dist.dtype)
+        center = center - 1 / n_atoms
         center = center[None, :, :]
         eigvals, eigvecs = torch.linalg.eigh(- 0.5 * center @ (dist_full ** 2) @ center)
         cart = eigvals[:, None, -3:].sqrt() * eigvecs[:, :, -3:]
-        cart = cart.reshape(n_data, n_atoms + 4, 3)
-        # cart = cart.reshape(n_data, n_atoms, 3)
+        # cart = cart.reshape(n_data, n_atoms + 4, 3)
+        cart = cart.reshape(n_data, n_atoms, 3)
 
         # Reconstruct reference axes
-        cart = cart[:, 1:, :] - cart[:, :1, :]    # Subtract origin
-        cart = cart[:, 3:, :] @ torch.linalg.solve(cart[:, :3, :], torch.eye(3, device=self.device, dtype=cart.dtype))    # Rotate axes
+        # cart = cart[:, 1:, :] - cart[:, :1, :]    # Subtract origin
+        # cart = cart[:, 3:, :] @ torch.linalg.solve(cart[:, :3, :], torch.eye(3, device=self.device, dtype=cart.dtype))    # Rotate axes
 
         return cart

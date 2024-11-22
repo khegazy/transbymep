@@ -1,6 +1,8 @@
 import torch
 from torch import optim
 from torch.optim import lr_scheduler
+from torch.nn.utils import clip_grad_norm_
+from torch_optimizer import Adahessian
 from transbymep.tools import scheduler
 
 optimizer_dict = {
@@ -8,6 +10,7 @@ optimizer_dict = {
     "adagrad" : optim.Adagrad,
     "adam" : optim.Adam,
     "lbfgs" : optim.LBFGS,
+    "adahessian" : Adahessian,
 }
 scheduler_dict = {
     "step" : lr_scheduler.StepLR,
@@ -21,8 +24,9 @@ scheduler_dict = {
 loss_scheduler_dict = {
     "linear" : scheduler.Linear,
     "cosine" : scheduler.Cosine,
-    "reduce_on_plateau" : scheduler.ReduceOnPlateau,
-    "increase_on_plateau" : scheduler.IncreaseOnPlateau,
+    # "reduce_on_plateau" : scheduler.ReduceOnPlateau,
+    # "increase_on_plateau" : scheduler.IncreaseOnPlateau,
+    "plateau" : scheduler.ChangeParamOnPlateau,
 }
 
 class PathOptimizer():
@@ -39,7 +43,9 @@ class PathOptimizer():
         
         # Initialize optimizer
         name = name.lower()
-        self.optimizer = optimizer_dict[name](path.parameters(), **config)
+        # self.optimizer = optimizer_dict[name](path.parameters(), **config)
+        trainable_params = filter(lambda p: p.requires_grad, path.parameters())
+        self.optimizer = optimizer_dict[name](trainable_params, **config)
         self.scheduler = None
         self.loss_scheduler = None
         self.converged = False
@@ -51,15 +57,19 @@ class PathOptimizer():
         self.scheduler = scheduler_dict[name](self.optimizer, **config)
 
     def set_loss_scheduler(self, **kwargs):
-        self.loss_scheduler = {}
-        for key, value in kwargs.items():
-            name = value.pop('name').lower()
-            if name not in loss_scheduler_dict:
-                raise ValueError(f"Cannot handle loss scheduler type {name}, either add it to loss_scheduler_dict or use {list(loss_scheduler_dict.keys())}")
-            if name == "reduce_on_plateau" or name == "increase_on_plateau":
-                self.loss_scheduler[key] = loss_scheduler_dict[name](lr_scheduler=self.scheduler, **value)
-            else:
-                self.loss_scheduler[key] = loss_scheduler_dict[name](**value)
+        # self.loss_scheduler = {}
+        # for key, value in kwargs.items():
+        #     name = value.pop('name').lower()
+        #     if name not in loss_scheduler_dict:
+        #         raise ValueError(f"Cannot handle loss scheduler type {name}, either add it to loss_scheduler_dict or use {list(loss_scheduler_dict.keys())}")
+        #     if name == "reduce_on_plateau" or name == "increase_on_plateau":
+        #         self.loss_scheduler[key] = loss_scheduler_dict[name](lr_scheduler=self.scheduler, **value)
+        #     else:
+        #         self.loss_scheduler[key] = loss_scheduler_dict[name](**value)
+        name = kwargs.pop('name').lower()
+        if name not in loss_scheduler_dict:
+            raise ValueError(f"Cannot handle loss scheduler type {name}, either add it to loss_scheduler_dict or use {list(loss_scheduler_dict.keys())}")
+        self.loss_scheduler = loss_scheduler_dict[name](**kwargs)
     
     def optimization_step(
             self,
@@ -78,19 +88,35 @@ class PathOptimizer():
                 )
                 loss = path_integral.integral
 
-                # time = path_integral.t.flatten()
-                # time = time[len(time)//10:-len(time)//10]
-                # path_output = path(time, return_force=True)
-                # # path_output = path(time, return_energy=True, return_force=True)
-                # force = torch.linalg.norm(path_output.path_force, dim=-1).min()
-                # # force = path_output.path_force[path_output.path_energy.argmax()]
-                # # force = torch.linalg.norm(force)
-                # loss = loss + force * integrator.parameters['force_scale']
+                if (integrator.parameters is not None) and ('force_scale' in integrator.parameters):
+                    time = path_integral.t.flatten()
+                    time = time[len(time)//10:-len(time)//10]
+                    path_output = path(time, return_force=True)
+                    # path_output = path(time, return_energy=True, return_force=True)
+                    force = torch.linalg.norm(path_output.path_force, dim=-1).min()
+                    # force = path_output.path_force[path_output.path_energy.argmax()]
+                    # force = torch.linalg.norm(force)
+                    loss = loss + force * integrator.parameters['force_scale']
 
                 loss.backward()
+
+                # grad_norm = clip_grad_norm_(path.parameters(), 20)
+                # print("grad_norm", grad_norm)
+
                 return loss
-            self.optimizer.step(closure)
+            loss = self.optimizer.step(closure)
             path_integral = integrator.integral_output
+
+            # flat_grad = self.optimizer._gather_flat_grad()
+            # print(flat_grad.abs().max())
+        elif isinstance(self.optimizer, Adahessian):
+            self.optimizer.zero_grad()
+            path_integral = integrator.path_integral(
+                path, self.loss_name, t_init=t_init, t_final=t_final
+            )
+            loss = path_integral.integral
+            loss.backward(create_graph=True)
+            self.optimizer.step()
         else:
             self.optimizer.zero_grad()
             path_integral = integrator.path_integral(
@@ -115,22 +141,29 @@ class PathOptimizer():
                 loss.backward()
                 # (path_integral.integral**2).backward()
             self.optimizer.step()
-        if self.scheduler is not None:
-            if isinstance(self.scheduler, lr_scheduler.ReduceLROnPlateau):
-                self.scheduler.step(path_integral.loss)
-                # time = path_integral.t.flatten()
-                # time = time[len(time)//10:-len(time)//10]
-                # force = path(time, return_force=True).path_force
-                # self.scheduler.step(torch.linalg.norm(force, dim=-1).min())
-                if self.optimizer.param_groups[0]['lr'] <= self.scheduler.min_lrs[0]:
-                    self.converged = True
-            else:
-                self.scheduler.step()
+        # if self.scheduler is not None:
+        #     if isinstance(self.scheduler, lr_scheduler.ReduceLROnPlateau):
+        #         self.scheduler.step(loss)
+        #         # time = path_integral.t.flatten()
+        #         # time = time[len(time)//10:-len(time)//10]
+        #         # force = path(time, return_force=True).path_force
+        #         # self.scheduler.step(torch.linalg.norm(force, dim=-1).min())
+        #         if self.optimizer.param_groups[0]['lr'] <= self.scheduler.min_lrs[0]:
+        #             self.converged = True
+        #     else:
+        #         self.scheduler.step()
+        #     print("Learning rate:", self.optimizer.param_groups[0]['lr'])
         if self.loss_scheduler is not None:
-            for key, loss_scheduler in self.loss_scheduler.items():
-                loss_scheduler.step()
-            metric_parameters = {key: loss_scheduler.get_value() for key, loss_scheduler in self.loss_scheduler.items()}
-            integrator.update_metric_parameters(metric_parameters)
+            self.loss_scheduler.step(loss)
+            # metric_parameters = {key: loss_scheduler.get_value() for key, loss_scheduler in self.loss_scheduler.items()}
+            # integrator.update_metric_parameters(metric_parameters)
+            if self.loss_scheduler.converged:
+                self.converged = True
+            print("Loss:", loss.item(), "Best:", self.loss_scheduler.best, "Bad epochs:", self.loss_scheduler.num_bad_epochs)
+            print("Learning rate:", self.optimizer.param_groups[0]['lr'])
+            print("Tolerance:", integrator._integrator.rtol, integrator._integrator.atol)
+            print("Loss parameter:", integrator.parameters)
+
         return path_integral
 
     

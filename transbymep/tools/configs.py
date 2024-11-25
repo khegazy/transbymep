@@ -15,4 +15,6 @@ def import_yaml(address):
 def import_run_config(name):
     yaml_config = import_yaml(name)
     print("run yaml inp", yaml_config)
+    if yaml_config['images'].endswith('.xyz'):
+        yaml_config['images'] = read(yaml_config['images'], index=':')
     return yaml_config

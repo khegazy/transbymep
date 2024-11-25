@@ -208,7 +208,6 @@ def optimize_MEP(
     # paths_energy.append(np.concatenate(path_energy))
     # paths_velocity.append(np.concatenate(path_velocity))
     # paths_force.append(np.concatenate(path_force))
-
     output = OptimizationOutput(
         paths_time=paths_time,
         paths_geometry=paths_geometry,

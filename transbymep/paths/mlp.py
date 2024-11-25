@@ -3,7 +3,6 @@ from torch import nn
 
 from .base_path import BasePath
 from .linear import LinearPath
-
 activation_dict = {
     "relu": nn.ReLU(),
     "elu": nn.ELU(),
@@ -83,7 +82,7 @@ class MLPpath(BasePath):
         self.neval = 0
 
         self.base = base if base is not None else LinearPath(**kwargs)
-
+        
         print("Number of trainable parameters in MLP:", sum(p.numel() for p in self.parameters() if p.requires_grad))
         print(self.mlp)
 

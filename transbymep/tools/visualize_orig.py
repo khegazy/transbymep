@@ -251,6 +251,76 @@ def plot_path(
     else:
         return figs, axes
 
+def plot_path_2d(
+        path,
+        name,
+        pes_fxn=None,
+        plot_min_max=None,
+        levels=None,
+        contour_vals=None,
+        return_contour_vals=False,
+        add_translation_dof=False,
+        add_azimuthal_dof=False,
+        plot_dir="./plots/",
+    ):
+
+
+    if add_azimuthal_dof:
+        figs, axes, suffixes, do_edits, contour_vals = _plot_added_rot_dof(
+            path, name, add_azimuthal_dof, pes_fxn,
+            plot_min_max=plot_min_max, levels=levels, contour_vals=contour_vals
+        )
+    elif add_translation_dof:
+        ax.plot(path[:,0] + path[:,-1], path[:,1], color='r', linestyle='-')
+        ax.plot(path[:,0], path[:,1], color='r', linestyle='-')
+    else:
+        fig, ax = plt.subplots(
+            3, 1, figsize=plot_params['fig_size'], gridspec_kw=gridspec
+        )
+        ax, contour_vals = _plot_path(
+            ax, path, pes_fxn,
+            plot_min_max=plot_min_max, levels=levels, contour_vals=contour_vals
+        )
+        figs = [fig]
+        axes = [ax]
+        suffixes = ['']
+        do_edits = [True]
+
+
+    for fig, ax, suffix, edit in zip(figs, axes, suffixes, do_edits):
+        plot_name = name
+        if suffix != '':
+            plot_name += "_" + suffix
+        ax[0].set_title(plot_name, fontsize=plot_params['font_size']*1.5)
+
+        for idx in range(len(ax)):
+            if idx == 1:
+                continue
+            ax[idx].xaxis.set_tick_params(labelsize=plot_params['font_size']*0.8)
+            ax[idx].yaxis.set_tick_params(labelsize=plot_params['font_size']*0.8)
+
+        if edit:
+            if len(ax) > 1:
+                ax[1].set_visible(False)
+                ax[-1].set_xlabel('Time [arb]', fontsize=plot_params['font_size'])
+            if len(ax) > 2:
+                ax[2].set_xlim(0, 1)
+                for idx in range(1, len(ax)-1):
+                    ax[idx].xaxis.set_visible(False)
+                ax[2].set_ylabel(
+                    r'$\dot{X}(t)$ [arb]', fontsize=plot_params['font_size']
+                )
+        os.makedirs(plot_dir, exist_ok=True)
+        fig.savefig(os.path.join(plot_dir, plot_name+".png"))
+        print("Plotted", os.path.join(plot_dir, plot_name+".png"))
+
+    if len(figs) == 1:
+        figs = figs[0]
+        axes = axes[0]
+    if return_contour_vals:
+        return figs, axes, contour_vals
+    else:
+        return figs, axes
 
 def animate_optimization_2d(
         paths,

@@ -79,9 +79,23 @@ def optimize_MEP(
     potential = get_potential(**potential_params, device=device)
 
     #####  Get path prediction method  #####
+    # Minimize initial points with the given potential
+    # if args.minimize_end_points:
+    # if minimize_end_points:
+    #     minima_finder = optimization.MinimaUpdate(potential)
+    #     minima = minima_finder.find_minima(
+    #         [config.initial_point, config.final_point]
+    #     )
+    #     print(f"Optimized Initial Point: {minima[0]}")
+    #     print(f"Optimized Final Point: {minima[1]}")
+    #     sys.exit(0)
     path = paths.get_path(potential=potential, initial_point=images[0], final_point=images[-1], **path_params, device=device)
 
     # Randomly initialize the path, otherwise a straight line
+    # if args.randomly_initialize_path is not None:
+    #     path = optimization.randomly_initialize_path(
+    #         path, args.randomly_initialize_path
+    #     )
     if len(images) > 2:
         path = initialize_path(
             path=path, 
@@ -167,6 +181,18 @@ def optimize_MEP(
         del path_output
 
         if optim_idx % 50 == 0:
+            #     path_output = logger.optimization_step(	
+            #         optim_idx,	
+            #         path,	
+            #         potential,	
+            #         path_integral.integral,	
+            #         plot=args.make_opt_plots,	
+            #         plot_dir=plot_dir,	
+            #         geo_paths=geo_paths,	
+            #         pes_paths=pes_paths,	
+            #         add_azimuthal_dof=args.add_azimuthal_dof,	
+            #         add_translation_dof=args.add_translation_dof	
+            #     )
             if output_dir is not None:
                 log_filename = os.path.join(log_dir, f"output_{optim_idx}.npz")
                 np.savez(

@@ -142,24 +142,44 @@ def optimize_MEP(
 
         paths_integral.append(path_integral.integral.item())
         paths_neval.append(neval)
-        paths_time.append(path_integral.t.flatten().detach().to('cpu').numpy())
-        paths_loss.append(path_integral.y.flatten().detach().to('cpu').numpy())
         time = path_integral.t.detach()
+        # time = torch.linspace(0, 1, 101, device=device).reshape(1, -1)
+        paths_time.append(time.flatten().to('cpu').numpy())
+        loss = path_integral.y.detach()
+        paths_loss.append(loss.flatten().to('cpu').numpy())
 
         del path_integral
+        
+        # path_time = []
+        # path_geometry, path_energy, path_velocity, path_force = [], [], [], []
+        # for t in time:
+        #     t = t.flatten()
+        #     t = torch.linspace(t[0], t[-1], len(t), device=device).reshape(-1, 1)
+        #     path_time.append(t.detach().to('cpu').numpy())
+        #     path_output = path(t, return_velocity=True, return_energy=True, return_force=True)
+        #     path_geometry.append(path_output.path_geometry.detach().to('cpu').numpy())
+        #     path_energy.append(path_output.path_energy.detach().to('cpu').numpy())
+        #     path_velocity.append(path_output.path_velocity.detach().to('cpu').numpy())
+        #     path_force.append(path_output.path_force.detach().to('cpu').numpy())
+        #     del path_output
+        # paths_time.append(np.concatenate(path_time))
+        # paths_geometry.append(np.concatenate(path_geometry))
+        # paths_energy.append(np.concatenate(path_energy))
+        # paths_velocity.append(np.concatenate(path_velocity))
+        # paths_force.append(np.concatenate(path_force))
+        # for ind_t, t in enumerate(time):
+        #     t = t.flatten()
+        #     t = torch.linspace(t[0], t[-1], len(t), device=device).reshape(-1, 1)
+        #     time[ind_t] = t
+        time = time.reshape(-1, 1)
+        path_output = path(time, return_velocity=True, return_energy=True, return_force=True)
+        # paths_time.append(time.detach().to('cpu').numpy())
+        paths_geometry.append(path_output.path_geometry.detach().to('cpu').numpy())
+        paths_energy.append(path_output.path_energy.detach().to('cpu').numpy())
+        paths_velocity.append(path_output.path_velocity.detach().to('cpu').numpy())
+        paths_force.append(path_output.path_force.detach().to('cpu').numpy())
+        del path_output
 
-        path_geometry, path_energy, path_velocity, path_force = [], [], [], []
-        for t in time:
-            path_output = path(t, return_velocity=True, return_energy=True, return_force=True)
-            path_geometry.append(path_output.path_geometry.detach().to('cpu').numpy())
-            path_energy.append(path_output.path_energy.detach().to('cpu').numpy())
-            path_velocity.append(path_output.path_velocity.detach().to('cpu').numpy())
-            path_force.append(path_output.path_force.detach().to('cpu').numpy())
-            del path_output
-        paths_geometry.append(np.concatenate(path_geometry))
-        paths_energy.append(np.concatenate(path_energy))
-        paths_velocity.append(np.concatenate(path_velocity))
-        paths_force.append(np.concatenate(path_force))
         if optim_idx % 50 == 0:
             #     path_output = logger.optimization_step(	
             #         optim_idx,	
@@ -173,7 +193,7 @@ def optimize_MEP(
             #         add_azimuthal_dof=args.add_azimuthal_dof,	
             #         add_translation_dof=args.add_translation_dof	
             #     )
-            if log_dir is not None:
+            if output_dir is not None:
                 log_filename = os.path.join(log_dir, f"output_{optim_idx}.npz")
                 np.savez(
                     log_filename, 
@@ -186,7 +206,7 @@ def optimize_MEP(
                     path_integral=paths_integral[-1],
                     path_neval=paths_neval[-1],
                 )
-            if plot_dir is not None:
+            if output_dir is not None:
                 plot_filename = os.path.join(plot_dir, f"output_{optim_idx}.png")
                 visualize.plot_path(
                     plot_filename,
@@ -202,6 +222,20 @@ def optimize_MEP(
             print(f"Converged at step {optim_idx}")
             break
 
+    # path_geometry, path_energy, path_velocity, path_force = [], [], [], []
+    # for t in time:
+    #     t = t.flatten()
+    #     t = torch.linspace(t[0], t[-1], 97, device=device).reshape(-1, 1)
+    #     path_output = path(t, return_velocity=True, return_energy=True, return_force=True)
+    #     path_geometry.append(path_output.path_geometry.detach().to('cpu').numpy())
+    #     path_energy.append(path_output.path_energy.detach().to('cpu').numpy())
+    #     path_velocity.append(path_output.path_velocity.detach().to('cpu').numpy())
+    #     path_force.append(path_output.path_force.detach().to('cpu').numpy())
+    #     del path_output
+    # paths_geometry.append(np.concatenate(path_geometry))
+    # paths_energy.append(np.concatenate(path_energy))
+    # paths_velocity.append(np.concatenate(path_velocity))
+    # paths_force.append(np.concatenate(path_force))
     output = OptimizationOutput(
         paths_time=paths_time,
         paths_geometry=paths_geometry,

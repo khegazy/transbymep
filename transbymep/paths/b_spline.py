@@ -1,7 +1,8 @@
 from typing import Any
-import numpy as np
+import torch
 
 from .base_path import BasePath
+from .linear import LinearPath
 
 
 class BSpline(BasePath):
@@ -18,16 +19,11 @@ class BSpline(BasePath):
         The knot vector of the B-Spline.
     """
     degree: int
-    points: np.array
-    knots: np.array
 
     def __init__(
         self,
-        potential: callable,
-        initial_point: np.array,
-        final_point: np.array,
-        degree: int = 2,
-        n_anchors: int = 4,
+        degree: int = 3,
+        n_anchors: int = 32,
         **kwargs: Any
     ) -> None:
         """
@@ -48,31 +44,17 @@ class BSpline(BasePath):
         **kwargs : Any
             Additional keyword arguments.
         """
-        super().__init__(
-            potential=potential,
-            initial_point=initial_point,
-            final_point=final_point,
-            **kwargs
-        )
+        super().__init__(**kwargs)
 
         self.degree = degree
-        delta_geo = (self.final_point - self.initial_point)/float(n_anchors + 2) 
-        self.points = np.array([
-            self.initial_point + delta_geo*(i + 1) for i in range(n_anchors)
-        ])
-        delta_time = 1./(n_anchors + 1)
-        self.knots = np.array([
-            (i + 1)/float(n_anchors + 1) for i in range(n_anchors)
-        ])
-        print("This method is not finished")
-        raise NotImplementedError
+        self.n_anchors = n_anchors
+        control_points = torch.zeros(n_anchors, self.initial_point.shape[-1], device=self.device, dtype=torch.float64)  # shape: (n_anchors, n_output)
+        self.control_points = torch.nn.Parameter(control_points)
+        self.knots = torch.linspace(0, 1, n_anchors + degree + 1, device=self.device, dtype=torch.float64).unsqueeze(0)  # shape: (1, n_anchors + degree + 1)
+
+        self.base = LinearPath(**kwargs)
     
-    def geometric_path(
-            self,
-            time: float,
-            y: Any,
-            *args: Any
-    ) -> None:
+    def get_geometry(self, time: float, *args):
         """
         Compute the geometric path at the given time.
 
@@ -89,5 +71,40 @@ class BSpline(BasePath):
         --------
         None
         """
-        idx = self.degree + int(time/self.delta_time)
-        time_diffs = time - self.knots[idx-(self.degree-1):idx+self.degree]
+        self.points = self.cox_deboor(torch.arange(self.n_anchors), self.degree, time, self.knots) @ self.control_points
+        return self.base.get_geometry(time) + self.points
+        
+    def cox_deboor(
+            self,
+            i: torch.Tensor,
+            j: int,
+            t: torch.Tensor,
+            knots: torch.Tensor
+        ) -> torch.Tensor:
+            """
+            Cox-DeBoor recursion formula.
+
+            Parameters:
+            -----------
+            i : int
+                The index of the control point.
+            j : int
+                The degree of the B-Spline.
+            t : float
+                The time parameter.
+            knots : np.array
+                The knot vector.
+
+            Returns:
+            --------
+            float
+                The value of the B-Spline at the given time.
+            """
+            if j == 0:
+                out = ((knots[:, i] <= t) & (t < knots[:, i + 1])).float()  # shape: (n_data, n_anchors)
+            else:
+                out = (t - knots[:, i]) / (knots[:, i + j] - knots[:, i]) * self.cox_deboor(i, j - 1, t, knots) + \
+                    (knots[:, i + j + 1] - t) / (knots[:, i + j + 1] - knots[:, i + 1]) * self.cox_deboor(i + 1, j - 1, t, knots)
+            # out = 0 if torch.isnan(out) else out
+            # out = torch.where(torch.isnan(out), torch.tensor(0.0), out)
+            return out

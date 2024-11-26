@@ -1,12 +1,13 @@
 import torch
-from newtonnet.data import ExtensiveEnvironment
+from torch_geometric.data import Data
 from newtonnet.utils.ase_interface import MLAseCalculator
+from newtonnet.data.neighbors import RadiusGraph
 from ase import units
 
 from .base_potential import BasePotential, PotentialOutput
 
 class NewtonNetPotential(BasePotential):
-    def __init__(self, model_path, settings_path, **kwargs):
+    def __init__(self, model_path, **kwargs):
         """
         Constructor for NewtonNetPotential
 
@@ -21,41 +22,38 @@ class NewtonNetPotential(BasePotential):
         kwargs
         """
         super().__init__(**kwargs)
-        self.model = self.load_model(model_path, settings_path)
+        self.model = self.load_model(model_path)
+        self.transform = RadiusGraph(self.model.embedding_layer.norm.r)
         self.n_eval = 0
 
     
     def forward(self, points):
         data = self.data_formatter(points)
-        pred = self.model(data)
+        pred = self.model(data.z, data.disp, data.edge_index, data.batch)
         self.n_eval += 1
-        energy = pred['E'] * (units.kcal/units.mol)
-        force = pred['F'] * (units.kcal/units.mol/units.Ang)
+        energy = pred.energy
+        force = pred.gradient_force
         energy = energy.view(-1)
         force = force.view(*points.shape)
         return PotentialOutput(energy=energy, force=force)
         
 
-    def load_model(self, model_path, settings_path):
-        calc = MLAseCalculator(model_path, settings_path, device=self.device)
+    def load_model(self, model_path):
+        calc = MLAseCalculator(model_path, device=self.device)
         model = calc.models[0]
         model.eval()
         model.to(torch.float64)
         model.requires_grad_(False)
+        model.embedding_layer.requires_dr = False
         return model
     
     def data_formatter(self, pos):
-        n_data = pos.numel() // (self.n_atoms * 3)
-        data  = {
-            'R': pos.view(n_data, self.n_atoms, 3),
-            'Z': self.numbers.repeat(n_data, 1).cpu().numpy(),
-            # 'Z': np.stack([self.numbers for _ in range(n_data)]),
-            # 'E': torch.zeros((1, 1)),
-            # 'F': torch.zeros((1, len(self.numbers), 3)),
-        }
-        N, NM, AM, _, _ = ExtensiveEnvironment().get_environment(data['R'], data['Z'])
-        data['Z'] = torch.tensor(data['Z'], device=self.device)
-        data['N'] = torch.tensor(N, device=self.device)
-        data['NM'] = torch.tensor(NM, device=self.device)
-        data['AM'] = torch.tensor(AM, device=self.device)
-        return data
+        n_atoms = self.n_atoms
+        n_data = pos.numel() // (n_atoms * 3)
+        z = self.numbers.repeat(n_data)
+        pos = pos.view(n_data * n_atoms, 3)
+        lattice = torch.ones(1, device=self.device) * torch.inf
+        batch = torch.arange(n_data, device=self.device).repeat_interleave(n_atoms)
+        data = Data(pos=pos, z=z, lattice=lattice, batch=batch)
+        
+        return self.transform(data)

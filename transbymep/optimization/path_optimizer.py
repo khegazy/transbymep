@@ -14,6 +14,7 @@ scheduler_dict = {
     "multi_step" : lr_scheduler.MultiStepLR,
     "exponential" : lr_scheduler.ExponentialLR,
     "cosine" : lr_scheduler.CosineAnnealingLR,
+    "cosine_restart" : lr_scheduler.CosineAnnealingWarmRestarts,
     "reduce_on_plateau" : lr_scheduler.ReduceLROnPlateau,
 }
 loss_scheduler_dict = {
@@ -77,11 +78,27 @@ class PathOptimizer():
         #print("path integral", path_integral)
         if integrator._integrator.max_batch is None:
             #TODO: Better to change this to backprop if not detached
-            path_integral.integral.backward()
+            loss = path_integral.integral
+
+            time = path_integral.t.flatten()
+            time = time[len(time)//10:-len(time)//10]
+            path_output = path(time, return_force=True)
+            # path_output = path(time, return_energy=True, return_force=True)
+            force = torch.linalg.norm(path_output.path_force, dim=-1).min()
+            # force = path_output.path_force[path_output.path_energy.argmax()]
+            # force = torch.linalg.norm(force)
+            loss = loss + force * integrator.parameters['force_scale']
+
+            loss.backward()
+            # (path_integral.integral**2).backward()
         self.optimizer.step()
         if self.scheduler is not None:
             if isinstance(self.scheduler, lr_scheduler.ReduceLROnPlateau):
                 self.scheduler.step(path_integral.loss)
+                # time = path_integral.t.flatten()
+                # time = time[len(time)//10:-len(time)//10]
+                # force = path(time, return_force=True).path_force
+                # self.scheduler.step(torch.linalg.norm(force, dim=-1).min())
                 if self.optimizer.param_groups[0]['lr'] <= self.scheduler.min_lrs[0]:
                     self.converged = True
             else:

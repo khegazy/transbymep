@@ -218,7 +218,7 @@ class BasePath(torch.nn.Module):
         """
         if t is None:
             t = torch.linspace(0, 1, 1001)
-        if len(t.shape) == 1:
+        while len(t.shape) < 2:
             t = torch.unsqueeze(t, -1)
         t = t.to(torch.float64).to(self.device)
 

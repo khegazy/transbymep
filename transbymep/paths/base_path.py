@@ -262,6 +262,14 @@ class BasePath(torch.nn.Module):
         else:
             path_force = None
         if return_velocity:
+            #print("VEL SHAPES", geo_path.shape, t.shape)
+            # if is_batched:
+            #     fxn = lambda t: torch.sum(self.geometric_path(t), axis=0)
+            # else:
+            #     fxn = lambda t: self.geometric_path(t)
+            # velocity = torch.autograd.functional.jacobian(
+            #     fxn, t, create_graph=self.training, vectorize=is_batched
+            # )
             path_velocity = torch.autograd.functional.jacobian(
                 lambda t: torch.sum(self.get_geometry(t), axis=0), t, create_graph=self.training, vectorize=True
             ).transpose(0, 1)[:, :, 0]

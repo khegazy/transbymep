@@ -100,7 +100,7 @@ def optimize_MEP(
     # if scheduler_params:
     #     optimizer.set_scheduler(**scheduler_params)
     if loss_scheduler_params:
-        optimizer.set_loss_scheduler(optimizer=optimizer, integrator=integrator, **loss_scheduler_params)
+        optimizer.set_loss_scheduler(optimizer=optimizer.optimizer, integrator=integrator, **loss_scheduler_params)
         # metric_parameters = {key: loss_scheduler.get_value() for key, loss_scheduler in optimizer.loss_scheduler.items()}
         # integrator.update_metric_parameters(metric_parameters)
 

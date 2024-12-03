@@ -104,6 +104,7 @@ class PathOptimizer():
                 # print("grad_norm", grad_norm)
 
                 return loss
+            self.optimizer.param_groups[0]["line_search_fn"] = "strong_wolfe" if torch.randint(0, 2, (1,)).item() == 0 else None
             loss = self.optimizer.step(closure)
             path_integral = integrator.integral_output
 

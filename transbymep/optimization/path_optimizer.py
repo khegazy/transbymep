@@ -80,14 +80,14 @@ class PathOptimizer():
             #TODO: Better to change this to backprop if not detached
             loss = path_integral.integral
 
-            time = path_integral.t.flatten()
-            time = time[len(time)//10:-len(time)//10]
-            path_output = path(time, return_force=True)
-            # path_output = path(time, return_energy=True, return_force=True)
-            force = torch.linalg.norm(path_output.path_force, dim=-1).min()
-            # force = path_output.path_force[path_output.path_energy.argmax()]
-            # force = torch.linalg.norm(force)
-            loss = loss + force * integrator.parameters['force_scale']
+            # time = path_integral.t.flatten()
+            # time = time[len(time)//10:-len(time)//10]
+            # path_output = path(time, return_force=True)
+            # # path_output = path(time, return_energy=True, return_force=True)
+            # force = torch.linalg.norm(path_output.path_force, dim=-1).min()
+            # # force = path_output.path_force[path_output.path_energy.argmax()]
+            # # force = torch.linalg.norm(force)
+            # loss = loss + force * integrator.parameters['force_scale']
 
             loss.backward()
             # (path_integral.integral**2).backward()

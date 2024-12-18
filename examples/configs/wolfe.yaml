@@ -14,11 +14,16 @@ integrator_params:
     atol : 1.0e-5
     computation : parallel
     sample_type : uniform
+    path_loss_names: ['E_pvre', 'F_mag']
+    path_loss_scales: [1.0, 0.1]
 
 optimizer_params:
     name: adam
-    loss_name: E_pvre
-    lr : 1.0e-3    
+    lr : 1.0e-3 
+    TS_region_loss_names: ['E']
+    TS_region_loss_scales: [1.0]
+    TS_time_loss_names: ['F_mag']
+    TS_time_loss_scales: [1.0]
 
 device: cpu
 

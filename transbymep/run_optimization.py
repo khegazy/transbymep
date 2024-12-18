@@ -7,7 +7,7 @@ from typing import NamedTuple, Any
 from matplotlib import pyplot as plt
 import time as time
 from tqdm import tqdm
-import wandb
+#import wandb
 from ase import Atoms
 from ase.io import read, write
 from typing import NamedTuple

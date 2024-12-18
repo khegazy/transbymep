@@ -242,10 +242,11 @@ class BasePath(torch.nn.Module):
             if potential_output.force is not None:
                 path_force = potential_output.force
             else:
+                
                 path_force = -torch.autograd.grad(
-                    path_energy,
+                    potential_output.energy,
                     path_geometry,
-                    grad_outputs=torch.ones_like(path_energy),
+                    grad_outputs=torch.ones_like(potential_output.energy),
                     create_graph=self.training,
                 )[0]
                 #print("SHAPES", pes_path.shape, len(pes_path.shape), torch.ones(0), geo_path.shape)

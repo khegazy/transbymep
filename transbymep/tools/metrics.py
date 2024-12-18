@@ -8,6 +8,43 @@ class Metrics():
     def update_metric_parameters(self, fxn_parameters):
         self.parameters = fxn_parameters
 
+    def get_ode_eval_fxn(self, is_parallel, fxn_names, fxn_scales=None):
+        # Parse and check input
+        if fxn_names is None or len(fxn_names) == 0:
+            return None, None
+        if isinstance(fxn_names, str):
+            fxn_names = [fxn_names]
+        if fxn_scales is None:
+            fxn_scales = torch.ones(1) 
+        assert len(fxn_names) == len(fxn_scales), f"The number of metric function names {fxn_names} does not match the number of scales {fxn_scales}"
+
+        for fname in fxn_names:
+            if fname not in dir(self):
+                metric_fxns = [
+                    attr for attr in dir(Metrics)\
+                        if attr[0] != '_' and callable(getattr(Metrics, attr))
+                ]
+                raise ValueError(f"Can only integrate metric functions, either add a new function to the Metrics class or use one of the following:\n\t{metric_fxns}")
+        self.eval_fxns = [getattr(self, fname) for fname in fxn_names]
+        self.eval_fxn_scales = fxn_scales
+
+        if is_parallel:
+            def ode_fxn(t, path, **kwargs):
+                loss = 0
+                for fxn, scale in zip(self.eval_fxns, self.eval_fxn_scales):
+                    loss = loss + scale*fxn(path=path, t=t, **kwargs)
+                return loss
+        else:
+            def ode_fxn(t, path, *args):
+                t = t.reshape(1, -1)
+                #print("ODEF", t)
+                output = self.eval_fxns(path=path, t=t)
+                #print("ODEF out", output, output.requires_grad)
+                return output[0]
+        
+        self.ode_fxn = ode_fxn
+        return self.ode_fxn, self.eval_fxns
+
     def _parse_input(
             self,
             geo_val=None,
@@ -125,6 +162,20 @@ class Metrics():
         
         return torch.linalg.norm(velocity*force)#/jnp.linalg.norm(geo_grad)
 
+    
+    def E(self, **kwargs):
+        kwargs['requires_force'] = False
+        kwargs['requires_energy'] = True
+        kwargs['requires_velocity'] = False
+        kwargs['fxn_name'] = self.E.__name__
+
+        # geo_val, velocity, pes_val, force = self._parse_input(**kwargs)
+        path_geometry, path_velocity, path_energy, path_force = self._parse_input(**kwargs)
+
+        E = torch.mean(path_energy)
+        return E
+
+
     def vre(self, **kwargs):
         kwargs['requires_force'] = True
         kwargs['requires_velocity'] = True
@@ -138,3 +189,25 @@ class Metrics():
             geo_val=geo_val, velocity=velocity, pes_val=pes_val, force=force
         )
         return e_vre - e_pvre
+
+    
+    def F_mag(self, **kwargs):
+        kwargs['requires_force'] = True
+        kwargs['requires_energy'] = False
+        kwargs['requires_velocity'] = False
+        kwargs['fxn_name'] = self.F_mag.__name__
+
+        path_geometry, path_velocity, path_energy, path_force = self._parse_input(**kwargs)
+
+        return torch.linalg.norm(path_force, dim=-1, keepdim=True)
+    
+    
+    def saddle_eigenvalues(self, **kwargs):
+        kwargs['requires_force'] = True
+        kwargs['requires_energy'] = False
+        kwargs['requires_velocity'] = True
+        kwargs['fxn_name'] = self.saddle_eigenvalues.__name__
+
+        path_geometry, path_velocity, path_energy, path_force = self._parse_input(**kwargs)
+        path_hessian = asdf
+        return None

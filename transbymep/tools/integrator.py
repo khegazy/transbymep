@@ -7,7 +7,6 @@ from enum import Enum
 
 from torchdiffeq import odeint
 from torchpathdiffeq import SerialAdaptiveStepsizeSolver, get_parallel_RK_solver 
-from .metrics import Metrics
 
 from .metrics import Metrics
 
@@ -26,6 +25,8 @@ class ODEintegrator(Metrics):
             computation='parallel',
             sample_type='uniform',
             remove_cut=0.1,
+            path_loss_names=None,
+            path_loss_scales=torch.ones(1),
             metric_parameters=None,
             process=None,
             is_multiprocess=False,
@@ -88,6 +89,17 @@ class ODEintegrator(Metrics):
                     0, 1, self.process.world_size+1, requires_grad=False
                 )
 
+        # Build loss funtion to integrate path over
+        if path_loss_names is None:
+            self.eval_fxns = None
+            self.eval_fxn_scales = None
+            self.ode_fxn = None
+        else:
+            self.ode_fxn, self.eval_fxns = self.get_ode_eval_fxn(
+                self.is_parallel, path_loss_names, path_loss_scales
+            )
+
+
         # if device is not None:
         #     self.device = torch.device(device)
         # else:
@@ -96,11 +108,20 @@ class ODEintegrator(Metrics):
     def integrator(
             self,
             path,
-            fxn_name,
+            fxn_names=None,
+            fxn_scales=torch.ones(1),
             t_init=torch.tensor([0], dtype=torch.float64),
             t_final=torch.tensor([1], dtype=torch.float64),
             times=None):
-        ode_fxn, _ = self._get_ode_eval_fxn(fxn_name=fxn_name, path=path)
+
+        if fxn_names is None:
+            if self.ode_fxn is None:
+                print("ERROR: Integrator call must be given fxn_names and fxn_scales, or these variables must be given to class constructor.") 
+                sys.exit()
+            else:
+                ode_fxn = self.ode_fxn
+        else:
+            ode_fxn, _ = self._get_ode_eval_fxn(fxn_names, fxn_scales)
 
         if times is None:
             if self.integral_output is None:
@@ -111,7 +132,8 @@ class ODEintegrator(Metrics):
             ode_fxn=ode_fxn,
             t=times,
             t_init=t_init,
-            t_final=t_final
+            t_final=t_final,
+            ode_args=(path,)
         )
         self.integral_output = integral_output
         #print(integral_output.t_pruned.shape)
@@ -121,7 +143,8 @@ class ODEintegrator(Metrics):
     def path_integral(
             self,
             path,
-            fxn_name,
+            fxn_names=None,
+            fxn_scales=None,
             t_init=torch.tensor([0.], dtype=torch.float64),
             t_final=torch.tensor([1.], dtype=torch.float64),
             record_evals=False
@@ -131,7 +154,8 @@ class ODEintegrator(Metrics):
         
         integral_output = self.integrator(
             path=path,
-            fxn_name=fxn_name,
+            fxn_names=fxn_names,
+            fxn_scales=fxn_scales,
             t_init=t_init,
             t_final=t_final
         )
@@ -150,28 +174,41 @@ class ODEintegrator(Metrics):
             geometries=geo_record
         )
 
-    def _get_ode_eval_fxn(self, fxn_name, path):
-        if fxn_name not in dir(self):
-            metric_fxns = [
-                attr for attr in dir(Metrics)\
-                    if attr[0] != '_' and callable(getattr(Metrics, attr))
-            ]
-            raise ValueError(f"Can only integrate metric functions, either add a new function to the Metrics class or use one of the following:\n\t{metric_fxns}")
-        eval_fxn = getattr(self, fxn_name)
+    """
+    def _get_ode_eval_fxn(self, fxn_names, fxn_scales=None):
+        if isinstance(fxn_names, str):
+            fxn_names = [fxn_names]
+        if fxn_scales is None:
+            fxn_scales = torch.ones(1) 
+        assert len(fxn_names) == len(fxn_scales), f"The number of metric function names {fxn_names} does not match the number of scales {fxn_scales}"
+
+        for fname in fxn_names:
+            if fname not in dir(self):
+                metric_fxns = [
+                    attr for attr in dir(Metrics)\
+                        if attr[0] != '_' and callable(getattr(Metrics, attr))
+                ]
+                raise ValueError(f"Can only integrate metric functions, either add a new function to the Metrics class or use one of the following:\n\t{metric_fxns}")
+        self.eval_fxns = [getattr(self, fname) for fname in fxn_names]
+        self.eval_fxn_scales = fxn_scales
 
         if self.is_parallel:
-            def ode_fxn(t, *args):
-                return eval_fxn(path=path, t=t)
+            def ode_fxn(t, path, **kwargs):
+                loss = 0
+                for fxn, scale in zip(self.eval_fxns, self.eval_fxn_scales):
+                    loss = loss + scale*fxn(path=path, t=t, **kwargs)
+                return loss
         else:
-            def ode_fxn(t, *args):
+            def ode_fxn(t, path, *args):
                 t = t.reshape(1, -1)
                 #print("ODEF", t)
-                output = eval_fxn(path=path, t=t)
+                output = self.eval_fxns(path=path, t=t)
                 #print("ODEF out", output, output.requires_grad)
                 return output[0]
         
-        return ode_fxn, eval_fxn
-
+        self.ode_fxn = ode_fxn
+        return self.ode_fxn, self.eval_fxns
+    """
 
     # Deprecated but keeping because I may resuse parts
     """

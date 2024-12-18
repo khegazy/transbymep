@@ -3,6 +3,8 @@ from torch import optim
 from torch.optim import lr_scheduler
 from transbymep.tools import scheduler
 
+from transbymep.tools import Metrics
+
 optimizer_dict = {
     "sgd" : optim.SGD,
     "adagrad" : optim.Adagrad,
@@ -24,16 +26,40 @@ loss_scheduler_dict = {
     "increase_on_plateau" : scheduler.IncreaseOnPlateau,
 }
 
-class PathOptimizer():
+
+class PathOptimizer(Metrics):
     def __init__(
             self,
             name,
             path,
-            loss_name,
+            path_loss_names=None,
+            path_loss_scales=torch.ones(1),
+            TS_time_loss_names=None,
+            TS_time_loss_scales=torch.ones(1),
+            TS_region_loss_names=None,
+            TS_region_loss_scales=torch.ones(1),
             device='cpu',
             **config
         ):
-        self.loss_name = loss_name
+        super().__init__()
+        
+        # Initialize loss information
+        self.path_loss_name = path_loss_names
+        self.path_loss_scales = path_loss_scales
+        self.TS_time_loss_names = TS_time_loss_names
+        self.TS_time_loss_scales = TS_time_loss_scales
+        self.TS_time_loss_fxn, _ = self.get_ode_eval_fxn(
+            True, self.TS_time_loss_names, self.TS_time_loss_scales
+        )
+        self.TS_region_loss_names = TS_region_loss_names
+        self.TS_region_loss_scales = TS_region_loss_scales
+        self.TS_region_loss_fxn, _ = self.get_ode_eval_fxn(
+            True, self.TS_region_loss_names, self.TS_region_loss_scales
+        )
+        self.has_TS_loss = self.TS_time_loss_names is not None\
+            or self.TS_region_loss_names is not None
+        self.TS_time = torch.empty(0)
+        self.TS_region = torch.empty(0)
         self.device=device
         
         # Initialize optimizer
@@ -71,26 +97,34 @@ class PathOptimizer():
         t_final = t_final.to(torch.float64).to(self.device)
         self.optimizer.zero_grad()
         path_integral = integrator.path_integral(
-            path, self.loss_name, t_init=t_init, t_final=t_final
+            path, self.path_loss_name, self.path_loss_scales, t_init=t_init, t_final=t_final
         )
+        integral_loss = path_integral.integral
         #for n, prm in path.named_parameters():
         #    print(n, prm.grad)
         #print("path integral", path_integral)
         if integrator._integrator.max_batch is None:
             #TODO: Better to change this to backprop if not detached
-            loss = path_integral.integral
-
-            # time = path_integral.t.flatten()
-            # time = time[len(time)//10:-len(time)//10]
-            # path_output = path(time, return_force=True)
-            # # path_output = path(time, return_energy=True, return_force=True)
-            # force = torch.linalg.norm(path_output.path_force, dim=-1).min()
-            # # force = path_output.path_force[path_output.path_energy.argmax()]
-            # # force = torch.linalg.norm(force)
-            # loss = loss + force * integrator.parameters['force_scale']
-
-            loss.backward()
+            integral_loss.backward()
             # (path_integral.integral**2).backward()
+        
+        #############  Testing TS Loss ############
+        # Evaluate TS loss functions
+        if self.has_TS_loss and len(self.TS_time) > 0:
+            TS_loss = torch.zeros(1)
+            if self.TS_time_loss_fxn is not None:
+                TS_time_loss = self.TS_time_loss_fxn(
+                    self.TS_time, path
+                )
+                TS_loss = TS_loss + TS_time_loss 
+            if self.TS_region_loss_fxn is not None:
+                TS_region_loss = self.TS_region_loss_fxn(
+                    self.TS_region, path
+                )
+                TS_loss = TS_loss + TS_region_loss 
+            TS_loss.backward()        
+        ###########################################
+
         self.optimizer.step()
         if self.scheduler is not None:
             if isinstance(self.scheduler, lr_scheduler.ReduceLROnPlateau):
@@ -103,6 +137,13 @@ class PathOptimizer():
                     self.converged = True
             else:
                 self.scheduler.step()
+        
+        ############# Testing ##############
+        # Find transition state time
+        self.TS_range = torch.linspace(0.45, 0.65, 25)
+        self.TS_time = torch.tensor([0.5])
+        ####################################
+
         if self.loss_scheduler is not None:
             for key, loss_scheduler in self.loss_scheduler.items():
                 loss_scheduler.step()

@@ -1,11 +1,12 @@
 import torch
+import numpy as np
+import scipy as sp
 from dataclasses import dataclass
 from transbymep.tools import read_atoms, pair_displacement
 from transbymep.potentials.base_potential import BasePotential
 from typing import Callable, Any
 from ase import Atoms
 from ase.io import read
-import numpy as np
 
 
 @dataclass
@@ -85,6 +86,7 @@ class BasePath(torch.nn.Module):
         """
         super().__init__()
         print("DEVICE", device)
+        self.neval = 0
         self.potential = potential
         self.set_points(
             initial_point, final_point, device
@@ -96,7 +98,8 @@ class BasePath(torch.nn.Module):
         self.t_final = torch.tensor(
             [[1]], dtype=torch.float64, device=self.device
         )
-        self.neval = 0
+        self.TS_time = None
+        self.TS_region = None
 
     def set_points(
             self,
@@ -287,3 +290,55 @@ class BasePath(torch.nn.Module):
             path_velocity=path_velocity,
             path_force=path_force,
         )
+    
+    def find_TS(self, times, energies, idx_shift=5, N_interp=5000):
+        TS_idx = torch.argmax(energies.view(-1)).item()
+        """
+        t_min = path_integral.t.view(-1)[np.max([0, TS_idx-idx_shift])].item()
+        t_max = path_integral.t.view(-1)[np.min([len(path_integral.y), TS_idx+idx_shift])].item()
+        TS_time_scale = t_max - t_min
+        print("TSIDX", TS_idx, path_integral.y.view(-1).shape, np.max([0, TS_idx-idx_shift]))
+        self.TS_region = torch.linspace(t_min, t_max, 25, requires_grad=False).unsqueeze(-1)
+        self.TS_E_range = path(
+            self.TS_region, return_energy=True,
+            return_force=False, return_velocity=False
+        ).path_energy
+        print(self.TS_region.shape, self.TS_E_range.shape)
+        TS_interp = sp.interpolate.interp1d(
+            self.TS_region[:,0].detach().numpy(),
+            self.TS_E_range.detach().numpy()
+        )
+        """
+        N_C = times.shape[-2]
+        idx_min = np.max([0, TS_idx-(idx_shift*N_C)])
+        idx_max = np.min(
+            [len(times[:,:,0].view(-1)), TS_idx+(idx_shift*N_C)]
+        )
+        t_interp = times[:,:,0].view(-1)[idx_min:idx_max].detach().numpy()
+        E_interp = energies[:,:,0].view(-1)[idx_min:idx_max].detach().numpy() 
+        mask_interp = np.concatenate(
+            [t_interp[1:] - t_interp[:-1] > 1e-10, np.array([1], dtype=bool)]
+        )
+        TS_interp = sp.interpolate.interp1d(
+            t_interp[mask_interp], E_interp[mask_interp], kind='cubic'
+        )
+        TS_search = np.linspace(t_interp[0], t_interp[-1], N_interp)
+        TS_E_search = TS_interp(TS_search)
+        TS_idx = np.argmax(TS_E_search)
+        """
+        print(TS_idx)
+        print(self.TS_E_range)
+        plt.plot(self.TS_region.detach(), self.TS_E_range.detach(), 'o')
+        plt.plot(TS_search, TS_E_search)
+        plt.savefig("testing_interp.png")
+        plt.close()
+        """
+        TS_time_scale = t_interp[-1] - t_interp[0]
+        self.TS_time = TS_search[TS_idx]
+        self.TS_region = torch.linspace(
+            self.TS_time-TS_time_scale/(idx_shift),
+            self.TS_time+TS_time_scale/(idx_shift),
+            11
+        )
+        self.TS_time = torch.tensor([[self.TS_time]])
+ 

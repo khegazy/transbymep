@@ -1,6 +1,8 @@
+import matplotlib.pyplot as plt
 import torch
 from torch import optim
 from torch.optim import lr_scheduler
+from torch.nn.functional import interpolate
 from transbymep.tools import scheduler
 
 from transbymep.tools import Metrics
@@ -58,8 +60,6 @@ class PathOptimizer(Metrics):
         )
         self.has_TS_loss = self.TS_time_loss_names is not None\
             or self.TS_region_loss_names is not None
-        self.TS_time = torch.empty(0)
-        self.TS_region = torch.empty(0)
         self.device=device
         
         # Initialize optimizer
@@ -110,16 +110,16 @@ class PathOptimizer(Metrics):
         
         #############  Testing TS Loss ############
         # Evaluate TS loss functions
-        if self.has_TS_loss and len(self.TS_time) > 0:
+        if self.has_TS_loss and path.TS_time is not None:
             TS_loss = torch.zeros(1)
             if self.TS_time_loss_fxn is not None:
                 TS_time_loss = self.TS_time_loss_fxn(
-                    self.TS_time, path
+                    path.TS_time, path
                 )
                 TS_loss = TS_loss + TS_time_loss 
             if self.TS_region_loss_fxn is not None:
                 TS_region_loss = self.TS_region_loss_fxn(
-                    self.TS_region, path
+                    path.TS_region, path
                 )
                 TS_loss = TS_loss + TS_region_loss 
             TS_loss.backward()        
@@ -140,9 +140,7 @@ class PathOptimizer(Metrics):
         
         ############# Testing ##############
         # Find transition state time
-        self.TS_range = torch.linspace(0.45, 0.65, 25)
-        self.TS_time = torch.tensor([0.5])
-        ####################################
+        path.find_TS(path_integral.t, path_integral.y)
 
         if self.loss_scheduler is not None:
             for key, loss_scheduler in self.loss_scheduler.items():
@@ -150,5 +148,8 @@ class PathOptimizer(Metrics):
             metric_parameters = {key: loss_scheduler.get_value() for key, loss_scheduler in self.loss_scheduler.items()}
             integrator.update_metric_parameters(metric_parameters)
         return path_integral
+    
+    def _TS_max_E(self):
+        raise NotImplementedError
 
     

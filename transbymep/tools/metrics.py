@@ -1,17 +1,221 @@
+from typing import Any
 import torch
+import matplotlib.pyplot as plt
+
+
+class LossBase():
+    def __init__(self, weight_scale=None) -> None:
+        self.weight_scale = weight_scale
+        self.iteration = None
+        self.t_midpoint = None
+    
+    def update_parameters(self, **kwargs):
+        if 'weight' in kwargs:
+            self.weight_scale = kwargs['weight']
+        if 'iteration' in kwargs:
+            self.iteration = torch.tensor([kwargs['iteration']])
+        # Find the center of the path in time
+        if 'integral_output' in kwargs:
+            self.t_midpoint = torch.mean(
+                kwargs['integral_output'].t_pruned[:,:,0], dim=-1
+            )
+            if len(self.t_midpoint) % 2 == 1:
+                self.t_midpoint = self.t_midpoint[len(self.t_midpoint)//2]
+            else:
+                t_idx = len(self.t_midpoint)//2
+                self.t_midpoint = self.t_midpoint[t_idx-1] + self.t_midpoint[t_idx]
+                self.t_midpoint = self.t_midpoint/2.
+
+    def _check_parameters(self, weight_scale=None, **kwargs):
+        assert self.weight_scale is not None or weight_scale is not None,\
+            "Must provide 'weight_scale' to update_parameters or loss call."
+        self.weight_scale = self.weight_scale if weight_scale is None else weight_scale
+    
+    def get_weights(self, integral_output):
+        raise NotImplementedError
+    
+    def __call__(self, integral_output, **kwargs) -> Any:
+        self._check_parameters(**kwargs)
+        weights = self.get_weights(
+            torch.mean(integral_output.t[:,:,0], dim=1),
+            integral_output.t_init,
+            integral_output.t_final,
+        )
+        """
+        print("WEIGHTS", self.iteration, weights)
+        print(torch.mean(integral_output.t[:,:,0], dim=1))
+        fig, ax = plt.subplots()
+        ax.set_title(str(self.t_midpoint))
+        ax.plot(t_mean, weights)
+        ax.plot([0,1], [0,0], ':k')
+        ax.set_ylim(-0.1, 1.05)
+        fig.savefig(f"test_weights_{self.iteration[0]}.png")
+        """
+        return integral_output.y0\
+            + torch.sum(weights*integral_output.sum_steps)
+
+
+
+class PathIntegral(LossBase):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    def __call__(self, integral_output, **kwargs):
+        return integral_output.integral
+
+
+class EnergyWeight(LossBase):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    def __call__(self, integral_output, **kwargs):
+        weight_scale = self._get_parameters(**kwargs)
+        E = torch.mean(integral_output.y, dim=1)
+        return torch.sum(E*integral_output.RK_steps) + integral_output.y0
+
+
+class GrowingString(LossBase):
+    def __init__(self, weight_type='inv_sine', time_scale=10, envelope_scale=1000, **kwargs) -> None:
+        super().__init__()
+        self.iteration = torch.zeros(1)
+        self.time_scale = time_scale
+        self.envelope_scale = envelope_scale
+        self.t_midpoint = 0.5
+
+        idx1 = weight_type.find("_")
+        #idx2 = weight_type.find("_", idx1 + 1)
+        envelope_key = weight_type[idx1+1:]
+        #envelope_key = weight_type[idx1+1:idx2]
+        if envelope_key == 'gauss':
+            self.envelope_fxn = self._guass_envelope
+        elif envelope_key == 'poly':
+            self.order = 1 if 'order' not in kwargs else kwargs['order']
+            self.envelope_fxn = self._poly_envolope
+        elif envelope_key == 'sine':
+            self.envelope_fxn = self._sine_envelope
+        elif envelope_key == 'sine-gauss' or envelope_key == 'gauss-sine':
+            self.envelope_fxn = self._sine_gauss_envelope
+        elif envelope_key == 'butter':
+            self.order = 8 if 'order' not in kwargs else kwargs['order']
+            self._butter_envelope
+        else:
+            raise ValueError(f"Cannot make envelope type {envelope_key}")
+        """
+        decay_key = weight_type[idx2+1:]
+        if decay_key == 'exp':
+            def decay_fxn(iteration, time_scale):
+                return self.envelope_scale*torch.exp(-1*iteration*time_scale)
+        else:
+            raise ValueError(f"Cannot make decay type {decay_key}")
+        """
+
+        fxn_key = weight_type[:idx1]
+        if fxn_key == 'inv':
+            self.get_weights = self._inv_weights
+        else:
+            raise ValueError(f"Cannot make weight function type {fxn_key}")
+    
+        
+    def update_parameters(self, **kwargs):
+        super().update_parameters(**kwargs)    
+        #assert 'variance' in kwargs, "Must provide 'variance' to update_parameters."
+        if 'variance' in kwargs:
+            self.variance_scale = kwargs['variance']
+        if 'order' in kwargs:
+            self.order = kwargs['order']
+
+    def _inv_weights(self, t, t_init, t_final):
+        envelope = self.envelope_fxn(t, t_init, t_final)
+        return 1./(1 + self.weight_scale*envelope)
+    
+    def _guass_envelope(self, t, t_init, t_final):
+        mask = t < self.t_midpoint
+        # Left side
+        t_left = t[mask]
+        left = torch.exp(-1/(self.variance_scale + 1e-10)\
+            *((self.t_midpoint - t_left)*4/(t_init - self.t_midpoint))**2
+        )
+        t_left = (t_left - t_left[0])/(self.t_midpoint - t_left[0])
+        left = left - (left[0] - t_left*left[0])
+        # Right side
+        t_right = t[torch.logical_not(mask)]
+        right = torch.exp(-1/(self.variance_scale + 1e-10)\
+            *((self.t_midpoint - t_right)*4\
+            /(t_final - self.t_midpoint))**2)
+        t_right = (t_right - t_right[-1])/(self.t_midpoint - t_right[-1])
+        right = right - (right[-1] - t_right*right[-1])
+        return torch.concatenate([left, right])
+    
+    def _sine_envelope(self, t, t_init, t_final):
+        mask = t < self.t_midpoint
+        # Left side
+        left = (1 - torch.cos(
+            (t[mask] - t_init)*torch.pi/((self.t_midpoint - t_init))
+        ))/2.
+        # Right side
+        right = (1 + torch.cos(
+            (t[torch.logical_not(mask)] - self.t_midpoint)\
+                *torch.pi/((t_final - self.t_midpoint))
+        ))/2.
+        envelope = torch.concatenate([left, right])
+        plt.plot(t, envelope)
+        plt.savefig(f"./plots/envelopes/sine{self.iteration}.png")
+        plt.close()
+        return torch.concatenate([left, right])
+
+    def _poly_envolope(self, t, t_init, t_final):
+        mask = t < self.t_midpoint
+        # Left side
+        left = torch.abs((t[mask] - t_init)/((self.t_midpoint - t_init)))**self.order
+        # Right side
+        right = torch.abs((t[torch.logical_not(mask)] - t_final)\
+            /(t_final - self.t_midpoint))**self.order
+        return torch.abs(torch.concatenate([left, right]))
+
+    def _sine_gauss_envelope(self, t, t_init, t_final):
+        guass_envelope = self._guass_envelope(t, t_init, t_final)
+        sine_envelope = self._sine_envelope(t, t_init, t_final)
+        return guass_envelope*sine_envelope
+
+
+    def _butter_envelope(self, t, t_init, t_final):
+        mask = t < self.t_midpoint
+        # Left side
+        dt = self.t_midpoint - t[mask]
+        left = 1./torch.sqrt(1 + (dt*2/(self.t_midpoint - t_init))**self.order)
+        # Right side
+        dt = t[torch.logical_not(mask)] - self.t_midpoint
+        right = 1./torch.sqrt(1 + (dt*2/(self.t_midpoint - t_init))**self.order)
+        envelope = torch.concatenate([left, right])
+        plt.plot(t, envelope)
+        plt.savefig(f"./plots/envelopes/butter{self.iteration}.png")
+        plt.close()
+        return envelope
+    
+   
+loss_fxns = {
+    'path_integral' : PathIntegral,
+    'integral' : PathIntegral,
+    'energy_weight' : EnergyWeight,
+    'growing_string' : GrowingString
+}
+
+def get_loss_fxn(name, **kwargs):
+    print("GETTING LOSS", name, kwargs)
+    assert name in loss_fxns, f"Cannot find loss {name}, must select from {list(loss_fxns.keys())}"
+    return loss_fxns[name](**kwargs)
+        
+
 
 class Metrics():
+    def __init__(self):
+        self.ode_fxn = None
+        self._ode_fxn_scales = None
+        self._ode_fxns = None
 
-    def __init__(self, fxn_parameters=None):
-        self.parameters = fxn_parameters
-
-    def update_metric_parameters(self, fxn_parameters):
-        self.parameters = fxn_parameters
-
-    def get_ode_eval_fxn(self, is_parallel, fxn_names, fxn_scales=None):
+    def create_ode_fxn(self, is_parallel, fxn_names, fxn_scales=None):
         # Parse and check input
-        if fxn_names is None or len(fxn_names) == 0:
-            return None, None
+        assert fxn_names is not None or len(fxn_names) != 0
         if isinstance(fxn_names, str):
             fxn_names = [fxn_names]
         if fxn_scales is None:
@@ -25,25 +229,39 @@ class Metrics():
                         if attr[0] != '_' and callable(getattr(Metrics, attr))
                 ]
                 raise ValueError(f"Can only integrate metric functions, either add a new function to the Metrics class or use one of the following:\n\t{metric_fxns}")
-        self.eval_fxns = [getattr(self, fname) for fname in fxn_names]
-        self.eval_fxn_scales = fxn_scales
+        self._ode_fxns = [getattr(self, fname) for fname in fxn_names]
+        self._ode_fxn_scales = {
+            fxn.__name__ : scale for fxn, scale in zip(self._ode_fxns, fxn_scales)
+        }
 
         if is_parallel:
-            def ode_fxn(t, path, **kwargs):
-                loss = 0
-                for fxn, scale in zip(self.eval_fxns, self.eval_fxn_scales):
-                    loss = loss + scale*fxn(path=path, t=t, **kwargs)
-                return loss
+            self.ode_fxn = self._parallel_ode_fxn
         else:
-            def ode_fxn(t, path, *args):
-                t = t.reshape(1, -1)
-                #print("ODEF", t)
-                output = self.eval_fxns(path=path, t=t)
-                #print("ODEF out", output, output.requires_grad)
-                return output[0]
-        
-        self.ode_fxn = ode_fxn
-        return self.ode_fxn, self.eval_fxns
+            self.ode_fxn = self._serial_ode_fxn
+
+
+    def _parallel_ode_fxn(self, t, path, **kwargs):
+        loss = 0
+        for fxn in self._ode_fxns:
+            scale = self._ode_fxn_scales[fxn.__name__]
+            loss = loss + scale*fxn(path=path, t=t, **kwargs)
+        return loss
+
+
+    def _serial_ode_fxn(self, t, path, **kwargs):
+        loss = 0
+        t = t.reshape(1, -1)
+        for fxn in self._ode_fxns:
+            scale = self._ode_fxn_scales[fxn.__name__]
+            loss = loss + scale*fxn(path=path, t=t, **kwargs)[0]
+        return loss
+    
+    
+    def update_ode_fxn_scales(self, **kwargs):
+        for name, scale in kwargs.items():
+            assert name in self._ode_fxn_scales
+            self._ode_fxn_scales[name] = scale
+
 
     def _parse_input(
             self,

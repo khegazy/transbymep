@@ -4,10 +4,11 @@ from torch import optim
 from torch.optim import lr_scheduler
 from torch.nn.functional import interpolate
 from transbymep.tools import scheduler
+from transbymep.tools.scheduler import get_schedulers
 
 from transbymep.tools import Metrics
 
-optimizer_dict = {
+OPTIMIZER_DICT = {
     "sgd" : optim.SGD,
     "adagrad" : optim.Adagrad,
     "adam" : optim.Adam,
@@ -29,46 +30,65 @@ loss_scheduler_dict = {
 }
 
 
-class PathOptimizer(Metrics):
+class PathOptimizer():
     def __init__(
             self,
-            name,
             path,
             path_loss_names=None,
             path_loss_scales=torch.ones(1),
+            path_loss_schedulers=None,
+            path_ode_schedulers=None,
             TS_time_loss_names=None,
             TS_time_loss_scales=torch.ones(1),
+            TS_time_loss_schedulers=None,
             TS_region_loss_names=None,
             TS_region_loss_scales=torch.ones(1),
+            TS_region_loss_schedulers=None,
             device='cpu',
             **config
         ):
         super().__init__()
         
-        # Initialize loss information
-        self.path_loss_name = path_loss_names
-        self.path_loss_scales = path_loss_scales
+        self.device=device
+        self.iteration = 0
+        
+        ####  Initialize loss information  #####
+        self.has_TS_loss = TS_time_loss_names is not None\
+            or TS_region_loss_names is not None
+        
         self.TS_time_loss_names = TS_time_loss_names
         self.TS_time_loss_scales = TS_time_loss_scales
-        self.TS_time_loss_fxn, _ = self.get_ode_eval_fxn(
+        self.TS_time_metrics = Metrics()
+        self.TS_time_metrics.create_ode_fxn(
             True, self.TS_time_loss_names, self.TS_time_loss_scales
         )
+        
         self.TS_region_loss_names = TS_region_loss_names
         self.TS_region_loss_scales = TS_region_loss_scales
-        self.TS_region_loss_fxn, _ = self.get_ode_eval_fxn(
+        self.TS_region_metrics = Metrics()
+        self.TS_region_metrics.create_ode_fxn(
             True, self.TS_region_loss_names, self.TS_region_loss_scales
         )
-        self.has_TS_loss = self.TS_time_loss_names is not None\
-            or self.TS_region_loss_names is not None
-        self.device=device
         
-        # Initialize optimizer
-        name = name.lower()
-        self.optimizer = optimizer_dict[name](path.parameters(), **config)
+        #####  Initialize schedulers  #####
+        self.ode_fxn_schedulers = get_schedulers(path_ode_schedulers)
+        self.path_loss_schedulers = get_schedulers(path_loss_schedulers)
+        self.TS_time_loss_schedulers = get_schedulers(TS_time_loss_schedulers)
+        self.TS_region_loss_schedulers = get_schedulers(TS_region_loss_schedulers)
+        
+
+        #####  Initialize optimizer  #####
+        #name = name.lower()
+        assert 'optimizer' in config, "Must specify optimizer parameters (dict) with key 'optimizer"
+        assert 'name' in config['optimizer'], f"Must specify name of optimizer: {list(OPTIMIZER_DICT.keys())}"
+        opt_name = config['optimizer']['name'].lower()
+        del config['optimizer']['name']
+        self.optimizer = OPTIMIZER_DICT[opt_name](path.parameters(), **config['optimizer'])
         self.scheduler = None
         self.loss_scheduler = None
         self.converged = False
 
+    """
     def set_scheduler(self, name, **config):
         name = name.lower()
         if name not in scheduler_dict:
@@ -85,6 +105,7 @@ class PathOptimizer(Metrics):
                 self.loss_scheduler[key] = loss_scheduler_dict[name](lr_scheduler=self.scheduler, **value)
             else:
                 self.loss_scheduler[key] = loss_scheduler_dict[name](**value)
+    """
     
     def optimization_step(
             self,
@@ -93,11 +114,28 @@ class PathOptimizer(Metrics):
             t_init=torch.tensor([0.], dtype=torch.float64),
             t_final=torch.tensor([1.], dtype=torch.float64)
         ):
+        self.optimizer.zero_grad()
         t_init = t_init.to(torch.float64).to(self.device)
         t_final = t_final.to(torch.float64).to(self.device)
-        self.optimizer.zero_grad()
+        ode_fxn_scales = {
+            name : schd.get_value() for name, schd in self.ode_fxn_schedulers.items()
+        }
+        path_loss_scales = {
+            name : schd.get_value() for name, schd in self.path_loss_schedulers.items()
+        }
+        path_loss_scales['iteration'] = self.iteration,
+        TS_time_loss_scales = {
+            name : schd.get_value() for name, schd in self.TS_time_loss_schedulers.items()
+        }
+        TS_region_loss_scales = {
+            name : schd.get_value() for name, schd in self.TS_region_loss_schedulers.items()
+        }
         path_integral = integrator.path_integral(
-            path, self.path_loss_name, self.path_loss_scales, t_init=t_init, t_final=t_final
+            path, #self.path_loss_name, self.path_loss_scales,
+            ode_fxn_scales=ode_fxn_scales,
+            loss_scales=path_loss_scales,
+            t_init=t_init,
+            t_final=t_final
         )
         integral_loss = path_integral.integral
         #for n, prm in path.named_parameters():
@@ -112,13 +150,17 @@ class PathOptimizer(Metrics):
         # Evaluate TS loss functions
         if self.has_TS_loss and path.TS_time is not None:
             TS_loss = torch.zeros(1)
-            if self.TS_time_loss_fxn is not None:
-                TS_time_loss = self.TS_time_loss_fxn(
+            if self.TS_time_metrics.ode_fxn is not None:
+                self.TS_time_metrics.update_ode_fxn_scales(**TS_time_loss_scales)
+                TS_time_loss = self.TS_time_metrics.ode_fxn(
                     path.TS_time, path
                 )
                 TS_loss = TS_loss + TS_time_loss 
-            if self.TS_region_loss_fxn is not None:
-                TS_region_loss = self.TS_region_loss_fxn(
+            if self.TS_region_metrics.ode_fxn is not None:
+                self.TS_region_metrics.update_ode_fxn_scales(
+                    **TS_region_loss_scales
+                )
+                TS_region_loss = self.TS_region_metrics.ode_fxn(
                     path.TS_region, path
                 )
                 TS_loss = TS_loss + TS_region_loss 
@@ -126,6 +168,15 @@ class PathOptimizer(Metrics):
         ###########################################
 
         self.optimizer.step()
+        for name, sched in self.ode_fxn_schedulers.items():
+            sched.step() 
+        for name, sched in self.path_loss_schedulers.items():
+            sched.step() 
+        for name, sched in self.TS_time_loss_schedulers.items():
+            sched.step() 
+        for name, sched in self.TS_region_loss_schedulers.items():
+            sched.step()
+        """
         if self.scheduler is not None:
             if isinstance(self.scheduler, lr_scheduler.ReduceLROnPlateau):
                 self.scheduler.step(path_integral.loss)
@@ -137,16 +188,13 @@ class PathOptimizer(Metrics):
                     self.converged = True
             else:
                 self.scheduler.step()
+        """
         
         ############# Testing ##############
         # Find transition state time
         path.find_TS(path_integral.t, path_integral.y)
-
-        if self.loss_scheduler is not None:
-            for key, loss_scheduler in self.loss_scheduler.items():
-                loss_scheduler.step()
-            metric_parameters = {key: loss_scheduler.get_value() for key, loss_scheduler in self.loss_scheduler.items()}
-            integrator.update_metric_parameters(metric_parameters)
+        ##############
+        self.iteration = self.iteration + 1
         return path_integral
     
     def _TS_max_E(self):

@@ -113,12 +113,14 @@ def optimize_MEP(
 
     # Gradient descent path optimizer
     optimizer = optimization.PathOptimizer(path=path, **optimizer_params, device=device)
+    """
     if scheduler_params:
         optimizer.set_scheduler(**scheduler_params)
     if loss_scheduler_params:
         optimizer.set_loss_scheduler(**loss_scheduler_params)
         metric_parameters = {key: loss_scheduler.get_value() for key, loss_scheduler in optimizer.loss_scheduler.items()}
         integrator.update_metric_parameters(metric_parameters)
+    """
 
     ##########################################
     #####  Optimize minimum energy path  ##### 

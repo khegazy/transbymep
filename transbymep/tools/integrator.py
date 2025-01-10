@@ -8,7 +8,7 @@ from enum import Enum
 from torchdiffeq import odeint
 from torchpathdiffeq import SerialAdaptiveStepsizeSolver, get_parallel_RK_solver 
 
-from .metrics import Metrics
+from .metrics import Metrics, get_loss_fxn
 
 @dataclass
 class IntegralOutput():
@@ -25,9 +25,10 @@ class ODEintegrator(Metrics):
             computation='parallel',
             sample_type='uniform',
             remove_cut=0.1,
-            path_loss_names=None,
-            path_loss_scales=torch.ones(1),
-            metric_parameters=None,
+            path_loss_name=None,
+            path_loss_params={},
+            path_ode_names=None,
+            path_ode_scales=torch.ones(1),
             process=None,
             is_multiprocess=False,
             is_load_balance=False,
@@ -35,10 +36,11 @@ class ODEintegrator(Metrics):
             max_batch=None,
             device=None,
         ):
-        super().__init__(metric_parameters)
+        super().__init__()
         self.is_multiprocess = is_multiprocess
         self.is_load_balance = is_load_balance
         self.process = process
+        self.N_integrals = 0
         
         self.method = method
         self.rtol = rtol
@@ -89,16 +91,20 @@ class ODEintegrator(Metrics):
                     0, 1, self.process.world_size+1, requires_grad=False
                 )
 
-        # Build loss funtion to integrate path over
-        if path_loss_names is None:
+        #####  Build loss funtion to integrate path over  #####
+        ### Setup ode_fxn
+        if path_ode_names is None:
             self.eval_fxns = None
             self.eval_fxn_scales = None
             self.ode_fxn = None
         else:
-            self.ode_fxn, self.eval_fxns = self.get_ode_eval_fxn(
-                self.is_parallel, path_loss_names, path_loss_scales
+            self.create_ode_fxn(
+                self.is_parallel, path_ode_names, path_ode_scales
             )
 
+        ### Setup loss_fxn
+        self.loss_name = path_loss_name
+        self.loss_fxn = get_loss_fxn(path_loss_name, **path_loss_params)
 
         # if device is not None:
         #     self.device = torch.device(device)
@@ -108,34 +114,42 @@ class ODEintegrator(Metrics):
     def integrator(
             self,
             path,
-            fxn_names=None,
-            fxn_scales=torch.ones(1),
+            ode_fxn_scales={},
+            loss_scales={},
             t_init=torch.tensor([0], dtype=torch.float64),
             t_final=torch.tensor([1], dtype=torch.float64),
-            times=None):
-
-        if fxn_names is None:
-            if self.ode_fxn is None:
-                print("ERROR: Integrator call must be given fxn_names and fxn_scales, or these variables must be given to class constructor.") 
-                sys.exit()
-            else:
-                ode_fxn = self.ode_fxn
+            times=None,
+            iteration=None
+        ):
+        """
+        if ode_fxn_names is None:
+            assert self.ode_fxn is not None,\
+                "Integrator call must be given fxn_names and fxn_scales, or these variables must be given to class constructor.") 
+            ode_fxn = self.ode_fxn
         else:
-            ode_fxn, _ = self._get_ode_eval_fxn(fxn_names, fxn_scales)
+            ode_fxn, _ = self._get_ode_eval_fxn(ode_fxn_names, ode_fxn_scales)
+        """
 
+        self.update_ode_fxn_scales(**ode_fxn_scales)
+        self.loss_fxn.update_parameters(**loss_scales)
+        
         if times is None:
             if self.integral_output is None:
                 times = None
             else:
                 times = self.integral_output.t_pruned
         integral_output = self._integrator.integrate(
-            ode_fxn=ode_fxn,
+            ode_fxn=self.ode_fxn,
+            loss_fxn=self.loss_fxn,
             t=times,
             t_init=t_init,
             t_final=t_final,
             ode_args=(path,)
         )
         self.integral_output = integral_output
+        iteration = self.N_integrals if iteration is None else iteration
+        self.loss_fxn.update_parameters(integral_output=self.integral_output)
+        self.N_integrals = self.N_integrals + 1
         #print(integral_output.t_pruned.shape)
         return integral_output
 
@@ -143,19 +157,23 @@ class ODEintegrator(Metrics):
     def path_integral(
             self,
             path,
-            fxn_names=None,
-            fxn_scales=None,
+            #fxn_names=None,
+            ode_fxn_scales={},
+            loss_scales={},
             t_init=torch.tensor([0.], dtype=torch.float64),
             t_final=torch.tensor([1.], dtype=torch.float64),
             record_evals=False
         ):
+        # Check scales names
+
         if record_evals:
             path.begin_time_recording()
         
         integral_output = self.integrator(
             path=path,
-            fxn_names=fxn_names,
-            fxn_scales=fxn_scales,
+            #fxn_names=fxn_names,
+            ode_fxn_scales=ode_fxn_scales,
+            loss_scales=loss_scales,
             t_init=t_init,
             t_final=t_final
         )

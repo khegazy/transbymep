@@ -34,8 +34,6 @@ class PathOptimizer():
     def __init__(
             self,
             path,
-            path_loss_names=None,
-            path_loss_scales=torch.ones(1),
             path_loss_schedulers=None,
             path_ode_schedulers=None,
             TS_time_loss_names=None,
@@ -137,13 +135,11 @@ class PathOptimizer():
             t_init=t_init,
             t_final=t_final
         )
-        integral_loss = path_integral.integral
         #for n, prm in path.named_parameters():
         #    print(n, prm.grad)
         #print("path integral", path_integral)
-        if integrator._integrator.max_batch is None:
-            #TODO: Better to change this to backprop if not detached
-            integral_loss.backward()
+        if not path_integral.gradient_taken:
+            path_integral.loss.backward()
             # (path_integral.integral**2).backward()
         
         #############  Testing TS Loss ############

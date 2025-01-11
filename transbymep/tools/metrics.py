@@ -40,7 +40,7 @@ class LossBase():
             torch.mean(integral_output.t[:,:,0], dim=1),
             integral_output.t_init,
             integral_output.t_final,
-        )
+        ).unsqueeze(1)
         """
         print("WEIGHTS", self.iteration, weights)
         print(torch.mean(integral_output.t[:,:,0], dim=1))
@@ -201,7 +201,8 @@ loss_fxns = {
 }
 
 def get_loss_fxn(name, **kwargs):
-    print("GETTING LOSS", name, kwargs)
+    if name is None:
+        return loss_fxns['path_integral']()
     assert name in loss_fxns, f"Cannot find loss {name}, must select from {list(loss_fxns.keys())}"
     return loss_fxns[name](**kwargs)
         

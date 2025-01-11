@@ -64,7 +64,6 @@ class ODEintegrator(Metrics):
             self.sample_type = sample_type
             self.is_parallel = True
             self.remove_cut = remove_cut
-            print("METHOD", self.method)
             self._integrator = get_parallel_RK_solver(
                 self.sample_type,
                 method=self.method,
@@ -74,7 +73,6 @@ class ODEintegrator(Metrics):
                 y0=torch.tensor([0], dtype=torch.float, device=device),
                 t_init=torch.tensor([0], dtype=torch.float64),
                 t_final=torch.tensor([1], dtype=torch.float64),
-                max_batch=max_batch,
                 device=device,
             )
         else:

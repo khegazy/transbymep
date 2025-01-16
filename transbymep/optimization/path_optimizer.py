@@ -137,7 +137,6 @@ class PathOptimizer():
         )
         #for n, prm in path.named_parameters():
         #    print(n, prm.grad)
-        #print("path integral", path_integral)
         if not path_integral.gradient_taken:
             path_integral.loss.backward()
             # (path_integral.integral**2).backward()
@@ -150,7 +149,7 @@ class PathOptimizer():
                 self.TS_time_metrics.update_ode_fxn_scales(**TS_time_loss_scales)
                 TS_time_loss = self.TS_time_metrics.ode_fxn(
                     path.TS_time, path
-                )
+                )[:,0]
                 TS_loss = TS_loss + TS_time_loss 
             if self.TS_region_metrics.ode_fxn is not None:
                 self.TS_region_metrics.update_ode_fxn_scales(
@@ -158,7 +157,7 @@ class PathOptimizer():
                 )
                 TS_region_loss = self.TS_region_metrics.ode_fxn(
                     path.TS_region, path
-                )
+                )[:,0]
                 TS_loss = TS_loss + TS_region_loss 
             TS_loss.backward()        
         ###########################################
@@ -188,7 +187,9 @@ class PathOptimizer():
         
         ############# Testing ##############
         # Find transition state time
-        path.find_TS(path_integral.t, path_integral.y)
+        path.find_TS(
+            path_integral.t, path_integral.y[:,:,integrator.path_ode_energy_idx]
+        )
         ##############
         self.iteration = self.iteration + 1
         return path_integral

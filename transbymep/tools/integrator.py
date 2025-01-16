@@ -29,11 +29,11 @@ class ODEintegrator(Metrics):
             path_loss_params={},
             path_ode_names=None,
             path_ode_scales=torch.ones(1),
+            path_ode_energy_idx=1,
             process=None,
             is_multiprocess=False,
             is_load_balance=False,
             n_added_evals=3,
-            max_batch=None,
             device=None,
         ):
         super().__init__()
@@ -41,6 +41,7 @@ class ODEintegrator(Metrics):
         self.is_load_balance = is_load_balance
         self.process = process
         self.N_integrals = 0
+        self.path_ode_energy_idx = path_ode_energy_idx
         
         self.method = method
         self.rtol = rtol
@@ -73,6 +74,7 @@ class ODEintegrator(Metrics):
                 y0=torch.tensor([0], dtype=torch.float, device=device),
                 t_init=torch.tensor([0], dtype=torch.float64),
                 t_final=torch.tensor([1], dtype=torch.float64),
+                error_calc_idx=0,
                 device=device,
             )
         else:
@@ -144,8 +146,9 @@ class ODEintegrator(Metrics):
             t_final=t_final,
             ode_args=(path,)
         )
+        integral_output.integral = integral_output.integral[0]
         self.integral_output = integral_output
-        iteration = self.N_integrals if iteration is None else iteration
+        #iteration = self.N_integrals if iteration is None else iteration
         self.loss_fxn.update_parameters(integral_output=self.integral_output)
         self.N_integrals = self.N_integrals + 1
         #print(integral_output.t_pruned.shape)

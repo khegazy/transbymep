@@ -315,7 +315,7 @@ class BasePath(torch.nn.Module):
             [len(times[:,:,0].view(-1)), TS_idx+(idx_shift*N_C)]
         )
         t_interp = times[:,:,0].view(-1)[idx_min:idx_max].detach().numpy()
-        E_interp = energies[:,:,0].view(-1)[idx_min:idx_max].detach().numpy() 
+        E_interp = energies.view(-1)[idx_min:idx_max].detach().numpy() 
         mask_interp = np.concatenate(
             [t_interp[1:] - t_interp[:-1] > 1e-10, np.array([1], dtype=bool)]
         )

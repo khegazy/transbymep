@@ -14,5 +14,4 @@ class WolfeSchlegel(BasePotential):
         y = points[1]
         energy = 10*(x**4 + y**4 - 2*x**2 - 4*y**2\
             + x*y + 0.2*x + 0.1*y)
-
-        return PotentialOutput(energy=energy)
+        return PotentialOutput(energy=energy.unsqueeze(-1))

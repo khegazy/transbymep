@@ -40,7 +40,7 @@ class LossBase():
             torch.mean(integral_output.t[:,:,0], dim=1),
             integral_output.t_init,
             integral_output.t_final,
-        ).unsqueeze(1)
+        )
         """
         print("WEIGHTS", self.iteration, weights)
         print(torch.mean(integral_output.t[:,:,0], dim=1))
@@ -51,8 +51,9 @@ class LossBase():
         ax.set_ylim(-0.1, 1.05)
         fig.savefig(f"test_weights_{self.iteration[0]}.png")
         """
+
         return integral_output.y0\
-            + torch.sum(weights*integral_output.sum_steps)
+            + torch.sum(weights*integral_output.sum_steps[:,0])
 
 
 
@@ -61,17 +62,15 @@ class PathIntegral(LossBase):
         super().__init__()
     
     def __call__(self, integral_output, **kwargs):
-        return integral_output.integral
+        return integral_output.integral[0]
 
 
 class EnergyWeight(LossBase):
     def __init__(self) -> None:
         super().__init__()
     
-    def __call__(self, integral_output, **kwargs):
-        weight_scale = self._get_parameters(**kwargs)
-        E = torch.mean(integral_output.y, dim=1)
-        return torch.sum(E*integral_output.RK_steps) + integral_output.y0
+    def get_weights(self, integral_output):
+        return torch.mean(integral_output.y[1], dim=1)
 
 
 class GrowingString(LossBase):
@@ -243,10 +242,16 @@ class Metrics():
 
     def _parallel_ode_fxn(self, t, path, **kwargs):
         loss = 0
+        variables = [torch.tensor([[torch.nan]]) for i in range(3)]
         for fxn in self._ode_fxns:
             scale = self._ode_fxn_scales[fxn.__name__]
-            loss = loss + scale*fxn(path=path, t=t, **kwargs)
-        return loss
+            ode_output = fxn(path=path, t=t, **kwargs)
+            variables = [
+                out if out is not None else var\
+                    for var, out in zip(variables, ode_output[1:])
+            ]
+            loss = loss + scale*ode_output[0]
+        return torch.concatenate([loss] + variables, dim=-1)
 
 
     def _serial_ode_fxn(self, t, path, **kwargs):
@@ -255,6 +260,8 @@ class Metrics():
         for fxn in self._ode_fxns:
             scale = self._ode_fxn_scales[fxn.__name__]
             loss = loss + scale*fxn(path=path, t=t, **kwargs)[0]
+        print("Combine other variables, see _parallel_ode_fxn")
+        raise NotImplementedError
         return loss
     
     
@@ -330,7 +337,7 @@ class Metrics():
         # Evre = torch.linalg.norm(force)*torch.linalg.norm(velocity)
         # return Evre.unsqueeze(1)
         Evre = torch.linalg.norm(path_force, dim=-1, keepdim=True) * torch.linalg.norm(path_velocity, dim=-1, keepdim=True)
-        return Evre
+        return Evre, path_energy, path_force, path_velocity
 
     def E_pvre(self, **kwargs):
         kwargs['requires_force'] = True
@@ -345,7 +352,7 @@ class Metrics():
         #print(kwargs['t'].requires_grad, velocity.requires_grad, force.requires_grad)
         # return torch.abs(torch.sum(velocity*force, dim=-1, keepdim=True))
         Epvre = torch.abs(torch.sum(path_velocity*path_force, dim=-1, keepdim=True))
-        return Epvre
+        return Epvre, path_energy, path_force, path_velocity
 
     def E_pvre_vre(self, **kwargs):
         kwargs['requires_force'] = True
@@ -377,9 +384,9 @@ class Metrics():
         kwargs['requires_force'] = True
         kwargs['requires_velocity'] = True
         kwargs['fxn_name'] = self.E_pvre.__name__
-        geo_val, velocity, pes_val, force = self._parse_input(**kwargs)
+        geo_val, path_velocity, path_energy, path_force = self._parse_input(**kwargs)
         
-        return torch.linalg.norm(velocity*force)#/jnp.linalg.norm(geo_grad)
+        return torch.linalg.norm(path_velocity*path_force), path_energy, path_force, path_velocity
 
     
     def E(self, **kwargs):
@@ -391,23 +398,34 @@ class Metrics():
         # geo_val, velocity, pes_val, force = self._parse_input(**kwargs)
         path_geometry, path_velocity, path_energy, path_force = self._parse_input(**kwargs)
 
-        E = torch.mean(path_energy)
-        return E
+        return path_energy, path_energy, path_force, path_velocity
+
+
+    def E_mean(self, **kwargs):
+        kwargs['requires_force'] = False
+        kwargs['requires_energy'] = True
+        kwargs['requires_velocity'] = False
+        kwargs['fxn_name'] = self.E_mean.__name__
+
+        loss, path_energy, path_force, path_velocity = self.E(**kwargs)
+        mean_E = torch.mean(loss, dim=0, keepdim=True)
+        return mean_E, mean_E, path_force, path_velocity
+
 
 
     def vre(self, **kwargs):
         kwargs['requires_force'] = True
         kwargs['requires_velocity'] = True
         kwargs['fxn_name'] = self.E_pvre.__name__
-        geo_val, velocity, pes_val, force = self._parse_input(**kwargs)
+        path_geometry, path_velocity, path_energy, path_force = self._parse_input(**kwargs)
         
         e_pvre = self.E_pvre(
-            geo_val=geo_val, velocity=velocity, pes_val=pes_val, force=force
+            geo_val=path_geometry, velocity=path_velocity, pes_val=path_energy, force=path_force
         )
         e_vre = self.E_vre(
-            geo_val=geo_val, velocity=velocity, pes_val=pes_val, force=force
+            geo_val=path_geometry, velocity=path_velocity, pes_val=path_energy, force=path_force
         )
-        return e_vre - e_pvre
+        return e_vre - e_pvre, path_energy, path_force, path_velocity
 
     
     def F_mag(self, **kwargs):
@@ -418,7 +436,7 @@ class Metrics():
 
         path_geometry, path_velocity, path_energy, path_force = self._parse_input(**kwargs)
 
-        return torch.linalg.norm(path_force, dim=-1, keepdim=True)
+        return torch.linalg.norm(path_force, dim=-1, keepdim=True), path_energy, path_force, path_velocity
     
     
     def saddle_eigenvalues(self, **kwargs):

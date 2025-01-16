@@ -52,12 +52,12 @@ optimizer_params:
             start_factor: 0.0
             end_factor: 1.0
             total_iters: 99
-    TS_region_loss_names: ['E']
+    TS_region_loss_names: ['E_mean']
     TS_region_loss_scales: [1.0]
     TS_time_loss_names: ['F_mag']
     TS_time_loss_scales: [1.0]
     TS_time_loss_scheduler:
-        E:
+        E_mean:
             value: 1.0
             name: cosine
             start_factor: 1.0

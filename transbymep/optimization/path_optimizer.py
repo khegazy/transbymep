@@ -71,7 +71,14 @@ class PathOptimizer():
         assert 'name' in optimizer, f"Must specify name of optimizer: {list(OPTIMIZER_DICT.keys())}"
         opt_name = optimizer.pop('name').lower()
         self.optimizer = OPTIMIZER_DICT[opt_name](path.parameters(), **optimizer)
-        self.lr_scheduler = get_lr_scheduler(lr_scheduler)
+
+
+        #####  Initialize learning rate scheduler  #####
+        if lr_scheduler is not None:
+            lr_scheduler['optimizer'] = self.optimizer
+            self.lr_scheduler = get_lr_scheduler(lr_scheduler)
+        else:
+            self.lr_scheduler = None
         self.converged = False
 
 

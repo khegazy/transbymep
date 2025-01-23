@@ -68,8 +68,8 @@ class PathOptimizer():
         #####  Initialize optimizer  #####
         #name = name.lower()
         assert optimizer is not None, "Must specify optimizer parameters (dict) with key 'optimizer'"
-        assert 'name' in config['optimizer'], f"Must specify name of optimizer: {list(OPTIMIZER_DICT.keys())}"
-        opt_name = config['optimizer'].pop('name').lower()
+        assert 'name' in optimizer, f"Must specify name of optimizer: {list(OPTIMIZER_DICT.keys())}"
+        opt_name = optimizer.pop('name').lower()
         self.optimizer = OPTIMIZER_DICT[opt_name](path.parameters(), **optimizer)
         self.lr_scheduler = get_lr_scheduler(lr_scheduler)
         self.converged = False

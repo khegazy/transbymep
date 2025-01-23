@@ -208,7 +208,8 @@ def get_loss_fxn(name, **kwargs):
 
 
 class Metrics():
-    def __init__(self):
+    def __init__(self, device):
+        self.device = device
         self.ode_fxn = None
         self._ode_fxn_scales = None
         self._ode_fxns = None
@@ -242,7 +243,7 @@ class Metrics():
 
     def _parallel_ode_fxn(self, t, path, **kwargs):
         loss = 0
-        variables = [torch.tensor([[torch.nan]]) for i in range(3)]
+        variables = [torch.tensor([[torch.nan]], device=self.device) for i in range(3)]
         for fxn in self._ode_fxns:
             scale = self._ode_fxn_scales[fxn.__name__]
             ode_output = fxn(path=path, t=t, **kwargs)
@@ -352,6 +353,7 @@ class Metrics():
         #print(kwargs['t'].requires_grad, velocity.requires_grad, force.requires_grad)
         # return torch.abs(torch.sum(velocity*force, dim=-1, keepdim=True))
         Epvre = torch.abs(torch.sum(path_velocity*path_force, dim=-1, keepdim=True))
+        print("PATH ENERGY", path_energy.shape, kwargs['t'].shape)
         return Epvre, path_energy, path_force, path_velocity
 
     def E_pvre_vre(self, **kwargs):

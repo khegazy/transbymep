@@ -45,7 +45,7 @@ class PathOptimizer():
         self.TS_time_loss_names = TS_time_loss_names
         self.TS_time_loss_scales = TS_time_loss_scales
         if self.has_TS_time_loss:
-            self.TS_time_metrics = Metrics()
+            self.TS_time_metrics = Metrics(device)
             self.TS_time_metrics.create_ode_fxn(
                 True, self.TS_time_loss_names, self.TS_time_loss_scales
             )
@@ -53,7 +53,7 @@ class PathOptimizer():
         self.TS_region_loss_names = TS_region_loss_names
         self.TS_region_loss_scales = TS_region_loss_scales
         if self.has_TS_region_loss:
-            self.TS_region_metrics = Metrics()
+            self.TS_region_metrics = Metrics(device)
             self.TS_region_metrics.create_ode_fxn(
                 True, self.TS_region_loss_names, self.TS_region_loss_scales
             )

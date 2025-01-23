@@ -33,7 +33,7 @@ class NewtonNetPotential(BasePotential):
         self.n_eval += 1
         energy = pred.energy
         force = pred.gradient_force
-        energy = energy.view(-1)
+        energy = energy.view(-1, 1)
         force = force.view(*points.shape)
         return PotentialOutput(energy=energy, force=force)
         

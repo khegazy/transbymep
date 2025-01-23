@@ -4,7 +4,7 @@ from torch import optim
 from torch.optim import lr_scheduler
 from torch.nn.functional import interpolate
 from transbymep.tools import scheduler
-from transbymep.tools.scheduler import get_schedulers
+from transbymep.tools.scheduler import get_schedulers, get_lr_scheduler
 
 from transbymep.tools import Metrics
 
@@ -13,27 +13,14 @@ OPTIMIZER_DICT = {
     "adagrad" : optim.Adagrad,
     "adam" : optim.Adam,
 }
-scheduler_dict = {
-    "step" : lr_scheduler.StepLR,
-    "linear" : lr_scheduler.LinearLR,
-    "multi_step" : lr_scheduler.MultiStepLR,
-    "exponential" : lr_scheduler.ExponentialLR,
-    "cosine" : lr_scheduler.CosineAnnealingLR,
-    "cosine_restart" : lr_scheduler.CosineAnnealingWarmRestarts,
-    "reduce_on_plateau" : lr_scheduler.ReduceLROnPlateau,
-}
-loss_scheduler_dict = {
-    "linear" : scheduler.Linear,
-    "cosine" : scheduler.Cosine,
-    "reduce_on_plateau" : scheduler.ReduceOnPlateau,
-    "increase_on_plateau" : scheduler.IncreaseOnPlateau,
-}
 
 
 class PathOptimizer():
     def __init__(
             self,
             path,
+            optimizer=None,
+            lr_scheduler=None,
             path_loss_schedulers=None,
             path_ode_schedulers=None,
             TS_time_loss_names=None,
@@ -77,14 +64,13 @@ class PathOptimizer():
 
         #####  Initialize optimizer  #####
         #name = name.lower()
-        assert 'optimizer' in config, "Must specify optimizer parameters (dict) with key 'optimizer"
+        assert optimizer is not None, "Must specify optimizer parameters (dict) with key 'optimizer'"
         assert 'name' in config['optimizer'], f"Must specify name of optimizer: {list(OPTIMIZER_DICT.keys())}"
-        opt_name = config['optimizer']['name'].lower()
-        del config['optimizer']['name']
-        self.optimizer = OPTIMIZER_DICT[opt_name](path.parameters(), **config['optimizer'])
-        self.scheduler = None
-        self.loss_scheduler = None
+        opt_name = config['optimizer'].pop('name').lower()
+        self.optimizer = OPTIMIZER_DICT[opt_name](path.parameters(), **optimizer)
+        self.lr_scheduler = get_lr_scheduler(lr_scheduler)
         self.converged = False
+
 
     """
     def set_scheduler(self, name, **config):
@@ -171,19 +157,13 @@ class PathOptimizer():
             sched.step() 
         for name, sched in self.TS_region_loss_schedulers.items():
             sched.step()
-        """
-        if self.scheduler is not None:
+        if self.lr_scheduler is not None:
             if isinstance(self.scheduler, lr_scheduler.ReduceLROnPlateau):
                 self.scheduler.step(path_integral.loss)
-                # time = path_integral.t.flatten()
-                # time = time[len(time)//10:-len(time)//10]
-                # force = path(time, return_force=True).path_force
-                # self.scheduler.step(torch.linalg.norm(force, dim=-1).min())
                 if self.optimizer.param_groups[0]['lr'] <= self.scheduler.min_lrs[0]:
                     self.converged = True
             else:
-                self.scheduler.step()
-        """
+                self.lr_scheduler.step()
         
         ############# Testing ##############
         # Find transition state time

@@ -38,22 +38,25 @@ class PathOptimizer():
         self.iteration = 0
         
         ####  Initialize loss information  #####
-        self.has_TS_loss = TS_time_loss_names is not None\
-            or TS_region_loss_names is not None
+        self.has_TS_time_loss = TS_time_loss_names is not None
+        self.has_TS_region_loss = TS_region_loss_names is not None
+        self.has_TS_loss = self.has_TS_time_loss or self.has_TS_region_loss
         
         self.TS_time_loss_names = TS_time_loss_names
         self.TS_time_loss_scales = TS_time_loss_scales
-        self.TS_time_metrics = Metrics()
-        self.TS_time_metrics.create_ode_fxn(
-            True, self.TS_time_loss_names, self.TS_time_loss_scales
-        )
+        if self.has_TS_time_loss:
+            self.TS_time_metrics = Metrics()
+            self.TS_time_metrics.create_ode_fxn(
+                True, self.TS_time_loss_names, self.TS_time_loss_scales
+            )
         
         self.TS_region_loss_names = TS_region_loss_names
         self.TS_region_loss_scales = TS_region_loss_scales
-        self.TS_region_metrics = Metrics()
-        self.TS_region_metrics.create_ode_fxn(
-            True, self.TS_region_loss_names, self.TS_region_loss_scales
-        )
+        if self.has_TS_region_loss:
+            self.TS_region_metrics = Metrics()
+            self.TS_region_metrics.create_ode_fxn(
+                True, self.TS_region_loss_names, self.TS_region_loss_scales
+            )
         
         #####  Initialize schedulers  #####
         self.ode_fxn_schedulers = get_schedulers(path_ode_schedulers)
@@ -130,22 +133,20 @@ class PathOptimizer():
         #############  Testing TS Loss ############
         # Evaluate TS loss functions
         if self.has_TS_loss and path.TS_time is not None:
-            TS_loss = torch.zeros(1)
-            if self.TS_time_metrics.ode_fxn is not None:
+            if self.has_TS_time_loss:
                 self.TS_time_metrics.update_ode_fxn_scales(**TS_time_loss_scales)
                 TS_time_loss = self.TS_time_metrics.ode_fxn(
                     path.TS_time, path
                 )[:,0]
-                TS_loss = TS_loss + TS_time_loss 
-            if self.TS_region_metrics.ode_fxn is not None:
+                TS_time_loss.backward()
+            if self.has_TS_region_loss:
                 self.TS_region_metrics.update_ode_fxn_scales(
                     **TS_region_loss_scales
                 )
                 TS_region_loss = self.TS_region_metrics.ode_fxn(
                     path.TS_region, path
                 )[:,0]
-                TS_loss = TS_loss + TS_region_loss 
-            TS_loss.backward()        
+                TS_region_loss.backward()
         ###########################################
 
         self.optimizer.step()
@@ -158,12 +159,13 @@ class PathOptimizer():
         for name, sched in self.TS_region_loss_schedulers.items():
             sched.step()
         if self.lr_scheduler is not None:
-            if isinstance(self.scheduler, lr_scheduler.ReduceLROnPlateau):
-                self.scheduler.step(path_integral.loss)
-                if self.optimizer.param_groups[0]['lr'] <= self.scheduler.min_lrs[0]:
-                    self.converged = True
-            else:
-                self.lr_scheduler.step()
+            # if isinstance(self.scheduler, lr_scheduler.ReduceLROnPlateau):
+            #     self.scheduler.step(path_integral.loss)
+            #     if self.optimizer.param_groups[0]['lr'] <= self.scheduler.min_lrs[0]:
+            #         self.converged = True
+            # else:
+            #     self.lr_scheduler.step()
+            self.lr_scheduler.step()
         
         ############# Testing ##############
         # Find transition state time

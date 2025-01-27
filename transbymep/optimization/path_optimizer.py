@@ -75,8 +75,7 @@ class PathOptimizer():
 
         #####  Initialize learning rate scheduler  #####
         if lr_scheduler is not None:
-            lr_scheduler['optimizer'] = self.optimizer
-            self.lr_scheduler = get_lr_scheduler(lr_scheduler)
+            self.lr_scheduler = get_lr_scheduler(self.optimizer, lr_scheduler)
         else:
             self.lr_scheduler = None
         self.converged = False

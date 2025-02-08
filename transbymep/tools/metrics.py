@@ -214,13 +214,13 @@ class Metrics():
         self._ode_fxn_scales = None
         self._ode_fxns = None
 
-    def create_ode_fxn(self, is_parallel, fxn_names, fxn_scales=None):
+    def create_ode_fxn(self, is_parallel, fxn_names, fxn_scales=1.0):
         # Parse and check input
         assert fxn_names is not None or len(fxn_names) != 0
         if isinstance(fxn_names, str):
             fxn_names = [fxn_names]
-        if fxn_scales is None:
-            fxn_scales = torch.ones(1) 
+        if isinstance(fxn_scales, (int, float)):
+            fxn_scales = [fxn_scales]
         assert len(fxn_names) == len(fxn_scales), f"The number of metric function names {fxn_names} does not match the number of scales {fxn_scales}"
 
         for fname in fxn_names:

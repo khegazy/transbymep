@@ -1,16 +1,10 @@
 import os
-import sys
 import torch
 import numpy as np
-import pandas as pd
-from typing import NamedTuple, Any
-from matplotlib import pyplot as plt
+from typing import Any
 import time as time
 from tqdm import tqdm
-#import wandb
 from ase import Atoms
-from ase.io import read, write
-from typing import NamedTuple
 from dataclasses import dataclass
 
 from transbymep import tools
@@ -199,7 +193,7 @@ def optimize_MEP(
             del path_output
             
 
-            if optim_idx % 50 == 0:
+            if optim_idx % 1 == 0:
                 #     path_output = logger.optimization_step(	
                 #         optim_idx,	
                 #         path,	
@@ -229,25 +223,30 @@ def optimize_MEP(
                     ts_velocity=paths_ts_velocity[-1],
                     ts_force=paths_ts_force[-1],
                 )
-                plot_filename = os.path.join(plot_dir, f"output_{optim_idx}.png")
-                visualize.plot_path(
-                    plot_filename,
-                    time=paths_time[-1],
-                    geometry=paths_geometry[-1],
-                    energy=paths_energy[-1],
-                    velocity=paths_velocity[-1],
-                    force=paths_force[-1],
-                    loss=paths_loss[-1],
-                    ts_times=paths_ts_time[-1],
-                    ts_geometry=paths_ts_geometry[-1],
-                    ts_energy=paths_ts_energy[-1],
-                    ts_velocity=paths_ts_velocity[-1],
-                    ts_force=paths_ts_force[-1],
-                )
+                # plot_filename = os.path.join(plot_dir, f"output_{optim_idx}.png")
+                # visualize.plot_path(
+                #     plot_filename,
+                #     time=paths_time[-1],
+                #     geometry=paths_geometry[-1],
+                #     energy=paths_energy[-1],
+                #     velocity=paths_velocity[-1],
+                #     force=paths_force[-1],
+                #     loss=paths_loss[-1],
+                #     ts_times=paths_ts_time[-1],
+                #     ts_geometry=paths_ts_geometry[-1],
+                #     ts_energy=paths_ts_energy[-1],
+                #     ts_velocity=paths_ts_velocity[-1],
+                #     ts_force=paths_ts_force[-1],
+                # )
 
         if optimizer.converged:
             print(f"Converged at step {optim_idx}")
             break
+
+    # del optimizer
+    # del integrator
+    # del potential
+    # torch.cuda.empty_cache()
 
     # output = OptimizationOutput(
     #     paths_time=paths_time,

@@ -97,6 +97,7 @@ LR_SCHEDULER_DICT = {
     "exponential" : lr_scheduler.ExponentialLR,
     "cosine" : lr_scheduler.CosineAnnealingLR,
     "cosine_restart" : lr_scheduler.CosineAnnealingWarmRestarts,
+    "one_cycle" : lr_scheduler.OneCycleLR,
     "reduce_on_plateau" : lr_scheduler.ReduceLROnPlateau,
 }
 

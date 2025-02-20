@@ -137,7 +137,7 @@ class ODEintegrator(Metrics):
             if self.integral_output is None:
                 times = None
             else:
-                times = self.integral_output.t_pruned
+                times = self.integral_output.t_optimal
         integral_output = self._integrator.integrate(
             ode_fxn=self.ode_fxn,
             loss_fxn=self.loss_fxn,
@@ -151,7 +151,7 @@ class ODEintegrator(Metrics):
         #iteration = self.N_integrals if iteration is None else iteration
         self.loss_fxn.update_parameters(integral_output=self.integral_output)
         self.N_integrals = self.N_integrals + 1
-        #print(integral_output.t_pruned.shape)
+        #print(integral_output.t_optimal.shape)
         return integral_output
 
 

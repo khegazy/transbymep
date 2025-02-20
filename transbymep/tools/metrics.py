@@ -16,9 +16,7 @@ class LossBase():
             self.iteration = torch.tensor([kwargs['iteration']])
         # Find the center of the path in time
         if 'integral_output' in kwargs:
-            self.t_midpoint = torch.mean(
-                kwargs['integral_output'].t_pruned[:,:,0], dim=-1
-            )
+            self.t_midpoint = kwargs['integral_output'].t_optimal[:,0]
             if len(self.t_midpoint) % 2 == 1:
                 self.t_midpoint = self.t_midpoint[len(self.t_midpoint)//2]
             else:
@@ -131,45 +129,83 @@ class GrowingString(LossBase):
         mask = t < self.t_midpoint
         # Left side
         t_left = t[mask]
-        left = torch.exp(-1/(self.variance_scale + 1e-10)\
-            *((self.t_midpoint - t_left)*4/(t_init - self.t_midpoint))**2
-        )
-        t_left = (t_left - t_left[0])/(self.t_midpoint - t_left[0])
-        left = left - (left[0] - t_left*left[0])
+        if len(t_left) > 0:
+            left = torch.exp(-1/(self.variance_scale + 1e-10)\
+                *((self.t_midpoint - t_left)*4/(t_init - self.t_midpoint))**2
+            )
+            t_left = (t_left - t_left[0])/(self.t_midpoint - t_left[0])
+            left = left - (left[0] - t_left*left[0])
+        else:
+            left = None
         # Right side
         t_right = t[torch.logical_not(mask)]
-        right = torch.exp(-1/(self.variance_scale + 1e-10)\
-            *((self.t_midpoint - t_right)*4\
-            /(t_final - self.t_midpoint))**2)
-        t_right = (t_right - t_right[-1])/(self.t_midpoint - t_right[-1])
-        right = right - (right[-1] - t_right*right[-1])
-        return torch.concatenate([left, right])
+        if len(t_right) > 0:
+            right = torch.exp(-1/(self.variance_scale + 1e-10)\
+                *((self.t_midpoint - t_right)*4\
+                /(t_final - self.t_midpoint))**2)
+            t_right = (t_right - t_right[-1])/(self.t_midpoint - t_right[-1])
+            right = right - (right[-1] - t_right*right[-1])
+        else:
+            right = None
+        
+        if left is None:
+            return right
+        elif right is None:
+            return left
+        else:
+            return torch.concatenate([left, right])
     
     def _sine_envelope(self, t, t_init, t_final):
         mask = t < self.t_midpoint
         # Left side
-        left = (1 - torch.cos(
-            (t[mask] - t_init)*torch.pi/((self.t_midpoint - t_init))
-        ))/2.
+        t_left = t[mask]
+        if len(t_left) > 0:
+            left = (1 - torch.cos(
+                (t_left - t_init)*torch.pi/((self.t_midpoint - t_init))
+            ))/2.
+        else:
+            left = None
         # Right side
-        right = (1 + torch.cos(
-            (t[torch.logical_not(mask)] - self.t_midpoint)\
-                *torch.pi/((t_final - self.t_midpoint))
-        ))/2.
-        envelope = torch.concatenate([left, right])
-        plt.plot(t, envelope)
-        plt.savefig(f"./plots/envelopes/sine{self.iteration}.png")
-        plt.close()
-        return torch.concatenate([left, right])
+        t_right = t[torch.logical_not(mask)]
+        if len(t_right) > 0:
+            right = (1 + torch.cos(
+                (t[torch.logical_not(mask)] - self.t_midpoint)\
+                    *torch.pi/((t_final - self.t_midpoint))
+            ))/2.
+        else:
+            right = None
+
+        if left is None:
+            return right
+        elif right is None:
+            return left
+        else:
+            return torch.concatenate([left, right])
 
     def _poly_envolope(self, t, t_init, t_final):
         mask = t < self.t_midpoint
         # Left side
-        left = torch.abs((t[mask] - t_init)/((self.t_midpoint - t_init)))**self.order
+        t_left = t[mask]
+        if len(t_left) > 0: 
+            left = torch.abs(
+                (t_left - t_init)/((self.t_midpoint - t_init))
+            )**self.order
+        else:
+            left = None
         # Right side
-        right = torch.abs((t[torch.logical_not(mask)] - t_final)\
-            /(t_final - self.t_midpoint))**self.order
-        return torch.abs(torch.concatenate([left, right]))
+        t_right = t[torch.logical_not(mask)]
+        if len(t_right) > 0:
+            right = torch.abs((t[torch.logical_not(mask)] - t_final)\
+                /(t_final - self.t_midpoint))**self.order
+        else:
+            right = None
+        
+        if left is None:
+            return right
+        elif right is None:
+            return left
+        else:
+            return torch.abs(torch.concatenate([left, right]))
 
     def _sine_gauss_envelope(self, t, t_init, t_final):
         guass_envelope = self._guass_envelope(t, t_init, t_final)
@@ -180,16 +216,26 @@ class GrowingString(LossBase):
     def _butter_envelope(self, t, t_init, t_final):
         mask = t < self.t_midpoint
         # Left side
-        dt = self.t_midpoint - t[mask]
-        left = 1./torch.sqrt(1 + (dt*2/(self.t_midpoint - t_init))**self.order)
+        t_left = t[mask]
+        if len(t_left) > 0: 
+            dt = self.t_midpoint - t_left
+            left = 1./torch.sqrt(1 + (dt*2/(self.t_midpoint - t_init))**self.order)
+        else:
+            left = None
         # Right side
-        dt = t[torch.logical_not(mask)] - self.t_midpoint
-        right = 1./torch.sqrt(1 + (dt*2/(self.t_midpoint - t_init))**self.order)
-        envelope = torch.concatenate([left, right])
-        plt.plot(t, envelope)
-        plt.savefig(f"./plots/envelopes/butter{self.iteration}.png")
-        plt.close()
-        return envelope
+        t_right = t[torch.logical_not(mask)]
+        if len(t_right) > 0:
+            dt = t_right - self.t_midpoint
+            right = 1./torch.sqrt(1 + (dt*2/(self.t_midpoint - t_init))**self.order)
+        else:
+            right = None
+
+        if left is None:
+            return right
+        elif right is None:
+            return left
+        else:
+            return torch.concatenate([left, right])
     
    
 loss_fxns = {

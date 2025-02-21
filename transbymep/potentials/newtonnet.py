@@ -33,15 +33,16 @@ class NewtonNetPotential(BasePotential):
         self.n_eval += 1
         energy = pred.energy
         force = pred.gradient_force
-        energy = energy.view(-1)
+        energy = energy.view(-1, 1)
         force = force.view(*points.shape)
         return PotentialOutput(energy=energy, force=force)
         
 
     def load_model(self, model_path):
-        calc = MLAseCalculator(model_path, device=self.device)
+        calc = MLAseCalculator(model_path, properties=['energy', 'forces'], device=self.device)
         model = calc.models[0]
         model.eval()
+        model.output_layers[1].create_graph = True
         model.to(torch.float64)
         model.requires_grad_(False)
         model.embedding_layer.requires_dr = False

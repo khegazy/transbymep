@@ -314,8 +314,8 @@ class BasePath(torch.nn.Module):
         idx_max = np.min(
             [len(times[:,:,0].view(-1)), TS_idx+(idx_shift*N_C)]
         )
-        t_interp = times[:,:,0].view(-1)[idx_min:idx_max].detach().numpy()
-        E_interp = energies.view(-1)[idx_min:idx_max].detach().numpy() 
+        t_interp = times[:,:,0].view(-1)[idx_min:idx_max].detach().cpu().numpy()
+        E_interp = energies.view(-1)[idx_min:idx_max].detach().cpu().numpy() 
         mask_interp = np.concatenate(
             [t_interp[1:] - t_interp[:-1] > 1e-10, np.array([1], dtype=bool)]
         )
@@ -338,7 +338,8 @@ class BasePath(torch.nn.Module):
         self.TS_region = torch.linspace(
             self.TS_time-TS_time_scale/(idx_shift),
             self.TS_time+TS_time_scale/(idx_shift),
-            11
+            11,
+            device=self.device
         )
-        self.TS_time = torch.tensor([[self.TS_time]])
+        self.TS_time = torch.tensor([[self.TS_time]], device=self.device)
  

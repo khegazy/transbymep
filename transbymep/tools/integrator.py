@@ -37,7 +37,7 @@ class ODEintegrator(Metrics):
             n_added_evals=3,
             device=None,
         ):
-        super().__init__()
+        super().__init__(device)
         self.max_batch = max_batch
         self.is_multiprocess = is_multiprocess
         self.is_load_balance = is_load_balance

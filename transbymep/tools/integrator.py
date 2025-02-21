@@ -31,12 +31,14 @@ class ODEintegrator(Metrics):
             path_ode_scales=torch.ones(1),
             path_ode_energy_idx=1,
             process=None,
+            max_batch=None,
             is_multiprocess=False,
             is_load_balance=False,
             n_added_evals=3,
             device=None,
         ):
         super().__init__(device)
+        self.max_batch = max_batch
         self.is_multiprocess = is_multiprocess
         self.is_load_balance = is_load_balance
         self.process = process
@@ -137,21 +139,21 @@ class ODEintegrator(Metrics):
             if self.integral_output is None:
                 times = None
             else:
-                times = self.integral_output.t_pruned
+                times = self.integral_output.t_optimal
         integral_output = self._integrator.integrate(
             ode_fxn=self.ode_fxn,
             loss_fxn=self.loss_fxn,
             t=times,
             t_init=t_init,
             t_final=t_final,
-            ode_args=(path,)
+            ode_args=(path,),
+            max_batch=self.max_batch
         )
         integral_output.integral = integral_output.integral[0]
         self.integral_output = integral_output
         #iteration = self.N_integrals if iteration is None else iteration
         self.loss_fxn.update_parameters(integral_output=self.integral_output)
         self.N_integrals = self.N_integrals + 1
-        #print(integral_output.t_pruned.shape)
         return integral_output
 
 

@@ -254,18 +254,19 @@ def get_loss_fxn(name, **kwargs):
 
 
 class Metrics():
-    def __init__(self):
+    def __init__(self, device):
+        self.device = device
         self.ode_fxn = None
         self._ode_fxn_scales = None
         self._ode_fxns = None
 
-    def create_ode_fxn(self, is_parallel, fxn_names, fxn_scales=None):
+    def create_ode_fxn(self, is_parallel, fxn_names, fxn_scales=1.0):
         # Parse and check input
         assert fxn_names is not None or len(fxn_names) != 0
         if isinstance(fxn_names, str):
             fxn_names = [fxn_names]
-        if fxn_scales is None:
-            fxn_scales = torch.ones(1) 
+        if isinstance(fxn_scales, (int, float)):
+            fxn_scales = [fxn_scales]
         assert len(fxn_names) == len(fxn_scales), f"The number of metric function names {fxn_names} does not match the number of scales {fxn_scales}"
 
         for fname in fxn_names:
@@ -288,7 +289,7 @@ class Metrics():
 
     def _parallel_ode_fxn(self, t, path, **kwargs):
         loss = 0
-        variables = [torch.tensor([[torch.nan]]) for i in range(3)]
+        variables = [torch.tensor([[torch.nan]], device=self.device) for i in range(3)]
         for fxn in self._ode_fxns:
             scale = self._ode_fxn_scales[fxn.__name__]
             ode_output = fxn(path=path, t=t, **kwargs)
@@ -398,6 +399,7 @@ class Metrics():
         #print(kwargs['t'].requires_grad, velocity.requires_grad, force.requires_grad)
         # return torch.abs(torch.sum(velocity*force, dim=-1, keepdim=True))
         Epvre = torch.abs(torch.sum(path_velocity*path_force, dim=-1, keepdim=True))
+
         return Epvre, path_energy, path_force, path_velocity
 
     def E_pvre_vre(self, **kwargs):

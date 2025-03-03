@@ -7,11 +7,10 @@ from tqdm import tqdm
 from ase import Atoms
 from dataclasses import dataclass
 
-from transbymep import tools
-from transbymep import paths
-from transbymep import optimization
+from transbymep.paths import get_path
 from transbymep.optimization import initialize_path
-from transbymep.tools import visualize
+from transbymep.optimization import PathOptimizer
+from transbymep.tools import ODEintegrator
 from transbymep.potentials import get_potential
 
 
@@ -83,7 +82,7 @@ def optimize_MEP(
     #     print(f"Optimized Initial Point: {minima[0]}")
     #     print(f"Optimized Final Point: {minima[1]}")
     #     sys.exit(0)
-    path = paths.get_path(potential=potential, initial_point=images[0], final_point=images[-1], **path_params, device=device)
+    path = get_path(potential=potential, initial_point=images[0], final_point=images[-1], **path_params, device=device)
 
     # Randomly initialize the path, otherwise a straight line
     # if args.randomly_initialize_path is not None:
@@ -98,7 +97,7 @@ def optimize_MEP(
             )
 
     #####  Path optimization tools  #####
-    integrator = tools.ODEintegrator(**integrator_params, device=device)
+    integrator = ODEintegrator(**integrator_params, device=device)
 
     # potential.trainer.model.molecular_graph_cfg.max_num_nodes_per_batch = path.n_atoms
     # potential.trainer.model.global_cfg.batch_size = integrator._integrator.max_batch
@@ -106,7 +105,7 @@ def optimize_MEP(
     # potential.trainer.model.global_cfg.use_compile = False
 
     # Gradient descent path optimizer
-    optimizer = optimization.PathOptimizer(path=path, **optimizer_params, device=device)
+    optimizer = PathOptimizer(path=path, **optimizer_params, device=device)
     """
     if scheduler_params:
         optimizer.set_scheduler(**scheduler_params)

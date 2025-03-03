@@ -73,6 +73,7 @@ class ODEintegrator(Metrics):
                 atol=self.atol,
                 rtol=self.rtol,
                 remove_cut=self.remove_cut,
+                max_path_change=None,
                 y0=torch.tensor([0], dtype=torch.float, device=device),
                 t_init=torch.tensor([0], dtype=torch.float64),
                 t_final=torch.tensor([1], dtype=torch.float64),

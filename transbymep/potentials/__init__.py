@@ -17,6 +17,15 @@ def get_potential(potential, **kwargs):
     elif name == "lennard_jones":
         from .lennard_jones import LennardJones
         return LennardJones(**kwargs)
+    elif name == "repel":
+        from .repel import RepelPotential
+        return RepelPotential(**kwargs)
+    elif name == "morse":
+        from .morse import MorsePotential
+        return MorsePotential(**kwargs)
+    elif name == "harmonic":
+        from .harmonic import HarmonicPotential
+        return HarmonicPotential(**kwargs)
     elif name == "newtonnet":
         from .newtonnet import NewtonNetPotential
         return NewtonNetPotential(**kwargs)

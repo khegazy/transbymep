@@ -6,7 +6,7 @@ from newtonnet.data.neighbors import RadiusGraph
 from .base_potential import BasePotential, PotentialOutput
 
 class NewtonNetPotential(BasePotential):
-    def __init__(self, model_path, images, **kwargs):
+    def __init__(self, model_path, **kwargs):
         """
         Constructor for NewtonNetPotential
 
@@ -23,11 +23,6 @@ class NewtonNetPotential(BasePotential):
         super().__init__(**kwargs)
         self.model = self.load_model(model_path)
         self.transform = RadiusGraph(self.model.embedding_layer.norm.r)
-        self.numbers = images.numbers.to(self.device)
-        self.n_atoms = len(images.numbers)
-        self.pbc = images.pbc.to(self.device)
-        self.cell = images.cell.to(self.device)
-        self.tag = images.tags.to(self.device)
         self.n_eval = 0
 
     

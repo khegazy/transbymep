@@ -2,12 +2,11 @@ import torch
 from torch_geometric.data import Data
 from newtonnet.utils.ase_interface import MLAseCalculator
 from newtonnet.data.neighbors import RadiusGraph
-from ase import units
 
 from .base_potential import BasePotential, PotentialOutput
 
 class NewtonNetPotential(BasePotential):
-    def __init__(self, model_path, **kwargs):
+    def __init__(self, model_path, images, **kwargs):
         """
         Constructor for NewtonNetPotential
 
@@ -24,6 +23,11 @@ class NewtonNetPotential(BasePotential):
         super().__init__(**kwargs)
         self.model = self.load_model(model_path)
         self.transform = RadiusGraph(self.model.embedding_layer.norm.r)
+        self.numbers = images.numbers.to(self.device)
+        self.n_atoms = len(images.numbers)
+        self.pbc = images.pbc.to(self.device)
+        self.cell = images.cell.to(self.device)
+        self.tag = images.tags.to(self.device)
         self.n_eval = 0
 
     

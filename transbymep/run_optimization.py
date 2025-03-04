@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from transbymep.paths import get_path
 from transbymep.optimization import initialize_path
 from transbymep.optimization import PathOptimizer
+from transbymep.tools import process_images
 from transbymep.tools import ODEintegrator
 from transbymep.potentials import get_potential
 
@@ -65,11 +66,14 @@ def optimize_MEP(
         plot_dir = os.path.join(output_dir, "plots")
         if not os.path.exists(plot_dir):
             os.makedirs(plot_dir)
+
+    #####  Process images  #####
+    images = process_images(images)
     
     #####  Get chemical potential  #####
     #     add_azimuthal_dof=args.add_azimuthal_dof,
     #     add_translation_dof=args.add_translation_dof,
-    potential = get_potential(**potential_params, device=device)
+    potential = get_potential(**potential_params, images=images, device=device)
 
     #####  Get path prediction method  #####
     # Minimize initial points with the given potential
@@ -82,7 +86,7 @@ def optimize_MEP(
     #     print(f"Optimized Initial Point: {minima[0]}")
     #     print(f"Optimized Final Point: {minima[1]}")
     #     sys.exit(0)
-    path = get_path(potential=potential, initial_point=images[0], final_point=images[-1], **path_params, device=device)
+    path = get_path(potential=potential, images=images, **path_params, device=device)
 
     # Randomly initialize the path, otherwise a straight line
     # if args.randomly_initialize_path is not None:
@@ -93,8 +97,8 @@ def optimize_MEP(
         path = initialize_path(
             path=path, 
             times=torch.linspace(0, 1, len(images), device=device), 
-            init_points=torch.tensor([image.positions.flatten() for image in images], device=device),
-            )
+            init_points=images.points.to(device),
+        )
 
     #####  Path optimization tools  #####
     integrator = ODEintegrator(**integrator_params, device=device)

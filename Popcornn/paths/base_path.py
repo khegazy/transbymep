@@ -2,8 +2,8 @@ import torch
 import numpy as np
 import scipy as sp
 from dataclasses import dataclass
-from transbymep.tools import read_atoms, pair_displacement
-from transbymep.potentials.base_potential import BasePotential
+from Popcornn.tools import read_atoms, pair_displacement
+from Popcornn.potentials.base_potential import BasePotential
 from typing import Callable, Any
 from ase import Atoms
 from ase.io import read

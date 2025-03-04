@@ -3,7 +3,7 @@
 # import argparse
 
 # from torchpathdiffeq import UNIFORM_METHODS
-# from transbymep import tools, optimize_MEP
+# from Popcornn import tools, optimize_MEP
 
 
 # @pytest.mark.parametrize(

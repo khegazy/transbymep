@@ -3,13 +3,21 @@ requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "transbymep"
+name = "Popcornn"
 description="A Python package description goes here."
 version = "0.0.1"
 readme = "README.md"
-license = { text = "BSD-3" }
-authors = [{ name = "YourName", email = "YourName@email.com" }]
-keywords = ["MyKeyword1", "MyKeyword2"]
+license = { text = "CC-BY 4.0" }
+authors = [
+{ name = "Kareem Hegazy", email = "khegazy@berkeley.edu" },
+{ name = "Eric C.-Y. Yuan", email = "ericyuan@berkeley.edu" },
+{ name = "Anup Kumar", email = "anukumar94663@gmail.com" },
+{ name = "Dmitriy Morozov", email = "dmitriy@mrzv.org" },
+{ name = "Michael Mahoney", email = "mmahoney@stat.berkeley.edu" },
+{ name = "Teresa Head-Gordon", email = "thg@berkeley.edu" },
+{ name = "Samuel M. Blau", email = "smblau@lbl.gov " }
+]
+keywords = ["Chemistry", "Transition State", "Reaction path", "Minimum Energy Path", "Geodesic"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Science/Research",
@@ -48,15 +56,15 @@ docs = [
 ]
 
 [project.urls]
-repository = "https://github.com/khegazy/transbymep"
-documentation = "https://khegazy.github.io/transbymep/"
-changelog = "https://github.com/khegazy/transbymep/blob/main/CHANGELOG.md"
+repository = "https://github.com/khegazy/Popcornn"
+documentation = "https://khegazy.github.io/Popcornn/"
+changelog = "https://github.com/khegazy/Popcornn/blob/main/CHANGELOG.md"
 
 [tool.setuptools.package-data]
-transbymep = ["py.typed"]
+Popcornn = ["py.typed"]
 
 [tool.pyright]
-include = ["transbymep"]
+include = ["Popcornn"]
 exclude = ["**/__pycache__"]
 
 [tool.pytest.ini_options]
@@ -64,7 +72,7 @@ minversion = "6.0"
 addopts = ["-p no:warnings", "--import-mode=importlib"]
 xfail_strict = true
 log_cli_level = "warn"
-pythonpath = "transbymep"
+pythonpath = "Popcornn"
 testpaths = ["tests"]
 
 [tool.black]
@@ -81,7 +89,7 @@ profile = 'black'
 skip_gitignore = true
 
 [tool.coverage.run]
-source = ["transbymep"]
+source = ["Popcornn"]
 
 [tool.coverage.report]
 exclude_also = [
@@ -140,13 +148,13 @@ lint.ignore = [
   "PT012",  # pytest.raises
   "RET505", # Unnecessary `elif` after `return`
 ]
-src = ["transbymep"]
+src = ["Popcornn"]
 lint.unfixable = [
   "T20",  # Removes print statements
   "F841", # Removes unused variables
 ]
 lint.pydocstyle.convention = "numpy"
-lint.isort.known-first-party = ["transbymep"]
+lint.isort.known-first-party = ["Popcornn"]
 lint.isort.required-imports = ["from __future__ import annotations"]
 extend-include = ["*.ipynb"]
 

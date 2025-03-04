@@ -7,12 +7,12 @@ from tqdm import tqdm
 from ase import Atoms
 from dataclasses import dataclass
 
-from transbymep import tools
-from transbymep import paths
-from transbymep import optimization
-from transbymep.optimization import initialize_path
-from transbymep.tools import visualize
-from transbymep.potentials import get_potential
+from Popcornn import tools
+from Popcornn import paths
+from Popcornn import optimization
+from Popcornn.optimization import initialize_path
+from Popcornn.tools import visualize
+from Popcornn.potentials import get_potential
 
 
 @dataclass

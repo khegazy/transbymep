@@ -3,10 +3,10 @@ import torch
 from torch import optim
 from torch.optim import lr_scheduler
 from torch.nn.functional import interpolate
-from transbymep.tools import scheduler
-from transbymep.tools.scheduler import get_schedulers, get_lr_scheduler
+from Popcornn.tools import scheduler
+from Popcornn.tools.scheduler import get_schedulers, get_lr_scheduler
 
-from transbymep.tools import Metrics
+from Popcornn.tools import Metrics
 
 OPTIMIZER_DICT = {
     "sgd" : optim.SGD,

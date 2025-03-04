@@ -1,7 +1,7 @@
-site_name: transbymep
+site_name: Popcornn
 site_author: YourName
 site_description: >-
-  This is the transbymep package!
+  This is the Popcornn package!
 nav:
   - Home: index.md
   - Code Documentation: reference/ # keep me!
@@ -10,7 +10,7 @@ nav:
       - example_docs/about/conduct.md
       - example_docs/about/license.md
 
-repo_url: https://github.com/khegazy/transbymep/
+repo_url: https://github.com/khegazy/Popcornn/
 edit_uri: blob/main/docs/
 
 theme:

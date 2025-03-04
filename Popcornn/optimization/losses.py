@@ -1,4 +1,4 @@
-from transbymep.tools import metrics
+from Popcornn.tools import metrics
 
 
 def pes_integral(path, integrator):

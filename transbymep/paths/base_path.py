@@ -155,7 +155,7 @@ class BasePath(torch.nn.Module):
             An instance of the PathOutput class containing the computed path, potential, velocity, force, and times.
         """
         if t is None:
-            t = torch.linspace(0, 1, 1001)
+            t = torch.linspace(0, 1, 101)
         while len(t.shape) < 2:
             t = torch.unsqueeze(t, -1)
         t = t.to(torch.float64).to(self.device)

@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from transbymep.paths import get_path
 from transbymep.optimization import initialize_path
 from transbymep.optimization import PathOptimizer
-from transbymep.tools import process_images
+from transbymep.tools import process_images, output_to_atoms
 from transbymep.tools import ODEintegrator
 from transbymep.potentials import get_potential
 
@@ -36,7 +36,8 @@ def optimize_MEP(
         optimizer_params: dict[str, Any] = {},
         scheduler_params: dict[str, Any] = {},
         loss_scheduler_params: dict[str, Any] = {},
-        num_optimizer_iterations: int = 1000,
+        num_optimizer_iterations: int = 1001,
+        num_path_points: int = 101,
         device: str = 'cuda',
 ):
     """
@@ -251,15 +252,20 @@ def optimize_MEP(
     # del potential
     # torch.cuda.empty_cache()
 
-    # output = OptimizationOutput(
-    #     paths_time=paths_time,
-    #     paths_geometry=paths_geometry,
-    #     paths_energy=paths_energy,
-    #     paths_velocity=paths_velocity,
-    #     paths_force=paths_force,
-    #     paths_loss=paths_loss,
-    #     paths_integral=paths_integral,
-    #     paths_neval=paths_neval,
-    # )
-    # return output
-    return path
+    #####  Save optimization output  #####
+    path_output = path(return_velocity=True, return_energy=True, return_force=True)
+    if images.dtype == Atoms:
+        images = output_to_atoms(path_output, images)
+        return images
+    else:
+        return OptimizationOutput(
+            paths_time=paths_time,
+            paths_geometry=paths_geometry,
+            paths_energy=paths_energy,
+            paths_velocity=paths_velocity,
+            paths_force=paths_force,
+            paths_loss=paths_loss,
+            paths_integral=paths_integral,
+            paths_neval=paths_neval,
+        )
+

@@ -36,13 +36,14 @@ config = {
         }
     },
     "num_optimizer_iterations": 1000,
+    "num_record_points": 101,
 }
 
 # Read the initial images
 initial_images = read('configs/44939.xyz', index=':')
 
 # Run the optimization
-final_images = optimize_MEP(initial_images, **config)
+final_images, ts_image = optimize_MEP(initial_images, **config)
 
 # Write the final images
 write('configs/44939_popcornn.xyz', final_images)

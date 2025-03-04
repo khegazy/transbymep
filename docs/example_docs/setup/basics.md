@@ -8,7 +8,7 @@ The first thing to do is update the README (`/README.md`), which should contain 
 
 ### License
 
-The Popcornn repository comes premade with a sample license (`/LICENSE.md`), in this case the very popular and permissive [BSD 3-Clause license](https://opensource.org/license/bsd-3-clause/). Feel free to change this for your own project or keep it as-is if you don't quite know yet.
+The Popcornn repository comes premade with a sample license (`/LICENSE.md`), in this case the permissive [CC-BY 4.0 license](https://creativecommons.org/licenses/by/4.0/legalcode.en). Feel free to change this for your own project or keep it as-is if you don't quite know yet.
 
 !!! Tip
 

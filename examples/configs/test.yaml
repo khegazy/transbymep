@@ -2,10 +2,10 @@
 # images: 4766_interp.xyz
 # images: 6445_interp.xyz
 # images: 6445.xyz
-images: 7780_interp.xyz
+images: configs/7780_interp.xyz
 potential_params:
   potential: newtonnet
-  model_path: newtonnet/training_14/models/best_model.pt
+  model_path: configs/newtonnet/training_14/models/best_model.pt
   # potential: morse
 path_params: 
   name: mlp
@@ -27,12 +27,12 @@ integrator_params:
 optimizer_params:
   optimizer:
     name: adam
-    lr: 1.0e-2
+    lr: 1.0e-3
   lr_scheduler:
     # name: cosine
     # T_max: 1000
     name: one_cycle
-    max_lr: 1.0e-2
+    max_lr: 1.0e-3
     total_steps: 1000
     # cycle_momentum: false
     # name: cyclic

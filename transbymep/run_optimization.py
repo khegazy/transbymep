@@ -6,25 +6,35 @@ import time as time
 from tqdm import tqdm
 from ase import Atoms
 from dataclasses import dataclass
+import json
 
-from transbymep import tools
-from transbymep import paths
-from transbymep import optimization
+from transbymep.paths import get_path
 from transbymep.optimization import initialize_path
-from transbymep.tools import visualize
+from transbymep.optimization import PathOptimizer
+from transbymep.tools import process_images, output_to_atoms
+from transbymep.tools import ODEintegrator
 from transbymep.potentials import get_potential
 
 
 @dataclass
 class OptimizationOutput():
-    paths_time: list[np.ndarray]
-    paths_geometry: list[np.ndarray]
-    paths_energy: list[np.ndarray]
-    paths_velocity: list[np.ndarray]
-    paths_force: list[np.ndarray]
-    paths_loss: list[np.ndarray]
-    paths_integral: list[float]
-    paths_neval: list[int]
+    path_time: list
+    path_geometry: list
+    path_energy: list
+    path_velocity: list
+    path_force: list
+    path_loss: list
+    path_integral: float
+    # path_neval: int
+    path_ts_time: list
+    path_ts_geometry: list
+    path_ts_energy: list
+    path_ts_velocity: list
+    path_ts_force: list
+
+    def save(self, file):
+        with open(file, 'w') as f:
+            json.dump(self.__dict__, f)
 
 
 def optimize_MEP(
@@ -36,7 +46,8 @@ def optimize_MEP(
         optimizer_params: dict[str, Any] = {},
         scheduler_params: dict[str, Any] = {},
         loss_scheduler_params: dict[str, Any] = {},
-        num_optimizer_iterations: int = 1000,
+        num_optimizer_iterations: int = 1001,
+        num_record_points: int = 101,
         device: str = 'cuda',
 ):
     """
@@ -66,11 +77,14 @@ def optimize_MEP(
         plot_dir = os.path.join(output_dir, "plots")
         if not os.path.exists(plot_dir):
             os.makedirs(plot_dir)
+
+    #####  Process images  #####
+    images = process_images(images)
     
     #####  Get chemical potential  #####
     #     add_azimuthal_dof=args.add_azimuthal_dof,
     #     add_translation_dof=args.add_translation_dof,
-    potential = get_potential(**potential_params, device=device)
+    potential = get_potential(**potential_params, images=images, device=device)
 
     #####  Get path prediction method  #####
     # Minimize initial points with the given potential
@@ -83,7 +97,7 @@ def optimize_MEP(
     #     print(f"Optimized Initial Point: {minima[0]}")
     #     print(f"Optimized Final Point: {minima[1]}")
     #     sys.exit(0)
-    path = paths.get_path(potential=potential, initial_point=images[0], final_point=images[-1], **path_params, device=device)
+    path = get_path(potential=potential, images=images, **path_params, device=device)
 
     # Randomly initialize the path, otherwise a straight line
     # if args.randomly_initialize_path is not None:
@@ -94,11 +108,11 @@ def optimize_MEP(
         path = initialize_path(
             path=path, 
             times=torch.linspace(0, 1, len(images), device=device), 
-            init_points=torch.tensor([image.positions.flatten() for image in images], device=device),
-            )
+            init_points=images.points.to(device),
+        )
 
     #####  Path optimization tools  #####
-    integrator = tools.ODEintegrator(**integrator_params, device=device)
+    integrator = ODEintegrator(**integrator_params, device=device)
 
     # potential.trainer.model.molecular_graph_cfg.max_num_nodes_per_batch = path.n_atoms
     # potential.trainer.model.global_cfg.batch_size = integrator._integrator.max_batch
@@ -106,7 +120,7 @@ def optimize_MEP(
     # potential.trainer.model.global_cfg.use_compile = False
 
     # Gradient descent path optimizer
-    optimizer = optimization.PathOptimizer(path=path, **optimizer_params, device=device)
+    optimizer = PathOptimizer(path=path, **optimizer_params, device=device)
     """
     if scheduler_params:
         optimizer.set_scheduler(**scheduler_params)
@@ -119,20 +133,6 @@ def optimize_MEP(
     ##########################################
     #####  Optimize minimum energy path  ##### 
     ##########################################
-    if output_dir is not None:
-        paths_time = []
-        paths_geometry = []
-        paths_energy = []
-        paths_velocity = []
-        paths_force = []
-        paths_loss = []
-        paths_integral = []
-        paths_neval = []
-        paths_ts_time = []
-        paths_ts_geometry = []
-        paths_ts_energy = []
-        paths_ts_velocity = []
-        paths_ts_force = []
     for optim_idx in tqdm(range(num_optimizer_iterations)):
         path.neval = 0
         try:
@@ -143,101 +143,73 @@ def optimize_MEP(
             raise e
 
         if output_dir is not None:
-            paths_integral.append(path_integral.integral.item())
-            paths_neval.append(neval)
-            time = path_integral.t.detach()
-            # time = torch.linspace(0, 1, 101, device=device).reshape(1, -1)
-            paths_time.append(time.flatten().cpu().numpy())
-            loss = path_integral.y.detach()
-            paths_loss.append(loss.flatten().cpu().numpy())
-
-            del path_integral
-            
-            # path_time = []
-            # path_geometry, path_energy, path_velocity, path_force = [], [], [], []
-            # for t in time:
-            #     t = t.flatten()
-            #     t = torch.linspace(t[0], t[-1], len(t), device=device).reshape(-1, 1)
-            #     path_time.append(t.detach().to('cpu').numpy())
-            #     path_output = path(t, return_velocity=True, return_energy=True, return_force=True)
-            #     path_geometry.append(path_output.path_geometry.detach().to('cpu').numpy())
-            #     path_energy.append(path_output.path_energy.detach().to('cpu').numpy())
-            #     path_velocity.append(path_output.path_velocity.detach().to('cpu').numpy())
-            #     path_force.append(path_output.path_force.detach().to('cpu').numpy())
-            #     del path_output
-            # paths_time.append(np.concatenate(path_time))
-            # paths_geometry.append(np.concatenate(path_geometry))
-            # paths_energy.append(np.concatenate(path_energy))
-            # paths_velocity.append(np.concatenate(path_velocity))
-            # paths_force.append(np.concatenate(path_force))
-            # for ind_t, t in enumerate(time):
-            #     t = t.flatten()
-            #     t = torch.linspace(t[0], t[-1], len(t), device=device).reshape(-1, 1)
-            #     time[ind_t] = t
-            time = time.reshape(-1)
-            path_output = path(time, return_velocity=True, return_energy=True, return_force=True)
-            # paths_time.append(time.detach().to('cpu').numpy())
-            paths_geometry.append(path_output.path_geometry.detach().cpu().numpy())
-            paths_energy.append(path_output.path_energy.detach().cpu().numpy())
-            paths_velocity.append(path_output.path_velocity.detach().cpu().numpy())
-            paths_force.append(path_output.path_force.detach().cpu().numpy())
-            del path_output
-
+            time = path_integral.t.flatten()
             ts_time = path.TS_time
-            path_output = path(ts_time, return_velocity=True, return_energy=True, return_force=True)
-            paths_ts_time.append(ts_time.detach().cpu().numpy())
-            paths_ts_geometry.append(path_output.path_geometry.detach().cpu().numpy())
-            paths_ts_energy.append(path_output.path_energy.detach().cpu().numpy())
-            paths_ts_velocity.append(path_output.path_velocity.detach().cpu().numpy())
-            paths_ts_force.append(path_output.path_force.detach().cpu().numpy())
-            del path_output
-            
+            path_output = path(time, return_velocity=True, return_energy=True, return_force=True)
+            ts_output = path(ts_time, return_velocity=True, return_energy=True, return_force=True)
 
-            if optim_idx % 1 == 0:
-                #     path_output = logger.optimization_step(	
-                #         optim_idx,	
-                #         path,	
-                #         potential,	
-                #         path_integral.integral,	
-                #         plot=args.make_opt_plots,	
-                #         plot_dir=plot_dir,	
-                #         geo_paths=geo_paths,	
-                #         pes_paths=pes_paths,	
-                #         add_azimuthal_dof=args.add_azimuthal_dof,	
-                #         add_translation_dof=args.add_translation_dof	
-                #     )
-                log_filename = os.path.join(log_dir, f"output_{optim_idx}.npz")
-                np.savez(
-                    log_filename, 
-                    path_times=paths_time[-1],
-                    path_geometry=paths_geometry[-1],
-                    path_energy=paths_energy[-1],
-                    path_velocity=paths_velocity[-1],
-                    path_force=paths_force[-1],
-                    path_loss=paths_loss[-1],
-                    path_integral=paths_integral[-1],
-                    path_neval=paths_neval[-1],
-                    ts_times=paths_ts_time[-1],
-                    ts_geometry=paths_ts_geometry[-1],
-                    ts_energy=paths_ts_energy[-1],
-                    ts_velocity=paths_ts_velocity[-1],
-                    ts_force=paths_ts_force[-1],
-                )
-                # plot_filename = os.path.join(plot_dir, f"output_{optim_idx}.png")
-                # visualize.plot_path(
-                #     plot_filename,
-                #     time=paths_time[-1],
-                #     geometry=paths_geometry[-1],
-                #     energy=paths_energy[-1],
-                #     velocity=paths_velocity[-1],
-                #     force=paths_force[-1],
-                #     loss=paths_loss[-1],
-                #     ts_times=paths_ts_time[-1],
-                #     ts_geometry=paths_ts_geometry[-1],
-                #     ts_energy=paths_ts_energy[-1],
-                #     ts_velocity=paths_ts_velocity[-1],
-                #     ts_force=paths_ts_force[-1],
-                # )
+            output = OptimizationOutput(
+                path_time=time.tolist(),
+                path_geometry=path_output.path_geometry.tolist(),
+                path_energy=path_output.path_energy.tolist(),
+                path_velocity=path_output.path_velocity.tolist(),
+                path_force=path_output.path_force.tolist(),
+                path_loss=path_integral.y.tolist(),
+                path_integral=path_integral.integral.item(),
+                # path_neval=neval,
+                path_ts_time=ts_time.tolist(),
+                path_ts_geometry=ts_output.path_geometry.tolist(),
+                path_ts_energy=ts_output.path_energy.tolist(),
+                path_ts_velocity=ts_output.path_velocity.tolist(),
+                path_ts_force=ts_output.path_force.tolist(),
+            )
+            output.save(os.path.join(log_dir, f"output_{optim_idx}.json"))            
+
+            # if optim_idx % 1 == 0:
+            #     #     path_output = logger.optimization_step(	
+            #     #         optim_idx,	
+            #     #         path,	
+            #     #         potential,	
+            #     #         path_integral.integral,	
+            #     #         plot=args.make_opt_plots,	
+            #     #         plot_dir=plot_dir,	
+            #     #         geo_paths=geo_paths,	
+            #     #         pes_paths=pes_paths,	
+            #     #         add_azimuthal_dof=args.add_azimuthal_dof,	
+            #     #         add_translation_dof=args.add_translation_dof	
+            #     #     )
+            #     log_filename = os.path.join(log_dir, f"output_{optim_idx}.npz")
+            #     np.savez(
+            #         log_filename, 
+            #         path_times=paths_time[-1],
+            #         path_geometry=paths_geometry[-1],
+            #         path_energy=paths_energy[-1],
+            #         path_velocity=paths_velocity[-1],
+            #         path_force=paths_force[-1],
+            #         path_loss=paths_loss[-1],
+            #         path_integral=paths_integral[-1],
+            #         path_neval=paths_neval[-1],
+            #         ts_times=paths_ts_time[-1],
+            #         ts_geometry=paths_ts_geometry[-1],
+            #         ts_energy=paths_ts_energy[-1],
+            #         ts_velocity=paths_ts_velocity[-1],
+            #         ts_force=paths_ts_force[-1],
+            #     )
+            #     # plot_filename = os.path.join(plot_dir, f"output_{optim_idx}.png")
+            #     # visualize.plot_path(
+            #     #     plot_filename,
+            #     #     time=paths_time[-1],
+            #     #     geometry=paths_geometry[-1],
+            #     #     energy=paths_energy[-1],
+            #     #     velocity=paths_velocity[-1],
+            #     #     force=paths_force[-1],
+            #     #     loss=paths_loss[-1],
+            #     #     ts_times=paths_ts_time[-1],
+            #     #     ts_geometry=paths_ts_geometry[-1],
+            #     #     ts_energy=paths_ts_energy[-1],
+            #     #     ts_velocity=paths_ts_velocity[-1],
+            #     #     ts_force=paths_ts_force[-1],
+            #     # )
 
         if optimizer.converged:
             print(f"Converged at step {optim_idx}")
@@ -248,15 +220,28 @@ def optimize_MEP(
     # del potential
     # torch.cuda.empty_cache()
 
-    # output = OptimizationOutput(
-    #     paths_time=paths_time,
-    #     paths_geometry=paths_geometry,
-    #     paths_energy=paths_energy,
-    #     paths_velocity=paths_velocity,
-    #     paths_force=paths_force,
-    #     paths_loss=paths_loss,
-    #     paths_integral=paths_integral,
-    #     paths_neval=paths_neval,
-    # )
-    # return output
-    return path
+    #####  Save optimization output  #####
+    time = torch.linspace(path.t_init.item(), path.t_final.item(), num_record_points)
+    ts_time = path.TS_time
+    path_output = path(time, return_velocity=True, return_energy=True, return_force=True)
+    ts_output = path(ts_time, return_velocity=True, return_energy=True, return_force=True)
+    if images.dtype == Atoms:
+        images, ts_images = output_to_atoms(path_output, images), output_to_atoms(ts_output, images)
+        return images, ts_images[0]
+    else:
+        return OptimizationOutput(
+            path_time=time.tolist(),
+            path_geometry=path_output.path_geometry.tolist(),
+            path_energy=path_output.path_energy.tolist(),
+            path_velocity=path_output.path_velocity.tolist(),
+            path_force=path_output.path_force.tolist(),
+            path_loss=path_integral.y.tolist(),
+            path_integral=path_integral.integral.item(),
+            # path_neval=neval,
+            path_ts_time=ts_time.tolist(),
+            path_ts_geometry=ts_output.path_geometry.tolist(),
+            path_ts_energy=ts_output.path_energy.tolist(),
+            path_ts_velocity=ts_output.path_velocity.tolist(),
+            path_ts_force=ts_output.path_force.tolist(),
+        )
+

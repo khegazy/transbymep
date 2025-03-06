@@ -2,7 +2,6 @@ import torch
 from torch_geometric.data import Data
 from newtonnet.utils.ase_interface import MLAseCalculator
 from newtonnet.data.neighbors import RadiusGraph
-from ase import units
 
 from .base_potential import BasePotential, PotentialOutput
 

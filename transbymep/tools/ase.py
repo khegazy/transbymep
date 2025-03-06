@@ -1,45 +1,15 @@
-from ase import Atoms
-from ase.calculators.singlepoint import SinglePointCalculator
+import numpy as np
 import torch
+import ase
+from ase.calculators.singlepoint import SinglePointCalculator
+# from transbymep.paths.base_path import PathOutput
+# from transbymep.tools.preprocess import Images
 
 
-def read_atoms(atoms):
-    """
-    Read ASE Atoms object and return a dictionary.
-
-    Parameters:
-    -----------
-    atoms : ase.Atoms
-        The ASE Atoms object.
-
-    Returns:
-    --------
-    dict
-        Dictionary with the following keys:
-        - positions: torch.tensor
-        - numbers: torch.tensor
-        - pbc: torch.tensor
-        - cell: torch.tensor
-        - n_atoms: int
-    """
-    positions = torch.tensor(atoms.get_positions(), dtype=torch.float64)
-    numbers = torch.tensor(atoms.get_atomic_numbers(), dtype=torch.int64)
-    pbc = torch.tensor(atoms.get_pbc(), dtype=torch.bool)
-    cell = torch.tensor(atoms.get_cell().array, dtype=torch.float64)
-    n_atoms = len(atoms)
-    tags = torch.tensor(atoms.get_tags(), dtype=torch.int64)
-
-    return {
-        "positions": positions,
-        "numbers": numbers,
-        "pbc": pbc,
-        "cell": cell,
-        "n_atoms": n_atoms,
-        "tags": tags,
-    }
-    
-
-def pair_displacement(initial_atoms, final_atoms):
+def pair_displacement(
+        initial_atoms: ase.Atoms, 
+        final_atoms: ase.Atoms,
+    ) -> np.ndarray:
     """
     Pair displacement between two Atoms objects.
 
@@ -49,14 +19,13 @@ def pair_displacement(initial_atoms, final_atoms):
         Initial Atoms object.
     final_atoms : ase.Atoms
         Final Atoms object.
-    device : str
-        Device to use.
 
     Returns:
     --------
-    torch.tensor
+    np.ndarray
         Pair displacement.
     """
+    assert len(initial_atoms) == len(final_atoms), "Initial and final atoms must have the same number of atoms."
     pair = initial_atoms + final_atoms
     vec = pair.get_distances(
         [i for i in range(len(initial_atoms))],
@@ -84,7 +53,7 @@ def output_to_atoms(output, ref_images):
     """
     images = []
     for positions, energy, velocities, forces in zip(output.path_geometry, output.path_energy, output.path_velocity, output.path_force):
-        atoms = Atoms(
+        atoms = ase.Atoms(
             numbers=ref_images.numbers.detach().cpu().numpy(),
             positions=positions.detach().cpu().numpy().reshape(-1, 3),
             velocities=velocities.detach().cpu().numpy().reshape(-1, 3),

@@ -385,7 +385,7 @@ class Metrics():
         # return Evre.unsqueeze(1)
         Egeo = torch.linalg.norm(torch.einsum('bqx,bx->bq', path_force, path_velocity), dim=-1, keepdim=True)
         # Egeo = (torch.einsum('bqx,bx->bq', path_force, path_velocity) ** 2).sum(dim=-1, keepdim=True)
-        return Egeo, 
+        return Egeo, path_energy
 
     def E_vre(self, **kwargs):
         kwargs['requires_force'] = True

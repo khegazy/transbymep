@@ -218,7 +218,7 @@ def optimize_MEP(
     # del optimizer
     # del integrator
     # del potential
-    # torch.cuda.empty_cache()
+    torch.cuda.empty_cache()
 
     #####  Save optimization output  #####
     time = torch.linspace(path.t_init.item(), path.t_final.item(), num_record_points)

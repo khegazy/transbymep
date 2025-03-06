@@ -64,7 +64,7 @@ def output_to_atoms(output, ref_images):
         calc = SinglePointCalculator(
             atoms,
             energy=energy.detach().cpu().numpy(),
-            forces=forces.detach().cpu().numpy().reshape(-1, 3),
+            # forces=forces.detach().cpu().numpy().reshape(-1, 3),
         )
         atoms.calc = calc
         images.append(atoms)

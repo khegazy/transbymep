@@ -1,21 +1,45 @@
 import torch
+from ase.data import covalent_radii
+
 from .base_potential import BasePotential, PotentialOutput
 
-
 class LennardJones(BasePotential):
-    def __init__(self, epsilon=1.0, sigma=1.0, **kwargs) -> None:
-        super().__init__(**kwargs)
-        self.epsilon = epsilon
-        self.sigma = sigma
+    def __init__(self, **kwargs):
+        """
+        Constructor for the Lennard-Jones Potential.
 
+        The potential is given by:
+        E_ij = (r0_ij / r_ij)^12 - 2 * (r0_ij / r_ij)^6
+        E = sum_{i<j} E_ij
+
+        Parameters
+        ----------
+        """
+        super().__init__(**kwargs)
+        self.r0 = None
+    
     def forward(self, points):
+        if self.r0 is None:
+            self.set_r0(self.numbers)
+        points_3d = points.view(-1, self.n_atoms, 3)
+        r = torch.norm(points_3d[:, self.ind[0]] - points_3d[:, self.ind[1]], dim=-1)
+        energy_terms = (self.r0 / r) ** 12 - 2 * (self.r0 / r) ** 6
+        energy = energy_terms.sum(dim=-1, keepdim=True)
+        # return PotentialOutput(energy=energy)
+
+        force = torch.vmap(
+            lambda vec: torch.autograd.grad(
+                energy_terms.flatten(), points, grad_outputs=vec, create_graph=True, retain_graph=True
+            )[0],
+        )(torch.eye(energy_terms.shape[1], device=self.device).repeat(1, energy_terms.shape[0])).transpose(0, 1)
+        return PotentialOutput(energy=energy, force=force)
+    
+    def set_r0(self, numbers):
         """
-        args:
-            points (torch.Tensor): shape (n_points, n_atoms * 3)
+        Set the r0_ij values for the potential
         """
-        pos = points.unflatten(-1, (-1, 3))
-        dist = pos[..., None, :, :] - pos[..., :, None, :]
-        ind = torch.triu_indices(dist.shape[-3], dist.shape[-2], offset=1)
-        ivn_dist = self.sigma / torch.linalg.norm(dist[..., ind[0], ind[1], :], dim=-1)
-        energy = 4 * self.epsilon * torch.sum((ivn_dist ** 12 - ivn_dist ** 6), dim=-1)
-        return PotentialOutput(energy=energy, force=None)
+        radii = torch.tensor([covalent_radii[n] for n in numbers], device=self.device)
+        r0 = radii.view(-1, 1) + radii.view(1, -1)
+        self.ind = torch.triu_indices(r0.shape[0], r0.shape[1], offset=1, device=self.device)
+        self.r0 = r0[None, self.ind[0], self.ind[1]]
+

@@ -22,10 +22,19 @@ class MorsePotential(BasePotential):
     def forward(self, points):
         if self.r0 is None:
             self.set_r0(self.numbers)
-        points = points.view(-1, self.n_atoms, 3)
-        r = torch.norm(points[:, self.ind[0]] - points[:, self.ind[1]], dim=-1)
-        energy = torch.sum(((1 - torch.exp(-self.alpha * (r - self.r0))) ** 2 - 1), dim=-1, keepdim=True)
-        return PotentialOutput(energy=energy)
+        points_3d = points.view(-1, self.n_atoms, 3)
+        r = torch.norm(points_3d[:, self.ind[0]] - points_3d[:, self.ind[1]], dim=-1)
+        energy_terms = (1 - torch.exp(-self.alpha * (r - self.r0))) ** 2 - 1
+        energy = torch.sum(energy_terms, dim=-1, keepdim=True)
+
+        # return PotentialOutput(energy=energy)
+
+        force = torch.vmap(
+            lambda vec: torch.autograd.grad(
+                energy_terms.flatten(), points, grad_outputs=vec, create_graph=True, retain_graph=True
+            )[0],
+        )(torch.eye(energy_terms.shape[1], device=self.device).repeat(1, energy_terms.shape[0])).transpose(0, 1)
+        return PotentialOutput(energy=energy, force=force)
     
     def set_r0(self, numbers):
         """

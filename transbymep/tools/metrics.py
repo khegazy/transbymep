@@ -372,6 +372,21 @@ class Metrics():
     # def _parse_input(self, path_output):
     #     pass
     
+    def E_geo(self, **kwargs):
+        kwargs['requires_force'] = True
+        kwargs['requires_energy'] = True
+        kwargs['requires_velocity'] = True
+        kwargs['fxn_name'] = self.E_vre.__name__
+
+        # geo_val, velocity, pes_val, force = self._parse_input(**kwargs)
+        path_geometry, path_velocity, path_energy, path_force = self._parse_input(**kwargs)
+        
+        # Evre = torch.linalg.norm(force)*torch.linalg.norm(velocity)
+        # return Evre.unsqueeze(1)
+        Egeo = torch.linalg.norm(torch.einsum('bqx,bx->bq', path_force, path_velocity), dim=-1, keepdim=True)
+        # Egeo = (torch.einsum('bqx,bx->bq', path_force, path_velocity) ** 2).sum(dim=-1, keepdim=True)
+        return Egeo, 
+
     def E_vre(self, **kwargs):
         kwargs['requires_force'] = True
         kwargs['requires_energy'] = True

@@ -1,4 +1,5 @@
-import ase
+from ase import Atoms
+from ase.calculators.singlepoint import SinglePointCalculator
 import torch
 
 
@@ -83,7 +84,7 @@ def output_to_atoms(output, ref_images):
     """
     images = []
     for positions, energy, velocities, forces in zip(output.path_geometry, output.path_energy, output.path_velocity, output.path_force):
-        atoms = ase.Atoms(
+        atoms = Atoms(
             numbers=ref_images.numbers.detach().cpu().numpy(),
             positions=positions.detach().cpu().numpy().reshape(-1, 3),
             velocities=velocities.detach().cpu().numpy().reshape(-1, 3),

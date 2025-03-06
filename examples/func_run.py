@@ -5,8 +5,9 @@ from transbymep import optimize_MEP
 # Create configurations, or read them from a file
 config = {
     "potential_params": {
-        "potential": "morse",
-        "alpha": 2.0,
+        "potential": "repel",
+        "alpha": 1.7,
+        "beta": 0.01,
     },
     "path_params": {
         "name": "mlp",
@@ -21,30 +22,28 @@ config = {
         "computation": "parallel",
         "sample_type": "uniform",
         "path_loss_name": "integral",
-        "path_ode_names": "E_vre",
+        "path_ode_names": "E_geo",
     },
     "optimizer_params": {
         "optimizer": {
             "name": "adam",
             "lr": 1.0e-3,
-            "weight_decay": 100.0,
         },
         "lr_scheduler": {
-            "name": "one_cycle",
-            "max_lr": 1.0e-3,
-            "total_steps": 1000,
+            "name": "cosine",
+            "T_max": 1000,
         }
     },
     "num_optimizer_iterations": 1000,
-    "num_record_points": 101,
+    "num_record_points": 20,
 }
 
 # Read the initial images
-initial_images = read('configs/44939.xyz', index=':')
+initial_images = read('configs/6445.xyz', index=':')
 
 # Run the optimization
 final_images, ts_image = optimize_MEP(initial_images, **config)
 
 # Write the final images
-write('configs/44939_popcornn.xyz', final_images)
+write('configs/6445_popcornn.xyz', final_images)
 

@@ -1,6 +1,6 @@
 import pytest
 import argparse
-from Popcornn import tools
+from popcornn import tools
 # from Popcornn.optimization.gradient_descent import gradientDescent
 
 '''

@@ -1,9 +1,9 @@
-# import os
-# import pytest
-# import argparse
+ import os
+ import pytest
+ import argparse
 
-# from torchpathdiffeq import UNIFORM_METHODS
-# from Popcornn import tools, optimize_MEP
+ from torchpathdiffeq import UNIFORM_METHODS
+ from popcornn import tools, optimize_MEP
 
 
 # @pytest.mark.parametrize(

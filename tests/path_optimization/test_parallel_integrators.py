@@ -3,7 +3,7 @@ import pytest
 import argparse
 
 from torchpathdiffeq import UNIFORM_METHODS, VARIABLE_METHODS
-from Popcornn import tools, optimize_MEP
+from popcornn import tools, optimize_MEP
 
 
 @pytest.mark.parametrize(

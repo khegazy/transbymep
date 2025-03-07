@@ -5,7 +5,7 @@ from ase.io import read
 import numpy as np
 import torch
 
-from Popcornn import potentials, paths
+from popcornn import potentials, paths
 
 
 def test_mlpdist(tmp_path, monkeypatch):

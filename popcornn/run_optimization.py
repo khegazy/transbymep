@@ -8,12 +8,12 @@ from ase import Atoms
 from dataclasses import dataclass
 import json
 
-from Popcornn.paths import get_path
-from Popcornn.optimization import initialize_path
-from Popcornn.optimization import PathOptimizer
-from Popcornn.tools import process_images, output_to_atoms
-from Popcornn.tools import ODEintegrator
-from Popcornn.potentials import get_potential
+from popcornn.paths import get_path
+from popcornn.optimization import initialize_path
+from popcornn.optimization import PathOptimizer
+from popcornn.tools import process_images, output_to_atoms
+from popcornn.tools import ODEintegrator
+from popcornn.potentials import get_potential
 
 
 @dataclass

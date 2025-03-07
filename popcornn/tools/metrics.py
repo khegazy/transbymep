@@ -369,22 +369,15 @@ class Metrics():
         message += f"\t3) Provide the path calculator and the time(s) to be evaluated"
         raise ValueError(message)
 
-    # def _parse_input(self, path_output):
-    #     pass
-    
     def E_geo(self, **kwargs):
         kwargs['requires_force'] = True
         kwargs['requires_energy'] = True
         kwargs['requires_velocity'] = True
         kwargs['fxn_name'] = self.E_vre.__name__
 
-        # geo_val, velocity, pes_val, force = self._parse_input(**kwargs)
         path_geometry, path_velocity, path_energy, path_force = self._parse_input(**kwargs)
         
-        # Evre = torch.linalg.norm(force)*torch.linalg.norm(velocity)
-        # return Evre.unsqueeze(1)
         Egeo = torch.linalg.norm(torch.einsum('bqx,bx->bq', path_force, path_velocity), dim=-1, keepdim=True)
-        # Egeo = (torch.einsum('bqx,bx->bq', path_force, path_velocity) ** 2).sum(dim=-1, keepdim=True)
         return Egeo, path_energy
 
     def E_vre(self, **kwargs):
@@ -393,11 +386,8 @@ class Metrics():
         kwargs['requires_velocity'] = True
         kwargs['fxn_name'] = self.E_vre.__name__
 
-        # geo_val, velocity, pes_val, force = self._parse_input(**kwargs)
         path_geometry, path_velocity, path_energy, path_force = self._parse_input(**kwargs)
         
-        # Evre = torch.linalg.norm(force)*torch.linalg.norm(velocity)
-        # return Evre.unsqueeze(1)
         Evre = torch.linalg.norm(path_force, dim=-1, keepdim=True) * torch.linalg.norm(path_velocity, dim=-1, keepdim=True)
         return Evre, path_energy, path_force, path_velocity
 
@@ -407,12 +397,8 @@ class Metrics():
         kwargs['requires_velocity'] = True
         kwargs['fxn_name'] = self.E_pvre.__name__
 
-        # geo_val, velocity, pes_val, force = self._parse_input(**kwargs)
         path_geometry, path_velocity, path_energy, path_force = self._parse_input(**kwargs)
 
-        #print("E_pvre SHPES", kwargs['t'].shape, force.shape, torch.abs(torch.sum(velocity*force, dim=-1, keepdim=True)).shape) 
-        #print(kwargs['t'].requires_grad, velocity.requires_grad, force.requires_grad)
-        # return torch.abs(torch.sum(velocity*force, dim=-1, keepdim=True))
         Epvre = torch.abs(torch.sum(path_velocity*path_force, dim=-1, keepdim=True))
 
         return Epvre, path_energy, path_force, path_velocity
@@ -423,12 +409,10 @@ class Metrics():
         kwargs['requires_velocity'] = True
         kwargs['fxn_name'] = self.E_pvre_vre.__name__
         
-        # geo_val, velocity, pes_val, force = self._parse_input(**kwargs)
         path_geometry, path_velocity, path_energy, path_force = self._parse_input(**kwargs)
 
         Evre = torch.linalg.norm(path_force, dim=-1, keepdim=True) * torch.linalg.norm(path_velocity, dim=-1, keepdim=True)
         Epvre = torch.abs(torch.sum(path_velocity*path_force, dim=-1, keepdim=True))
-        #print("IN LOSS", torch.sum(pvre), torch.sum(vre))
         return self.parameters['vre_scale'] * Evre + self.parameters['pvre_scale'] * Epvre
 
     def E_pvre_vre(self, **kwargs):
@@ -439,7 +423,6 @@ class Metrics():
 
         vre = self.E_vre(force=force, velocity=velocity, **kwargs)
         pvre = self.E_pvre(force=force, velocity=velocity, **kwargs)
-        #print("IN LOSS", torch.sum(pvre), torch.sum(vre))
         return self.parameters['vre_scale']*vre + self.parameters['pvre_scale']*pvre
 
 
@@ -458,7 +441,6 @@ class Metrics():
         kwargs['requires_velocity'] = False
         kwargs['fxn_name'] = self.E.__name__
 
-        # geo_val, velocity, pes_val, force = self._parse_input(**kwargs)
         path_geometry, path_velocity, path_energy, path_force = self._parse_input(**kwargs)
 
         return path_energy, path_energy, path_force, path_velocity
@@ -500,14 +482,3 @@ class Metrics():
         path_geometry, path_velocity, path_energy, path_force = self._parse_input(**kwargs)
 
         return torch.linalg.norm(path_force, dim=-1, keepdim=True), path_energy, path_force, path_velocity
-    
-    
-    def saddle_eigenvalues(self, **kwargs):
-        kwargs['requires_force'] = True
-        kwargs['requires_energy'] = False
-        kwargs['requires_velocity'] = True
-        kwargs['fxn_name'] = self.saddle_eigenvalues.__name__
-
-        path_geometry, path_velocity, path_energy, path_force = self._parse_input(**kwargs)
-        path_hessian = asdf
-        return None

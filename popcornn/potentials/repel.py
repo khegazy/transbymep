@@ -8,8 +8,6 @@ class RepelPotential(BasePotential):
             self, 
             alpha=1.7, 
             beta=0.01, 
-            # r_max=3.0, 
-            # skin=0.1, 
             **kwargs,
         ):
         """
@@ -31,8 +29,6 @@ class RepelPotential(BasePotential):
         super().__init__(**kwargs)
         self.alpha = alpha
         self.beta = beta
-        # self.r_max = r_max
-        # self.skin = skin
         self.r0 = None
     
     def forward(self, points):

@@ -39,49 +39,6 @@ class Cosine(SchedulerBase):
         # return self.eta_min + (self.value - self.eta_min) * (1 + math.cos(math.pi * self.last_epoch / self.T_max)) / 2
         return self.value * (self.end_factor + (self.start_factor - self.end_factor) * (1 + math.cos(math.pi * self.last_epoch / self.total_iters)) / 2)
     
-# class ReduceOnPlateau(SchedulerBase):
-#     def __init__(self, value, lr_scheduler, factor=0.1, last_epoch=-1):
-#         super().__init__(value, last_epoch)
-#         self.value = value
-#         self.factor = factor
-
-#         self.lr_scheduler = lr_scheduler
-#         assert isinstance(self.lr_scheduler, ReduceLROnPlateau)  # TODO: Decouple the loss scheduler from the learning rate scheduler
-#         self.lr = self.lr_scheduler.optimizer.param_groups[0]['lr']
-    
-#     def step(self):
-#         print(self.lr, self.lr_scheduler.optimizer.param_groups[0]['lr'])
-#         if self.lr != self.lr_scheduler.optimizer.param_groups[0]['lr']:
-#             self._reduce_value()
-#         self.lr = self.lr_scheduler.optimizer.param_groups[0]['lr']
-    
-#     def _reduce_value(self):
-#         old_value = self.value
-#         new_value = old_value * self.factor
-#         self.value = new_value
-
-# class IncreaseOnPlateau(SchedulerBase):
-#     def __init__(self, value, lr_scheduler, factor=0.1, last_epoch=-1):
-#         super().__init__(value, last_epoch)
-#         self.value = 0
-#         self.max_value = value
-#         self.factor = factor
-
-#         self.lr_scheduler = lr_scheduler
-#         assert isinstance(self.lr_scheduler, ReduceLROnPlateau)
-#         self.lr = self.lr_scheduler.optimizer.param_groups[0]['lr']
-    
-#     def step(self):
-#         print(self.lr, self.lr_scheduler.optimizer.param_groups[0]['lr'])
-#         if self.lr != self.lr_scheduler.optimizer.param_groups[0]['lr']:
-#             self._increase_value()
-#         self.lr = self.lr_scheduler.optimizer.param_groups[0]['lr']
-    
-#     def _increase_value(self):
-#         old_value = self.value
-#         new_value = self.max_value - (self.max_value - old_value) * self.factor
-#         self.value = new_value
-
 
 SCHEDULER_DICT = {
     'linear' : Linear,

@@ -22,7 +22,6 @@ class MinimaUpdate():
             point = point.unsqueeze(0)
             unsqueeze = True
         
-        #point = torch.nn.Parameter(point, requires_grad=True)
         point.requires_grad = True
         optimizer = torch.optim.SGD([point], lr=self.step_size)
         print(f"computing minima ... {point}")

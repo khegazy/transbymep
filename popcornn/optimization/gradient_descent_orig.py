@@ -2,7 +2,7 @@ import jax
 import jax.numpy as jnp
 from functools import partial
 
-from transbymep.tools.logging import logging
+from popcornn.tools.logging import logging
 from . import path_metrics as path_tools
 
 

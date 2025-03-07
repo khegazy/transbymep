@@ -5,8 +5,8 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
 import torchpathdiffeq
-import transbymep
-from transbymep import tools
+import popcornn
+from popcornn import tools
 
 
 if __name__ == "__main__":
@@ -26,13 +26,13 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     config = tools.import_yaml(f"configs/{args.config}")
-    #config = transbymep.tools.import_run_config(
+    #config = popcornn.tools.import_run_config(
     #    "configs/visualize_growing_string.yaml"
     #)
 
     """
     integrator = tools.ODEintegrator(**config['integrator_params'])
-    optimizer = transbymep.optimization.PathOptimizer(
+    optimizer = popcornn.optimization.PathOptimizer(
         path=None,
         **config['optimizer_params']
     )

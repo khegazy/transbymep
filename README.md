@@ -1,4 +1,4 @@
-# transbymep
+# Popcornn
 
 Before running one must install torchpathdiffeq. To do so you have to clone the repo and install in edit mode from the top level torchpathdiffeq directory.
 ```

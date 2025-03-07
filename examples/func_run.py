@@ -1,5 +1,5 @@
 from ase.io import read, write
-from transbymep import optimize_MEP
+from popcornn import optimize_MEP
 
 
 # Create configurations, or read them from a file

@@ -1,11 +1,15 @@
-name: release
+ame: Upload Python Package to PyPI when a Release is Created
 
 on:
   release:
-    types: [published]
+    types: [created]
 
 jobs:
   deploy:
+    name: Publish release to PyPI
+    environment:
+      name: pypi
+      url: https://pypi.org/p/popcornn
     runs-on: ubuntu-latest
     permissions:
       id-token: write
@@ -19,14 +23,10 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install build
-          pip install -r tests/requirements.txt
-          pip install -e .
+          pip install .
 
       - name: Build sdist
         run: python -m build --sdist
 
       - name: Publish package
         uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          user: __token__
-          password: ${{ secrets.PYPI_API_TOKEN }}

@@ -2,9 +2,9 @@ import torch
 import numpy as np
 import scipy as sp
 from dataclasses import dataclass
-from transbymep.tools import pair_displacement, wrap_points
-from transbymep.tools import Images
-from transbymep.potentials.base_potential import BasePotential
+from popcornn.tools import pair_displacement, wrap_points
+from popcornn.tools import Images
+from popcornn.potentials.base_potential import BasePotential
 from typing import Callable, Any
 from ase import Atoms
 from ase.io import read

@@ -4,7 +4,7 @@ import ase
 from ase.io import read
 from dataclasses import dataclass
 
-from transbymep.tools.ase import pair_displacement
+from Popcornn.tools.ase import pair_displacement
 
 
 @dataclass

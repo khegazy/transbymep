@@ -8,12 +8,12 @@ from ase import Atoms
 from dataclasses import dataclass
 import json
 
-from transbymep.paths import get_path
-from transbymep.optimization import initialize_path
-from transbymep.optimization import PathOptimizer
-from transbymep.tools import process_images, output_to_atoms
-from transbymep.tools import ODEintegrator
-from transbymep.potentials import get_potential
+from Popcornn.paths import get_path
+from Popcornn.optimization import initialize_path
+from Popcornn.optimization import PathOptimizer
+from Popcornn.tools import process_images, output_to_atoms
+from Popcornn.tools import ODEintegrator
+from Popcornn.potentials import get_potential
 
 
 @dataclass

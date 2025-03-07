@@ -11,11 +11,11 @@ import wandb
 import ase, ase.io
 from typing import NamedTuple
 
-from transbymep import tools
-from transbymep import paths
-from transbymep import optimization
-from transbymep.tools import visualize
-from transbymep.potentials import get_potential
+from Popcornn import tools
+from Popcornn import paths
+from Popcornn import optimization
+from Popcornn.tools import visualize
+from Popcornn.potentials import get_potential
 
 
 def optimize_MEP(

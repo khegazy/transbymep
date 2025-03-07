@@ -2,7 +2,7 @@ import jax
 import jax.numpy as jnp
 from functools import partial
 
-from transbymep.tools.logging import logging
+from Popcornn.tools.logging import logging
 
 
 @jax.jit

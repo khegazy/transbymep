@@ -2,8 +2,8 @@ import numpy as np
 import torch
 import ase
 from ase.calculators.singlepoint import SinglePointCalculator
-# from transbymep.paths.base_path import PathOutput
-# from transbymep.tools.preprocess import Images
+# from Popcornn.paths.base_path import PathOutput
+# from Popcornn.tools.preprocess import Images
 
 
 def pair_displacement(

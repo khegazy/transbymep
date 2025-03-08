@@ -187,21 +187,9 @@ class BasePath(torch.nn.Module):
                     grad_outputs=torch.ones_like(potential_output.energy),
                     create_graph=self.training,
                 )[0]
-                #print("SHAPES", pes_path.shape, len(pes_path.shape), torch.ones(0), geo_path.shape)
-                #print("CHECK IS GRADS BATCHD FOR LEN > 0")
-                # force = torch.autograd.grad(
-                #     torch.sum(pes_path),
-                #     geo_path,
-                #     create_graph=self.training,
-                # )[0]
-                #print("LEN F", len(force), force[0].shape)
-                # if not is_batched:
-                #     force = torch.unsqueeze(force, 0)
-                #print("FORCES", force.shape)
         else:
             path_force = None
         if return_velocity:
-            #print("VEL SHAPES", geo_path.shape, t.shape)
             # if is_batched:
             #     fxn = lambda t: torch.sum(self.geometric_path(t), axis=0)
             # else:
@@ -228,22 +216,6 @@ class BasePath(torch.nn.Module):
     
     def find_TS(self, times, energies, idx_shift=5, N_interp=5000):
         TS_idx = torch.argmax(energies.view(-1)).item()
-        """
-        t_min = path_integral.t.view(-1)[np.max([0, TS_idx-idx_shift])].item()
-        t_max = path_integral.t.view(-1)[np.min([len(path_integral.y), TS_idx+idx_shift])].item()
-        TS_time_scale = t_max - t_min
-        print("TSIDX", TS_idx, path_integral.y.view(-1).shape, np.max([0, TS_idx-idx_shift]))
-        self.TS_region = torch.linspace(t_min, t_max, 25, requires_grad=False).unsqueeze(-1)
-        self.TS_E_range = path(
-            self.TS_region, return_energy=True,
-            return_force=False, return_velocity=False
-        ).path_energy
-        print(self.TS_region.shape, self.TS_E_range.shape)
-        TS_interp = sp.interpolate.interp1d(
-            self.TS_region[:,0].detach().numpy(),
-            self.TS_E_range.detach().numpy()
-        )
-        """
         N_C = times.shape[-2]
         idx_min = np.max([0, TS_idx-(idx_shift*N_C)])
         idx_max = np.min(
@@ -260,14 +232,7 @@ class BasePath(torch.nn.Module):
         TS_search = np.linspace(t_interp[0], t_interp[-1], N_interp)
         TS_E_search = TS_interp(TS_search)
         TS_idx = np.argmax(TS_E_search)
-        """
-        print(TS_idx)
-        print(self.TS_E_range)
-        plt.plot(self.TS_region.detach(), self.TS_E_range.detach(), 'o')
-        plt.plot(TS_search, TS_E_search)
-        plt.savefig("testing_interp.png")
-        plt.close()
-        """
+        
         TS_time_scale = t_interp[-1] - t_interp[0]
         self.TS_time = TS_search[TS_idx]
         self.TS_region = torch.linspace(

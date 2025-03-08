@@ -26,15 +26,7 @@ class logging():
             add_translation_dof=False
         ):
         print(f"Step {step} | Loss: {loss.item():.7}")
-        """
-        for ii in range(len(path.mlp.layers)):
-            print(f"W{ii} sum: {jnp.sum(path.mlp.layers[ii].weight)}")
-            print(f"Wg{ii} sum: {jnp.sum(grads.mlp.layers[ii].weight)}")
-        """
-        #print(path.mlp.layers[0].weight)
-        #print("test grad", grads.mlp.layers[0].weight)
         path_output = path.get_path(return_velocity=True, return_force=True)
-        #print('PATH SHAPE', geo_path.shape, pes_path.shape)
         if geo_paths is not None:
             geo_paths.append(path_output.geometric_path)
         if pes_paths is not None:

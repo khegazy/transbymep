@@ -130,8 +130,6 @@ class PathOptimizer():
             t_init=t_init,
             t_final=t_final
         )
-        #for n, prm in path.named_parameters():
-        #    print(n, prm.grad)
         if not path_integral.gradient_taken:
             path_integral.loss.backward()
             # (path_integral.integral**2).backward()
@@ -165,12 +163,6 @@ class PathOptimizer():
         for name, sched in self.TS_region_loss_schedulers.items():
             sched.step()
         if self.lr_scheduler is not None:
-            # if isinstance(self.scheduler, lr_scheduler.ReduceLROnPlateau):
-            #     self.scheduler.step(path_integral.loss)
-            #     if self.optimizer.param_groups[0]['lr'] <= self.scheduler.min_lrs[0]:
-            #         self.converged = True
-            # else:
-            #     self.lr_scheduler.step()
             self.lr_scheduler.step()
         
         ############# Testing ##############

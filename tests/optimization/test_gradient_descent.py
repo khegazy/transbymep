@@ -3,6 +3,10 @@ import argparse
 from popcornn import tools
 # from Popcornn.optimization.gradient_descent import gradientDescent
 
+def test_loading():
+    return True
+    
+
 '''
 @pytest.fixture
 def args_dict():

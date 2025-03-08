@@ -2,9 +2,8 @@
 Path Optimization with a Continuous Representation Neural Network for reaction path with machine learning potentials
 
 ## Installation and Dependencies
-Before running one must install torchpathdiffeq. To do so you have to clone the repo and install in edit mode from the top level torchpathdiffeq directory.
 ```
-pip install -e .[dev]
+python3 -m pip install popcornn
 ```
 
 ## Optimization

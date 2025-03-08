@@ -1,4 +1,4 @@
-ame: Upload Python Package to PyPI when a Release is Created
+name: Upload Python Package to PyPI when a Release is Created
 
 on:
   release:
